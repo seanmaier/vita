@@ -1,0 +1,113 @@
+---
+name: stellencheck
+description: Bewertet eine Stellenanzeige gegen die Prioritäten und Skills des Nutzers und sagt, ob sie zu ihm passt und zu wie viel Prozent - mit Ausschlusskriterien, gewichteten Kriterien und Empfehlung. Fragt beim ersten Mal (oder mit "prioritaeten") die Prioritäten ab und speichert sie in private/knowledge/priorities.md. Verwenden bei "/stellencheck", wenn der Nutzer eine Stelle (URL oder Text) zur Einschätzung schickt, fragt "passt die Stelle zu mir?", oder bevor /bewerbung eine Bewerbung anlegt.
+argument-hint: "<URL oder Text der Stellenanzeige> | prioritaeten"
+---
+
+# Stellencheck
+
+Ziel: schnell und ehrlich entscheiden, ob sich eine Bewerbung lohnt. Grundlage sind
+`private/knowledge/priorities.md` (was der Nutzer will) und `private/knowledge/about-me.md`
+(was er kann). Beide Dateien sind gitignored; nie committen, nie an externe Dienste senden.
+
+`$ARGUMENTS` ist die Stellenanzeige. Bei `prioritaeten` oder wenn `priorities.md` fehlt:
+zuerst **Prioritäten erfassen**.
+
+## Prioritäten erfassen (einmalig, später nur bei Bedarf)
+
+1. `priorities.md` lesen, falls vorhanden; sonst aus dem Abschnitt „Kurzprofil“ von
+   `about-me.md` vorbefüllen.
+2. Nur fragen, was fehlt, höchstens 4 Fragen pro Runde. Zu klären:
+   - **Ausschlusskriterien** (sofort „passt nicht“): z. B. Freelance, Vor-Ort-Pflicht in
+     anderer Stadt, Seniorität, Branchen, die er nicht will
+   - **Arbeitsmodell und Ort**: hybrid / remote / vor Ort, Stadt, maximaler Pendelweg,
+     Office-Tage pro Woche
+   - **Rolle**: Backend, Full-Stack mit Backend-Fokus, …; Seniorität
+   - **Stack**: Haupt- und Zweitsprache, was er lernen will, was er nicht will
+   - **Themen und Domänen**, die ihn reizen oder abschrecken
+   - **Gehalt**: Untergrenze und Wunsch (nur zur Bewertung, nie in Anschreiben)
+   - **Sprache, Unternehmensgröße, Lernumfeld/Mentoring**
+   - **Gewichte**: die Standardgewichte unten zeigen und fragen, ob sie passen
+3. Antworten sofort in `priorities.md` schreiben (Vorlage siehe unten).
+
+## Stelle bewerten
+
+1. **Anzeige lesen** (URL per Web-Fetch-Werkzeug, Text direkt). Extrahieren: Firma, Rolle,
+   Anstellungsart, Arbeitsmodell und Ort, Seniorität und geforderte Jahre, Muss- und
+   Kann-Anforderungen, Stack, Domäne, Gehalt, Sprache.
+2. **Ausschlusskriterien prüfen.** Trifft eines zu: Gesamtwert höchstens 20 %, Empfehlung
+   „nicht bewerben“, Grund an erster Stelle nennen. Ist es nur unklar (z. B. Anstellungsart
+   nicht genannt), nicht ausschließen, sondern als offene Frage markieren.
+3. **Kriterien bewerten.** Jedes Kriterium bekommt einen Erfüllungsgrad von 0–100 %, der mit
+   seinem Gewicht aus `priorities.md` multipliziert wird. Summe = Passung in %.
+   - Ist etwas in der Anzeige nicht angegeben: 50 % ansetzen und als „unbekannt“ markieren,
+     nicht raten.
+   - **Skill-Passung** nur gegen `about-me.md` messen: „Hauptsprache“/„produktiv“ zählt voll,
+     „lernend“ halb, nicht belegt gar nicht. Muss-Anforderungen wiegen doppelt so viel wie
+     Kann-Anforderungen.
+   - **Erfüllbarkeit**: Geforderte Berufsjahre und Seniorität mit der tatsächlichen
+     Erfahrung vergleichen (Berufsjahre in `about-me.md`). „3+ Jahre“ bei ca. 3 Jahren ist
+     erfüllbar; „Senior, 5+ Jahre“ nicht.
+4. **Ergebnis zeigen** (Format unten). Ehrlich bleiben: lieber eine Stelle abraten als eine
+   Bewerbung ins Leere schicken.
+5. **Protokollieren**: eine Zeile unter „Bewertete Stellen“ in `priorities.md` ergänzen
+   (Datum, Firma, Rolle, Passung, Empfehlung; Entscheidung des Nutzers nachtragen, sobald
+   bekannt).
+6. **Kalibrieren**: Entscheidet der Nutzer anders als die Empfehlung (bewirbt sich bei
+   < 50 % oder lehnt > 75 % ab), nach dem Grund fragen und anbieten, Gewichte oder
+   Ausschlusskriterien anzupassen.
+7. **Weiter**: Bei „bewerben“ anbieten, direkt mit `/bewerbung <URL>` weiterzumachen.
+
+## Ausgabeformat
+
+```
+## <Firma> – <Rolle>: <Passung> %  →  <Empfehlung>
+
+<Ein Satz: der wichtigste Grund für die Empfehlung.>
+
+| Kriterium | Gewicht | Erfüllt | Punkte | Begründung |
+|---|---|---|---|---|
+| … | 20 | 75 % | 15 | … |
+| **Summe** | 100 | | **NN** | |
+
+**Stärken:** 2–3 Punkte, die für die Stelle sprechen
+**Risiken / Lücken:** Muss-Anforderungen, die fehlen; Unklares
+**Offene Fragen an die Firma:** z. B. Office-Tage, Gehalt, Teamgröße
+```
+
+Empfehlungsstufen: **≥ 75 %** „bewerben“, **50–74 %** „bewerben, wenn …“ (Bedingung
+nennen), **< 50 %** „eher nicht“, Ausschlusskriterium „nicht bewerben“.
+
+## Vorlage für `priorities.md`
+
+```markdown
+# Prioritäten für die Jobsuche
+
+Stand: <Datum>
+
+## Ausschlusskriterien
+- …
+
+## Kriterien und Gewichte (Summe 100)
+
+| Kriterium | Gewicht | 100 % heißt | 0 % heißt |
+|---|---|---|---|
+| Anstellung & Arbeitsmodell | 15 | … | … |
+| Rollenfokus | 20 | … | … |
+| Stack-Passung | 20 | … | … |
+| Erfüllbarkeit / Seniorität | 15 | … | … |
+| Themen & Domäne | 10 | … | … |
+| Standort & Pendeln | 10 | … | … |
+| Lernumfeld & Team | 5 | … | … |
+| Gehalt | 5 | … | … |
+
+## Details
+- Ort, Pendelweg, Office-Tage: …
+- Gehalt (Untergrenze / Wunsch): …
+- …
+
+## Bewertete Stellen
+
+| Datum | Firma | Rolle | Passung | Empfehlung | Entscheidung |
+|---|---|---|---|---|---|
+```
