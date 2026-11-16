@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken } from '../utils/api';
+import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken, type UserTokenScope } from '../utils/api';
 import { nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
 
 const hint = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] leading-[1.6]';
@@ -16,7 +16,7 @@ function formatTimestamp(value: string | null): string {
 export function ApiTokensSection() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
-  const [scope, setScope] = useState<'full' | 'job-leads:ingest'>('full');
+  const [scope, setScope] = useState<UserTokenScope>('full');
   const [created, setCreated] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,15 +127,19 @@ export function ApiTokensSection() {
           className={nafInput}
           aria-label="Scope"
           value={scope}
-          onChange={(e) => setScope(e.target.value as 'full' | 'job-leads:ingest')}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next === 'full' || next === 'job-leads:ingest') setScope(next);
+          }}
         >
-          <option value="full">full — everything a script needs</option>
-          <option value="job-leads:ingest">job-leads:ingest — can only add job leads</option>
+          <option value="full">full</option>
+          <option value="job-leads:ingest">job-leads:ingest (leads only)</option>
         </select>
         <button className={`${primaryButton} shrink-0`} type="submit" disabled={busy}>
           {busy ? 'creating…' : 'create token'}
         </button>
       </form>
+      <p className={hint}>full: everything a script or assistant needs. job-leads:ingest: can only add job leads.</p>
 
       {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
     </section>
