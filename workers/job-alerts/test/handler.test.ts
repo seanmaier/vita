@@ -231,3 +231,37 @@ test('APP_URL with trailing slashes does not produce a double slash', async () =
   await handleEmail(m.message, { ...env, APP_URL: 'https://app.test//' }, f.impl, noSleep);
   assert.equal(f.calls[0].url, 'https://app.test/api/v1/inbound-mail');
 });
+
+test('a raw stream that errors ends in a temporary rejection', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, 'x');
+  m.message.raw = new ReadableStream({
+    start(controller) {
+      controller.error(new Error('broken'));
+    },
+  });
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
+  assert.equal(f.calls.length, 0);
+  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+});
+
+test('an unexpected error while building the payload ends in a temporary rejection', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  Object.defineProperty(m.message, 'to', {
+    get() {
+      throw new Error('stub failure');
+    },
+  });
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
+  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+});
+
+test('the app call has a timeout signal and an abort is retried like a network error', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const abort = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+  const f = fakeFetch(abort as unknown as Error, 201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  assert.equal(f.calls.length, 2);
+  assert.ok(f.calls[0].init.signal instanceof AbortSignal);
+});

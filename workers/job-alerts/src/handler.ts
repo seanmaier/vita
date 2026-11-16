@@ -12,7 +12,7 @@ export interface Env {
 
 export type EmailOutcome = 'delivered' | 'rejected' | 'unavailable';
 
-type Message = Pick<ForwardableEmailMessage, 'from' | 'to' | 'raw' | 'headers' | 'forward' | 'setReject'>;
+type Message = Pick<ForwardableEmailMessage, 'from' | 'to' | 'raw' | 'headers' | 'setReject'>;
 type ParsedMail = Awaited<ReturnType<typeof PostalMime.parse>>;
 
 interface InboundPayload {
@@ -30,6 +30,8 @@ const MAX_LEADS = 100;
 const MAX_SHORT_FIELD = 300;
 const MAX_DETAIL = 2000;
 const RETRY_DELAY_MS = 2000;
+const FETCH_TIMEOUT_MS = 10_000;
+const TEMPORARY_REJECT = 'temporarily unavailable, please retry later';
 
 /** Make leads safe for the app's all-or-nothing validation (it rejects the whole batch on one bad entry). */
 export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
@@ -69,6 +71,8 @@ async function postInbound(
       body: JSON.stringify(payload),
       // Never follow redirects: they would drop the POST body and could carry the bearer token elsewhere.
       redirect: 'manual',
+      // A hanging app or Access endpoint must become a retryable error, not a killed worker.
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     // Only the app's 201 counts; a 200 (e.g. an Access login page) or any 3xx is a failure.
     if (res.status === 201) return { ok: true };
@@ -123,31 +127,40 @@ export async function handleEmail(
   fetchImpl: typeof fetch = fetch,
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 ): Promise<EmailOutcome> {
-  const buffer = await new Response(message.raw).arrayBuffer();
-  let parsed: ParsedMail | null = null;
+  const bounce = (): EmailOutcome => {
+    // Bounce to the sender instead of dropping the mail silently.
+    message.setReject(TEMPORARY_REJECT);
+    return 'unavailable';
+  };
   try {
-    parsed = await PostalMime.parse(buffer);
-  } catch {
-    parsed = null;
-  }
+    const buffer = await new Response(message.raw).arrayBuffer();
+    let parsed: ParsedMail | null = null;
+    try {
+      parsed = await PostalMime.parse(buffer);
+    } catch {
+      parsed = null;
+    }
 
-  const { payload, log } = buildPayload(message, parsed);
-  let result = await postInbound(env, payload, fetchImpl);
-  if (!result.ok && result.retryable) {
-    await sleep(RETRY_DELAY_MS);
-    result = await postInbound(env, payload, fetchImpl);
+    const { payload, log } = buildPayload(message, parsed);
+    let result = await postInbound(env, payload, fetchImpl);
+    if (!result.ok && result.retryable) {
+      await sleep(RETRY_DELAY_MS);
+      result = await postInbound(env, payload, fetchImpl);
+    }
+    if (result.ok) {
+      console.log(`job-alerts: delivered ${log}`);
+      return 'delivered';
+    }
+    if (!result.retryable) {
+      message.setReject('not accepted');
+      console.log(`job-alerts: rejected ${log} status=${result.status}`);
+      return 'rejected';
+    }
+    console.log(`job-alerts: unavailable ${log} status=${result.status}`);
+    return bounce();
+  } catch (error) {
+    // Log the error type only, never mail content.
+    console.log(`job-alerts: unavailable (unexpected ${error instanceof Error ? error.name : typeof error})`);
+    return bounce();
   }
-  if (result.ok) {
-    console.log(`job-alerts: delivered ${log}`);
-    return 'delivered';
-  }
-  if (!result.retryable) {
-    message.setReject('not accepted');
-    console.log(`job-alerts: rejected ${log} status=${result.status}`);
-    return 'rejected';
-  }
-  // Bounce to the sender instead of dropping the mail silently.
-  message.setReject('temporarily unavailable, please retry later');
-  console.log(`job-alerts: unavailable ${log} status=${result.status}`);
-  return 'unavailable';
 }
