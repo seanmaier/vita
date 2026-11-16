@@ -32,6 +32,7 @@ import {
 import type { ApplicationConfig } from '../src/types.ts';
 import { db, transaction } from './db.ts';
 import { affectedAppIds, BROWSER_AUTHOR, deleteVersions, recordChanges, snapshot } from './history.ts';
+import { refusedStorageKeys } from './statusHistory.ts';
 import type { V1Env } from './http.ts';
 import { purgeOldInboundEvents } from './inboundMail.ts';
 import { accessLog, clientIp, log, requestFields } from './log.ts';
@@ -233,6 +234,11 @@ app.put('/api/data', requireUser, async (c) => {
     !Array.isArray(rawRemove) || !rawRemove.every((k) => typeof k === 'string')
   ) {
     return c.json({ error: 'Expected { set: Record<string, string>, remove: string[], messages?: Record<string, string> }.' }, 400);
+  }
+
+  const refused = refusedStorageKeys(Object.keys(rawSet));
+  if (refused.length) {
+    return c.json({ error: `The status can only change through /api/v1/applications/:id/transitions; refused: ${refused.join(', ')}.` }, 400);
   }
 
   const userId = c.get('user').id;

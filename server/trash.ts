@@ -45,6 +45,7 @@ export function purgeTrash(now: number = Date.now()): { applications: number; ba
       for (const app of purged) {
         removeValue(userId, KEYS.appConfig(app.id));
         removeValue(userId, KEYS.status(app.id));
+        removeValue(userId, KEYS.statusHistory(app.id));
         deleteVersions(userId, app.id);
       }
     }

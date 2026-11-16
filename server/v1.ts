@@ -3,11 +3,13 @@
 // sync raw storage keys, these routes work on one application or base profile
 // at a time and return the merged, effective view of it.
 import { Hono, type Context } from 'hono';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup } from '../src/types.ts';
+import { allowedNext, appendTransition, currentStatus, derivedDates, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '../src/domain/statusMachine.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition } from '../src/types.ts';
 import { validateApplicationConfig } from '../src/utils/parseApplicationConfig.ts';
 import { validateProfile } from '../src/utils/parseProfile.ts';
 import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
 import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
+import { todayIso } from '../src/utils/date.ts';
 import { slugify, uniqueId } from '../src/utils/slug.ts';
 import { purgeDate } from '../src/utils/trash.ts';
 import { transaction } from './db.ts';
@@ -17,7 +19,8 @@ import { inboundMail } from './inboundMail.ts';
 import { jobAlerts } from './jobAlerts.ts';
 import { jobLeads } from './jobLeads.ts';
 import { knowledge } from './knowledge.ts';
-import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
+import { historyFor, writeHistory } from './statusHistory.ts';
+import { getJson, idsWithStoredKey, KEYS, setJson } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
@@ -30,17 +33,32 @@ function localApps(userId: number): ApplicationConfig[] {
   return getJson<ApplicationConfig[]>(userId, KEYS.localApps) ?? [];
 }
 
-// Mirrors what the app renders: the stored application, overlaid with the
-// edits saved for it (useApplication) and its separately kept status
-// (useApplicationStatus). Whether it's in the trash is only ever recorded on
-// the stored entry.
-function effectiveApplication(userId: number, base: ApplicationConfig): ApplicationConfig {
-  const override = getJson<StoredConfig>(userId, KEYS.appConfig(base.id));
-  const status = getValue(userId, KEYS.status(base.id)) as ApplicationStatus | null;
-  return { ...base, ...override, id: base.id, status: status ?? base.status, deletedAt: base.deletedAt };
+/** An application as the API returns it: with its status history, from which status and dates are derived. */
+export type EffectiveApplication = ApplicationConfig & { statusHistory: StatusTransition[] };
+
+// The dates are derived from the status history; values still lying in old
+// saved data are dropped so they can't contradict it.
+function withoutStatusFields<T extends Partial<ApplicationConfig>>(config: T) {
+  const { appliedDate: _a, interviewDate: _i, finalDecisionDate: _f, ...rest } = config;
+  return rest;
 }
 
-function findApplication(userId: number, id: string): ApplicationConfig | null {
+// Mirrors what the app renders: the stored application, overlaid with the
+// edits saved for it (useApplication), with status and dates from its status
+// history. Whether it's in the trash is only ever recorded on the stored entry.
+function effectiveApplication(userId: number, base: ApplicationConfig): EffectiveApplication {
+  const override = getJson<StoredConfig>(userId, KEYS.appConfig(base.id));
+  const merged = withoutStatusFields({ ...base, ...override, id: base.id, deletedAt: base.deletedAt });
+  const statusHistory = historyFor(userId, base.id, base)!;
+  return {
+    ...merged,
+    status: currentStatus(statusHistory, todayIso()),
+    ...derivedDates(statusHistory, languageOf(merged)),
+    statusHistory,
+  };
+}
+
+function findApplication(userId: number, id: string): EffectiveApplication | null {
   const base = localApps(userId).find((a) => a.id === id);
   return base ? effectiveApplication(userId, base) : null;
 }
@@ -103,6 +121,14 @@ const APPLICATION_FIELDS = [
   'id', 'company', 'role', 'status', 'language', 'font', 'appliedDate', 'interviewDate', 'finalDecisionDate',
   'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter',
 ];
+// Derived from the status history; changed only through the transitions
+// endpoints below. Still listed above so a request naming them gets this
+// explanation rather than "unknown field".
+const DATE_FIELDS = ['appliedDate', 'interviewDate', 'finalDecisionDate'];
+const STATUS_FIELDS_ERROR =
+  'The status and the applied/interview/decision dates follow the status history. Change them with ' +
+  'POST /api/v1/applications/:id/transitions { to, date? }, undo with DELETE /api/v1/applications/:id/transitions/last, ' +
+  'and fix a date with PATCH /api/v1/applications/:id/transitions/:index { date }.';
 const BASE_PROFILE_FIELDS = ['id', 'name', 'language', 'profile'];
 // Not part of the application: a short note on what a write changed, shown
 // in the application's version history like a commit message.
@@ -149,6 +175,7 @@ v1.post('/applications', async (c) => {
   if (Array.isArray(body)) return invalid(c, body);
   const message = takeChangeMessage(body);
   if (Array.isArray(message)) return invalid(c, message);
+  if (DATE_FIELDS.some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
   const result = validateApplication({ ...body, status: 'drafting' });
   if (!result.ok) return invalid(c, result.errors);
 
@@ -168,11 +195,13 @@ v1.post('/applications', async (c) => {
       ...apps.map((a) => a.id),
       ...idsWithStoredKey(userId, KEYS.appConfig('')),
       ...idsWithStoredKey(userId, KEYS.status('')),
+      ...idsWithStoredKey(userId, KEYS.statusHistory('')),
     ]);
     if (explicitId && taken.has(result.value.id)) return null;
     const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
     const before = snapshot(userId, [config.id]);
     setJson(userId, KEYS.localApps, [...apps, config]);
+    writeHistory(userId, config.id, [{ to: 'drafting', date: null, recordedAt: new Date().toISOString() }]);
     recordChanges(userId, before, authorOf(c), () => message);
     return config;
   });
@@ -185,7 +214,8 @@ v1.post('/applications', async (c) => {
 
 // Partial update: given fields replace the current value, null removes an
 // optional one. Saved the way the app's editor saves (the app-config
-// override plus the separate status key), so the app shows it immediately.
+// override), so the app shows it immediately. Status and dates aren't
+// fields here; see the transitions endpoints.
 v1.patch('/applications/:id', async (c) => {
   const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
   if (Array.isArray(body)) return invalid(c, body);
@@ -193,6 +223,7 @@ v1.patch('/applications/:id', async (c) => {
   if (Array.isArray(message)) return invalid(c, message);
   const id = c.req.param('id');
   if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
+  if (['status', ...DATE_FIELDS].some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
 
   const userId = c.get('user').id;
   const profileError = baseProfileIdError(userId, body);
@@ -201,7 +232,8 @@ v1.patch('/applications/:id', async (c) => {
     const current = findApplication(userId, id);
     if (!current) return null;
     if (current.deletedAt) return 'trashed';
-    const merged: Body = { ...current };
+    const { statusHistory: _history, ...rest } = current;
+    const merged: Body = { ...rest };
     for (const [key, value] of Object.entries(body)) {
       if (value === null) delete merged[key];
       else merged[key] = value;
@@ -209,10 +241,9 @@ v1.patch('/applications/:id', async (c) => {
     const result = validateApplication(merged);
     if (!result.ok) return result;
 
-    const { status, ...stored } = result.value;
+    const { status: _status, ...stored } = result.value;
     const before = snapshot(userId, [id]);
-    setJson(userId, KEYS.appConfig(id), stored);
-    if ('status' in body) setValue(userId, KEYS.status(id), status);
+    setJson(userId, KEYS.appConfig(id), withoutStatusFields(stored));
     recordChanges(userId, before, authorOf(c), () => message);
     return { ok: true, value: null };
   });
@@ -221,6 +252,105 @@ v1.patch('/applications/:id', async (c) => {
   if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
   if (!outcome.ok) return invalid(c, outcome.errors);
   return c.json(findApplication(userId, id));
+});
+
+// ---- Status transitions ----------------------------------------------------
+// The status only moves along src/domain/statusMachine.ts's transitions, and
+// every step is recorded with its date. An application the server can't see
+// (bundled with the app in development) starts from the caller's `expected`.
+
+type HistoryChange =
+  | StatusTransition[]
+  | { kind: 'invalid'; error: string }
+  | { kind: 'conflict'; error: string };
+
+type HistoryOutcome =
+  | { kind: 'ok'; app: EffectiveApplication }
+  | { kind: 'missing' }
+  | { kind: 'trashed' }
+  | { kind: 'invalid'; error: string }
+  | { kind: 'conflict'; error: string; from: ApplicationStatus };
+
+/** Applies one change to an application's history in a transaction and answers the request. */
+function changeHistory(
+  c: Context,
+  change: (history: StatusTransition[]) => HistoryChange,
+  expected?: ApplicationStatus,
+) {
+  const userId = c.get('user').id;
+  const id = c.req.param('id')!;
+  const outcome = transaction((): HistoryOutcome => {
+    const base = localApps(userId).find((a) => a.id === id);
+    if (base?.deletedAt) return { kind: 'trashed' };
+    const history = historyFor(userId, id, base, expected);
+    if (!history) return { kind: 'missing' };
+    const from = currentStatus(history, todayIso());
+    if (expected !== undefined && expected !== from) {
+      return { kind: 'conflict', from, error: `The status is "${from}" now, not "${expected}". Reload and try again.` };
+    }
+    const result = change(history);
+    if (!Array.isArray(result)) return result.kind === 'conflict' ? { ...result, from } : result;
+    writeHistory(userId, id, result);
+    const app = findApplication(userId, id);
+    return {
+      kind: 'ok',
+      app: app ?? ({ id, status: currentStatus(result, todayIso()), statusHistory: result } as EffectiveApplication),
+    };
+  });
+  switch (outcome.kind) {
+    case 'ok':
+      return c.json(outcome.app);
+    case 'missing':
+      return c.json({ error: 'No such application.' }, 404);
+    case 'trashed':
+      return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+    case 'invalid':
+      return invalid(c, [outcome.error]);
+    case 'conflict':
+      return c.json({ error: outcome.error, from: outcome.from, allowed: allowedNext(outcome.from) }, 409);
+  }
+}
+
+const DATE_ERROR = '"date" must be a date like "2026-11-16".';
+
+v1.post('/applications/:id/transitions', async (c) => {
+  const body = await readBody(c, ['to', 'date', 'expected']);
+  if (Array.isArray(body)) return invalid(c, body);
+  if (!isStoredStatus(body.to)) return invalid(c, ['"to" must be a status other than "ghosted", which is derived.']);
+  if (body.date !== undefined && !isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
+  const expected = body.expected;
+  if (expected !== undefined && !(isStoredStatus(expected) || expected === 'ghosted')) {
+    return invalid(c, ['"expected" must be a status.']);
+  }
+  const to = body.to;
+  const date = (body.date as string | undefined) ?? todayIso();
+  return changeHistory(
+    c,
+    (history) => {
+      const result = appendTransition(history, to, date, new Date().toISOString());
+      return result.ok ? result.history : { kind: 'conflict', error: result.error };
+    },
+    expected,
+  );
+});
+
+v1.delete('/applications/:id/transitions/last', (c) =>
+  changeHistory(c, (history) => {
+    const result = undoLast(history);
+    return result.ok ? result.history : { kind: 'conflict', error: result.error };
+  }),
+);
+
+v1.patch('/applications/:id/transitions/:index', async (c) => {
+  const body = await readBody(c, ['date']);
+  if (Array.isArray(body)) return invalid(c, body);
+  if (!isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
+  const date = body.date;
+  const index = Number(c.req.param('index'));
+  return changeHistory(c, (history) => {
+    const result = setTransitionDate(history, index, date);
+    return result.ok ? result.history : { kind: 'invalid', error: result.error };
+  });
 });
 
 // ---- Version history -------------------------------------------------------
