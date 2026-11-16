@@ -1,6 +1,4 @@
-import type PostalMime from 'postal-mime';
-
-type ParsedMail = Awaited<ReturnType<typeof PostalMime.parse>>;
+import { headerValues, type ParsedMail } from './headers.ts';
 
 const MAX_VALUE = 1000;
 
@@ -16,9 +14,7 @@ export interface HeaderDiagnostics {
 }
 
 const valuesOf = (parsed: ParsedMail | null, key: string): string[] =>
-  (parsed?.headers ?? [])
-    .filter((h) => h.key.toLowerCase() === key)
-    .map((h) => h.value.replace(/\s+/g, ' ').trim().slice(0, MAX_VALUE));
+  headerValues(parsed, key).map((v) => v.slice(0, MAX_VALUE));
 
 const tag = (signature: string, name: string): string | null =>
   new RegExp(`(?:^|;)\\s*${name}=([^;\\s]+)`, 'i').exec(signature)?.[1] ?? null;
