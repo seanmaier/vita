@@ -1,6 +1,7 @@
 import PostalMime from 'postal-mime';
 import { extractConfirmation } from './confirmation.ts';
-import { parseAlert, sourceForSender } from './parsers.ts';
+import { htmlToText } from './links.ts';
+import { forwardedSource, parseAlert, sourceForSender } from './parsers.ts';
 import type { JobLeadInput } from './types.ts';
 
 export interface Env {
@@ -94,7 +95,10 @@ function formatSender(from: { name?: string; address?: string } | undefined): st
 }
 
 /** Decide what the app is told about this mail. The app does the per-user sender check. */
-function buildPayload(message: Message, parsed: ParsedMail | null): { payload: InboundPayload; log: string } {
+async function buildPayload(
+  message: Message,
+  parsed: ParsedMail | null,
+): Promise<{ payload: InboundPayload; log: string }> {
   const base = { recipient: message.to, envelopeFrom: message.from };
   if (!parsed) return { payload: { ...base, kind: 'failed', detail: 'unparseable' }, log: 'failed (unparseable)' };
 
@@ -111,12 +115,15 @@ function buildPayload(message: Message, parsed: ParsedMail | null): { payload: I
     return { payload: { ...common, kind: 'confirmation', detail }, log: 'confirmation' };
   }
 
-  const source = parsed.from?.address ? sourceForSender(parsed.from.address) : null;
+  // A mail forwarded by hand (e.g. from iCloud) is from the user; the platform is in the quoted header block.
+  const source =
+    (parsed.from?.address ? sourceForSender(parsed.from.address) : null) ??
+    forwardedSource(parsed.text ?? htmlToText(parsed.html ?? ''));
   if (!source) {
     return { payload: { ...common, kind: 'failed', detail: 'unknown alert sender' }, log: 'failed (unknown sender)' };
   }
 
-  const leads = sanitize(parseAlert(source, parsed.html ?? ''));
+  const leads = sanitize(await parseAlert(source, parsed.html ?? ''));
   if (leads.length === 0) {
     return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0` };
   }
@@ -143,7 +150,7 @@ export async function handleEmail(
       parsed = null;
     }
 
-    const { payload, log } = buildPayload(message, parsed);
+    const { payload, log } = await buildPayload(message, parsed);
     let result = await postInbound(env, payload, fetchImpl);
     if (!result.ok && result.retryable) {
       await sleep(RETRY_DELAY_MS);

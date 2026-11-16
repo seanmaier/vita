@@ -27,6 +27,15 @@ function decodeEntities(value: string): string {
 const ANCHOR = /<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi;
 const HREF = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i;
 
+/** Rough plain text of an HTML body: line breaks at block ends, tags dropped, entities decoded. */
+export function htmlToText(html: string): string {
+  return decodeEntities(
+    html
+      .replace(/<(?:br|\/(?:p|div|tr|li|h[1-6]|blockquote))\b[^>]*>/gi, '\n')
+      .replace(/<[^>]*>/g, ''),
+  );
+}
+
 /** Extract every `<a href>` with its decoded href and plain, whitespace-collapsed text. */
 export function extractAnchors(html: string): Anchor[] {
   const anchors: Anchor[] = [];

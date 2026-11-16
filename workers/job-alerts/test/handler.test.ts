@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { gzipSync } from 'node:zlib';
 import { handleEmail, sanitize, type Env } from '../src/handler.ts';
 
 const env: Env = {
@@ -272,4 +273,21 @@ test('a missing APP_URL secret calls nothing and ends temporarily rejected', asy
   assert.equal(await handleEmail(m.message, { ...env, APP_URL: '' }, f.impl, noSleep), 'unavailable');
   assert.equal(f.calls.length, 0);
   assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+});
+
+test('a mail forwarded by hand from iCloud is parsed by the platform in the quoted header', async () => {
+  const jk = 'abcdefabcdef0123';
+  const token = gzipSync(JSON.stringify({ u: `https://de.indeed.com/rc/clk?jk=${jk}` })).toString('base64url');
+  const html =
+    '<div>Begin forwarded message:</div><blockquote type="cite"><div><b>From:</b> Indeed &lt;donotreply@match.indeed.com&gt;<br>' +
+    `<b>Subject:</b> Job</div></blockquote><blockquote type="cite"><a href="https://cts.indeed.com/v3/${token}/sig">Backend Dev</a></blockquote>`;
+  const m = fakeMessage('me@icloud.com', rawMail('Me <me@icloud.com>', html));
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  const body = bodyOf(f);
+  assert.equal(body.kind, 'leads');
+  assert.equal(body.envelopeFrom, 'me@icloud.com');
+  assert.deepEqual(body.leads, [
+    { source: 'indeed', externalId: jk, title: 'Backend Dev', url: `https://de.indeed.com/viewjob?jk=${jk}` },
+  ]);
 });
