@@ -120,3 +120,25 @@ export interface ApplicationConfig {
    */
   deletedAt?: string;
 }
+
+export type JobLeadSource = 'linkedin' | 'stepstone' | 'indeed' | 'glassdoor' | 'arbeitsagentur' | 'other';
+export type JobLeadStatus = 'new' | 'rated' | 'dismissed' | 'applied';
+
+export interface JobLeadInput {
+  source: JobLeadSource;
+  externalId: string;
+  title: string;
+  company?: string;
+  location?: string;
+  url: string;
+}
+
+export interface JobLead extends JobLeadInput {
+  id: number;
+  receivedAt: string;
+  status: JobLeadStatus;
+  score: number | null;
+  verdict: string | null;
+  ratedAt: string | null;
+  applicationId: string | null;
+}

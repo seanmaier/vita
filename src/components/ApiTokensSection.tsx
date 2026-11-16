@@ -83,7 +83,10 @@ export function ApiTokensSection() {
               className="flex items-center justify-between gap-3 border border-[color:var(--rule)] rounded-[5px] px-3 py-2"
             >
               <div className="min-w-0">
-                <div className="text-[13px] text-[color:var(--ink-invert)] truncate">{t.name}</div>
+                <div className="text-[13px] text-[color:var(--ink-invert)] truncate">
+                  {t.name}
+                  {t.scope !== 'full' && <span className={`${hint} ml-2`}>{t.scope}</span>}
+                </div>
                 <div className={hint}>
                   created {formatTimestamp(t.created_at)} · last used {formatTimestamp(t.last_used_at)}
                 </div>

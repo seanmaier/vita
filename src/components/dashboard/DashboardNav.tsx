@@ -61,12 +61,14 @@ const accountItem =
 
 interface Props {
   trashCount: number;
+  /** Rated job leads waiting for a decision; null hides the count. */
+  ratedLeadCount: number | null;
   onImport: () => void;
   onBackup: () => void;
 }
 
 /** The dashboard's header: title and account at the top, the grouped actions below. */
-export function DashboardNav({ trashCount, onImport, onBackup }: Props) {
+export function DashboardNav({ trashCount, ratedLeadCount, onImport, onBackup }: Props) {
   const { preference, theme, setPreference } = useTheme();
   const cycleTheme = () => {
     const next = THEME_PREFERENCES[(THEME_PREFERENCES.indexOf(preference) + 1) % THEME_PREFERENCES.length];
@@ -113,6 +115,8 @@ export function DashboardNav({ trashCount, onImport, onBackup }: Props) {
         </NavGroup>
         <NavGroup name="library">
           <NavItem to="/profiles">base profiles</NavItem>
+          {/* The demo has no job radar. */}
+          {!isDemo && <NavItem to="/leads">job radar{ratedLeadCount ? ` (${ratedLeadCount})` : ''}</NavItem>}
           <NavItem to="/trash">trash{trashCount > 0 ? ` (${trashCount})` : ''}</NavItem>
         </NavGroup>
         <NavGroup name="data">

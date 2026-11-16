@@ -3,22 +3,30 @@
 //   node server/cli.ts passwd <username> [password]
 //   node server/cli.ts remove <username>
 //   node server/cli.ts list
-//   node server/cli.ts token-add <username> <name>    (prints the token once)
+//   node server/cli.ts token-add <username> <name> [--scope job-leads:ingest]    (prints the token once)
 //   node server/cli.ts token-list <username>
 //   node server/cli.ts token-revoke <username> <name>
 import { randomBytes } from 'node:crypto';
 import {
   createApiToken,
   hashPassword,
+  isTokenScope,
   listApiTokens,
   MIN_PASSWORD_LENGTH,
   revokeApiToken,
   setPassword,
+  TOKEN_SCOPES,
+  type TokenScope,
 } from './auth.ts';
 import { db } from './db.ts';
 
 // The third argument is the password for add/passwd and the token name for token-*.
-const [command, username, givenPassword] = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+// `--scope <value>` may appear anywhere after the command.
+const scopeFlag = rawArgs.indexOf('--scope');
+const givenScope = scopeFlag === -1 ? undefined : (rawArgs[scopeFlag + 1] ?? '');
+if (scopeFlag !== -1) rawArgs.splice(scopeFlag, 2);
+const [command, username, givenPassword] = rawArgs;
 const tokenName = givenPassword?.trim();
 
 function fail(message: string): never {
@@ -78,8 +86,10 @@ switch (command) {
     break;
   }
   case 'token-add': {
-    if (!username || !tokenName) fail('Usage: token-add <username> <name>');
-    const result = createApiToken(userIdOrFail(username), tokenName);
+    const usage = `Usage: token-add <username> <name> [--scope ${TOKEN_SCOPES.join('|')}]`;
+    if (!username || !tokenName) fail(usage);
+    if (givenScope !== undefined && !isTokenScope(givenScope)) fail(usage);
+    const result = createApiToken(userIdOrFail(username), tokenName, givenScope as TokenScope | undefined);
     if (!result.ok) fail(result.error);
     console.log(`Created API token "${tokenName}" for "${username}". It is shown only this once:\n${result.token}`);
     break;
@@ -88,7 +98,7 @@ switch (command) {
     if (!username) fail('Usage: token-list <username>');
     const tokens = listApiTokens(userIdOrFail(username));
     if (!tokens.length) console.log('No API tokens.');
-    for (const t of tokens) console.log(`${t.name}\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
+    for (const t of tokens) console.log(`${t.name}\t[${t.scope}]\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
     break;
   }
   case 'token-revoke': {
@@ -100,6 +110,6 @@ switch (command) {
   default:
     fail(
       'Commands: add <username> [password] | passwd <username> [password] | remove <username> | list\n' +
-        '          token-add <username> <name> | token-list <username> | token-revoke <username> <name>',
+        '          token-add <username> <name> [--scope ...] | token-list <username> | token-revoke <username> <name>',
     );
 }
