@@ -1,0 +1,33 @@
+{
+  "ergebnisliste": [
+    {
+      "stellenangebotsart": "ARBEIT",
+      "stellenangebotsTitel": "Back-End Entwickler (m/w/d) – Mobile Applications",
+      "arbeitszeitVollzeit": true,
+      "eintrittszeitraum": { "von": "2026-11-16" },
+      "vertragsdauer": "UNBEFRISTET",
+      "stellenlokationen": [{ "adresse": { "plz": "22453", "ort": "Hamburg", "region": "HAMBURG", "land": "DEUTSCHLAND" } }],
+      "veroeffentlichungszeitraum": { "von": "2026-11-16" },
+      "hauptberuf": "Backend-Entwickler/in",
+      "firma": "VAPS GmbH",
+      "referenznummer": "10001-1004016786-S",
+      "entfernung": 4
+    },
+    {
+      "stellenangebotsart": "ARBEIT",
+      "stellenangebotsTitel": "Senior UX-Designer:in BundesMessenger (m/w/d)",
+      "arbeitszeitVollzeit": true,
+      "eintrittszeitraum": { "von": "2026-12-01" },
+      "vertragsdauer": "UNBEFRISTET",
+      "stellenlokationen": [{ "adresse": { "plz": "22587", "land": "DEUTSCHLAND" } }],
+      "homeofficemoeglich": true,
+      "veroeffentlichungszeitraum": { "von": "2026-11-16" },
+      "hauptberuf": "Softwareentwickler/in",
+      "referenznummer": "13509-0000211170f002-S",
+      "entfernung": 13
+    }
+  ],
+  "maxErgebnisse": 2,
+  "page": 1,
+  "size": 2
+}

@@ -148,17 +148,18 @@ export function createApiToken(userId: number, rawName: string, scope: TokenScop
   return { ok: true, token };
 }
 
-export function getApiToken(token: string): { user: User; scope: TokenScope } | null {
+/** The token's user and scope, plus the token's name (recorded as the author of what it changes). */
+export function getApiToken(token: string): { user: User; scope: TokenScope; tokenName: string } | null {
   if (!token.startsWith(API_TOKEN_PREFIX)) return null;
   const hash = hashToken(token);
   const row = db
     .prepare(
-      'SELECT u.id, u.username, t.scope FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?',
+      'SELECT u.id, u.username, t.scope, t.name FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?',
     )
-    .get(hash) as { id: number; username: string; scope: TokenScope } | undefined;
+    .get(hash) as { id: number; username: string; scope: TokenScope; name: string } | undefined;
   if (!row || !isTokenScope(row.scope)) return null;
   db.prepare("UPDATE api_tokens SET last_used_at = datetime('now') WHERE token_hash = ?").run(hash);
-  return { user: { id: row.id, username: row.username }, scope: row.scope };
+  return { user: { id: row.id, username: row.username }, scope: row.scope, tokenName: row.name };
 }
 
 export function listApiTokens(userId: number): ApiTokenInfo[] {
