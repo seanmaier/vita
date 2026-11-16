@@ -96,3 +96,29 @@ export async function logoutAndReload(): Promise<void> {
   await logout();
   window.location.reload();
 }
+
+export type KnowledgeDoc = 'about-me' | 'priorities';
+
+/** The knowledge document's text, or null if it hasn't been written yet. */
+export async function fetchKnowledge(doc: KnowledgeDoc): Promise<string | null> {
+  const res = await fetch(`/api/v1/knowledge/${doc}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw await errorFrom(res, 'Loading the document failed');
+  const body: { content: string } = await res.json();
+  return body.content;
+}
+
+/** Replaces the knowledge document; throws with the server's message if it was refused. */
+export async function saveKnowledge(doc: KnowledgeDoc, content: string): Promise<void> {
+  const res = await fetch(`/api/v1/knowledge/${doc}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    // Validation errors carry the useful part (e.g. "too long") in `details`.
+    const body: { error?: unknown; details?: unknown } = await res.clone().json().catch(() => ({}));
+    if (Array.isArray(body.details) && body.details.length > 0) throw new Error(body.details.join(' '));
+    throw await errorFrom(res, 'Saving the document failed');
+  }
+}

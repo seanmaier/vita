@@ -8,6 +8,7 @@ import { BaseProfilesPage } from './pages/BaseProfilesPage';
 import { BaseProfileEditPage } from './pages/BaseProfileEditPage';
 import { LoginPage } from './pages/LoginPage';
 import { AccountPage } from './pages/AccountPage';
+import { KnowledgePage } from './pages/KnowledgePage';
 import { TrashPage } from './pages/TrashPage';
 import { fetchCurrentUser, fetchUserData, refreshUserData } from './utils/api';
 import { hasPendingWrites, hydrate, onSyncStatus, setStorageBackend } from './utils/storage';
@@ -20,7 +21,10 @@ import { SeasonalEffect } from './components/SeasonalEffect';
 const router = createBrowserRouter([
   { path: '/', element: <DashboardPage /> },
   { path: '/profiles', element: <BaseProfilesPage /> },
-  ...(isDemo ? [] : [{ path: '/account', element: <AccountPage /> }]),
+  ...(isDemo ? [] : [
+    { path: '/account', element: <AccountPage /> },
+    { path: '/knowledge', element: <KnowledgePage /> },
+  ]),
   { path: '/profiles/:id', element: <BaseProfileEditPage /> },
   { path: '/trash', element: <TrashPage /> },
   { path: '/application/new', element: <NewApplicationPage /> },
