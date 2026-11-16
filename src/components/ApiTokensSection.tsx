@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken, type UserTokenScope } from '../utils/api';
-import { nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
+import { hintText, nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
 import { TokenListSkeleton } from './Skeleton';
 
-const hint = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] leading-[1.6]';
+const hint = hintText;
 
 // SQLite's datetime('now') is UTC without a zone marker.
 function formatTimestamp(value: string | null): string {
