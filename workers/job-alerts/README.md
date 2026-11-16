@@ -99,6 +99,8 @@ npx wrangler email routing rules list alerts.seanmaier.org
 
 ### 8. Gmail einrichten (im Browser)
 
+> **Warnung:** Die Prüfung des Envelope-Absenders ist keine Authentifizierung. Der SPF-Eintrag von gmail.com ist nur `softfail`, der Absender lässt sich also fälschen. Bevor der Gmail-Filter aktiviert wird, muss eine SPF-/`Authentication-Results`-Prüfung ergänzt werden, und zwar anhand der Header einer echten weitergeleiteten Mail (einmalig mit `wrangler tail` protokollieren). Bis dahin nur mit **deaktiviertem** Filter testen. `OWNER_EMAIL` muss außerdem ein eigenes Postfach sein (siehe oben).
+
 1. Unter **Einstellungen → Weiterleitung und POP/IMAP** die Adresse `jobs@alerts.seanmaier.org` als Weiterleitungsadresse hinzufügen. Die Bestätigungsmail von Google landet über den Worker bei `OWNER_EMAIL`. Der Worker leitet sie dort weiter. Den Bestätigungscode daraus eingeben.
 2. Einen Filter anlegen:
    `from:(jobalerts-noreply@linkedin.com OR …)`

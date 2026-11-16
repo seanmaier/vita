@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { handleEmail, isFromOwnerGmail, type Env } from '../src/handler.ts';
+import { handleEmail, isFromOwnerGmail, sanitize, type Env } from '../src/handler.ts';
 
 const env: Env = {
   APP_URL: 'https://app.test',
@@ -190,4 +190,20 @@ test('isFromOwnerGmail folds gmail dots and googlemail.com, and fails closed on 
   assert.equal(isFromOwnerGmail('owner.name@googlemail.com', 'ownername@gmail.com'), true);
   assert.equal(isFromOwnerGmail('owner.name@example.org', 'ownername@example.org'), false);
   assert.equal(isFromOwnerGmail('owner.name@gmail.com', undefined), false);
+});
+
+test('sanitize drops https urls that do not parse', () => {
+  const lead = (url: string) => ({ source: 'linkedin' as const, externalId: '1', title: 'T', url });
+  const clean = sanitize([lead('https://'), lead('https://exa mple.com/x'), lead('https://www.linkedin.com/jobs/view/1/')]);
+  assert.deepEqual(
+    clean.map((l) => l.url),
+    ['https://www.linkedin.com/jobs/view/1/'],
+  );
+});
+
+test('APP_URL with trailing slashes does not produce a double slash', async () => {
+  const m = fakeMessage(OWNER_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(201);
+  await handleEmail(m.message, { ...env, APP_URL: 'https://app.test//' }, f.impl, noSleep);
+  assert.equal(f.calls[0].url, 'https://app.test/api/v1/job-leads');
 });

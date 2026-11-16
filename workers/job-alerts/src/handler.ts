@@ -42,11 +42,11 @@ export function isFromOwnerGmail(envelopeFrom: string, ownerGmail: string | unde
 }
 
 /** Make leads safe for the app's all-or-nothing validation (it rejects the whole batch on one bad entry). */
-function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
+export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
   const clean: JobLeadInput[] = [];
   for (const lead of leads) {
     const title = lead.title.trim().slice(0, 300);
-    if (!lead.url.startsWith('https://') || !title) continue;
+    if (!lead.url.startsWith('https://') || !URL.canParse(lead.url) || !title) continue;
     if (!lead.externalId || lead.externalId.length > 200) continue;
     clean.push({
       ...lead,
@@ -73,7 +73,7 @@ async function postLeads(
     headers['CF-Access-Client-Secret'] = env.CF_ACCESS_CLIENT_SECRET;
   }
   try {
-    const res = await fetchImpl(`${env.APP_URL}/api/v1/job-leads`, {
+    const res = await fetchImpl(`${env.APP_URL.replace(/\/+$/, '')}/api/v1/job-leads`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ leads }),

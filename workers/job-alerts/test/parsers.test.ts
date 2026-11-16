@@ -87,3 +87,17 @@ test('an image link does not claim the id; a later text anchor supplies the titl
 test('sources without a parser yield no leads', () => {
   assert.deepEqual(parseAlert('other', fixture('linkedin')), []);
 });
+
+test('stepstone: links to foreign hosts or plain http are ignored', () => {
+  const html = [
+    '<a href="https://evil.example/x--123-inline.html">Evil</a>',
+    '<a href="https://stepstone.de.evil.example/x--124-inline.html">Lookalike</a>',
+    '<a href="http://www.stepstone.de/x--125-inline.html">Plain http</a>',
+    '<a href="https://www.stepstone.de/x--126-inline.html?foo=1#a">Real</a>',
+  ].join('\n');
+  const leads = parseAlert('stepstone', html);
+  assert.deepEqual(
+    leads.map((l) => l.url),
+    ['https://www.stepstone.de/x--126-inline.html'],
+  );
+});

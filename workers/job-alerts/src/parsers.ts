@@ -35,7 +35,11 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
   stepstone: {
     match: (href) => {
       const id = /--(\d+)-inline\.html/.exec(href)?.[1];
-      return id ? { externalId: id, url: href.split(/[?#]/)[0] } : null;
+      if (!id || !URL.canParse(href)) return null;
+      const { protocol, hostname, pathname } = new URL(href);
+      // Pin the host: a forged link in a mail must not become a lead pointing elsewhere.
+      if (protocol !== 'https:' || (hostname !== 'stepstone.de' && !hostname.endsWith('.stepstone.de'))) return null;
+      return { externalId: id, url: `https://${hostname}${pathname}` };
     },
   },
   indeed: {
