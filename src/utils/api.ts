@@ -1,4 +1,5 @@
 import { flush, hydrate, localWriteCount } from './storage';
+import type { JobLead, JobLeadStatus } from '../types';
 
 export interface SessionUser {
   id: number;
@@ -122,4 +123,26 @@ export async function saveKnowledge(doc: KnowledgeDoc, content: string): Promise
     if (Array.isArray(body.details) && body.details.length > 0) throw new Error(body.details.join(' '));
     throw await errorFrom(res, 'Saving the document failed');
   }
+}
+
+/** Job leads, newest first; filtered by status if given (up to 200). */
+export async function fetchLeads(status?: JobLeadStatus): Promise<JobLead[]> {
+  const query = new URLSearchParams({ limit: '200' });
+  if (status) query.set('status', status);
+  const res = await fetch(`/api/v1/job-leads?${query}`);
+  if (!res.ok) throw await errorFrom(res, 'Loading the job leads failed');
+  return res.json();
+}
+
+export async function updateLead(
+  id: number,
+  patch: Partial<Pick<JobLead, 'status' | 'applicationId'>>,
+): Promise<JobLead> {
+  const res = await fetch(`/api/v1/job-leads/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw await errorFrom(res, 'Updating the job lead failed');
+  return res.json();
 }

@@ -9,6 +9,7 @@ import { BaseProfileEditPage } from './pages/BaseProfileEditPage';
 import { LoginPage } from './pages/LoginPage';
 import { AccountPage } from './pages/AccountPage';
 import { KnowledgePage } from './pages/KnowledgePage';
+import { LeadsPage } from './pages/LeadsPage';
 import { TrashPage } from './pages/TrashPage';
 import { fetchCurrentUser, fetchUserData, refreshUserData } from './utils/api';
 import { hasPendingWrites, hydrate, onSyncStatus, setStorageBackend } from './utils/storage';
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
   ...(isDemo ? [] : [
     { path: '/account', element: <AccountPage /> },
     { path: '/knowledge', element: <KnowledgePage /> },
+    { path: '/leads', element: <LeadsPage /> },
   ]),
   { path: '/profiles/:id', element: <BaseProfileEditPage /> },
   { path: '/trash', element: <TrashPage /> },

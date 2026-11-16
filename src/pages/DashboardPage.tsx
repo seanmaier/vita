@@ -15,6 +15,7 @@ import { DashboardNav } from '../components/dashboard/DashboardNav';
 import { StatsBar } from '../components/dashboard/StatsBar';
 import { numericDateToIso } from '../utils/date';
 import { matchesStat, type StatKey } from '../utils/applicationStats';
+import { useRatedLeadCount } from '../hooks/useRatedLeadCount';
 import { createNote } from '../utils/notes';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
 import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '../types';
@@ -77,6 +78,7 @@ export function DashboardPage() {
   );
   const languageFor = (app: ApplicationConfig) => languages[app.id] ?? languageOf(app);
 
+  const ratedLeadCount = useRatedLeadCount();
   const [importOpen, setImportOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
 
@@ -221,7 +223,7 @@ export function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[1220px] mx-auto sm:pt-12 sm:px-8">
-      <DashboardNav trashCount={trashSize} onImport={() => setImportOpen(true)} onBackup={() => setBackupOpen(true)} />
+      <DashboardNav trashCount={trashSize} ratedLeadCount={ratedLeadCount} onImport={() => setImportOpen(true)} onBackup={() => setBackupOpen(true)} />
 
       <StatsBar applications={statsApps} activeFilter={statFilter} onSelect={handleStatSelect} />
 
