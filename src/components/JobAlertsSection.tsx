@@ -33,6 +33,16 @@ const PROVIDERS: { value: Provider; label: string }[] = [
   { value: 'icloud', label: 'iCloud' },
 ];
 
+/** The mailbox provider of an address, for picking the right setup steps. Null if unknown. */
+function providerOf(address: string | null | undefined): Provider | null {
+  const domain = address?.trim().toLowerCase().split('@')[1];
+  if (!domain) return null;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') return 'gmail';
+  if (/^(outlook|hotmail|live|msn)\.[a-z.]+$/.test(domain)) return 'outlook';
+  if (domain === 'icloud.com' || domain === 'me.com' || domain === 'mac.com') return 'icloud';
+  return null;
+}
+
 const exampleSender = <code>jobalerts-noreply@linkedin.com</code>;
 
 /** The forwarding rule, per mailbox provider. */
@@ -88,6 +98,8 @@ export function JobAlertsSection() {
   const apply = (next: JobAlertsConfig) => {
     setConfig(next);
     setForwardingFrom(next.forwardingFrom ?? '');
+    const saved = providerOf(next.forwardingFrom);
+    if (saved) setProvider(saved);
   };
 
   const loadEvents = () =>
