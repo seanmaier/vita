@@ -50,9 +50,13 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
    sie nach `.env.assistant.example` anzulegen; den Token erstellt er in der App unter
    **account → API tokens**. Bei `HTTP 401` ist der Token ungültig oder widerrufen.
    Nicht weitermachen.
-2. `private/knowledge/about-me.md` lesen. Fehlt die Datei oder ist sie größtenteils leer,
+2. `node scripts/knowledge.ts pull`, dann `private/knowledge/about-me.md` (Arbeitskopie)
+   lesen. Änderungen daran immer mit `node scripts/knowledge.ts push about-me`
+   hochladen. Fehlt das Dokument in der App (Exit 2) oder ist es größtenteils leer,
    darauf hinweisen und `/basiswissen` anbieten. Ohne Basiswissen nur mit den Daten aus
    dem Basis-Profil arbeiten und das im Ergebnis offen sagen.
+3. Datenschutz: Basiswissen-Inhalte nie committen und nur an die eigene App
+   (`JOB_APPS_URL`) senden, an keine anderen Dienste.
 
 ## Ablauf
 
@@ -63,7 +67,7 @@ Firma, Rolle, Sprache der Anzeige (`de`/`en`), Ansprechperson, Muss-Anforderunge
 Kann-Anforderungen, Aufgaben, Tech-Stack, Kultur-/Tonalitätssignale, Standort/Remote.
 
 Danach die Passung nach dem Skill `stellencheck` bewerten (Ausschlusskriterien und
-Gewichte aus `private/knowledge/priorities.md`) und das Ergebnis kurz zeigen, falls der
+Gewichte aus `private/knowledge/priorities.md`, der Arbeitskopie aus `pull`) und das Ergebnis kurz zeigen, falls der
 Nutzer die Stelle nicht gerade erst mit `/stellencheck` geprüft hat. Bei einem
 Ausschlusskriterium oder weniger als 50 % fragen, ob er trotzdem eine Bewerbung will,
 bevor du weitermachst.
