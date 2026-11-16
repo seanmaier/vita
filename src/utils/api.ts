@@ -8,7 +8,7 @@ export interface SessionUser {
 }
 
 /** The server's `{ error }` message for a failed response, or a generic one with the status. */
-async function errorFrom(res: Response, fallback: string): Promise<Error> {
+export async function errorFrom(res: Response, fallback: string): Promise<Error> {
   const body: { error?: unknown } = await res.json().catch(() => ({}));
   return new Error(typeof body.error === 'string' ? body.error : `${fallback} (HTTP ${res.status}).`);
 }

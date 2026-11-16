@@ -1,57 +1,57 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, BaseProfile, Profile } from '../types';
-import { storage } from './storage';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, StatusTransition } from '../types';
+import { BACKUP_KEYS, mergeBackup, type DataBackup } from '../domain/backupMerge';
+import { seedHistory, validateHistory } from '../domain/statusMachine';
+import { isDemo } from '../demo/demoMode';
+import { errorFrom } from './api';
+import { storage, flush } from './storage';
 import { getAllBaseProfiles } from './baseProfiles';
 
-const LOCAL_APPS_KEY = 'local-apps';
-const STATUS_PREFIX = 'status-';
-const CONFIG_PREFIX = 'app-config-';
-const PROFILE_PREFIX = 'profile-override-';
-const BASE_PROFILES_KEY = 'base-profiles';
+export type { DataBackup } from '../domain/backupMerge';
+export { parseBackup, type ParseBackupResult } from '../domain/backupMerge';
 
-export interface DataBackup {
-  version: 2;
-  exportedAt: string;
-  localApps: ApplicationConfig[];
-  statuses: Record<string, ApplicationStatus>;
-  configOverrides: Record<string, Omit<ApplicationConfig, 'status'>>;
-  profileOverrides: Partial<Record<AppLanguage, Profile>>;
-  // Absent in version-1 backups, which predate named base profiles — restoring
-  // one of those leaves the current base profiles untouched.
-  baseProfiles?: BaseProfile[];
+function parse<T>(raw: string | null): T | null {
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null; // skip corrupt entries
+  }
 }
 
-function allKeys(): string[] {
-  return storage.keys();
-}
-
-/** Gathers every application, status, date/notes override, base profile, and profile customization stored for the logged-in user. */
+/** Gathers every application, status history, saved edit, base profile, and profile customization stored for the logged-in user. */
 export function exportAllData(): DataBackup {
-  let localApps: ApplicationConfig[] = [];
-  const statuses: Record<string, ApplicationStatus> = {};
-  const configOverrides: Record<string, Omit<ApplicationConfig, 'status'>> = {};
+  const localApps = parse<ApplicationConfig[]>(storage.getItem(BACKUP_KEYS.localApps)) ?? [];
+  const statusHistories: Record<string, StatusTransition[]> = {};
+  const legacyStatuses: Record<string, ApplicationStatus> = {};
+  const configOverrides: DataBackup['configOverrides'] = {};
   const profileOverrides: Partial<Record<AppLanguage, Profile>> = {};
 
-  for (const key of allKeys()) {
+  for (const key of storage.keys()) {
     const raw = storage.getItem(key);
-    if (raw === null) continue;
-
-    if (key === LOCAL_APPS_KEY) {
-      try { localApps = JSON.parse(raw) as ApplicationConfig[]; } catch { /* skip corrupt entry */ }
-    } else if (key.startsWith(STATUS_PREFIX)) {
-      statuses[key.slice(STATUS_PREFIX.length)] = raw as ApplicationStatus;
-    } else if (key.startsWith(CONFIG_PREFIX)) {
-      try { configOverrides[key.slice(CONFIG_PREFIX.length)] = JSON.parse(raw); } catch { /* skip corrupt entry */ }
-    } else if (key.startsWith(PROFILE_PREFIX)) {
-      try { profileOverrides[key.slice(PROFILE_PREFIX.length) as AppLanguage] = JSON.parse(raw); } catch { /* skip corrupt entry */ }
+    if (key.startsWith(BACKUP_KEYS.statusHistory)) {
+      const history = validateHistory(parse(raw));
+      if (history.ok) statusHistories[key.slice(BACKUP_KEYS.statusHistory.length)] = history.history;
+    } else if (key.startsWith(BACKUP_KEYS.status) && raw) {
+      legacyStatuses[key.slice(BACKUP_KEYS.status.length)] = raw as ApplicationStatus;
+    } else if (key.startsWith(BACKUP_KEYS.appConfig)) {
+      const config = parse<DataBackup['configOverrides'][string]>(raw);
+      if (config) configOverrides[key.slice(BACKUP_KEYS.appConfig.length)] = config;
+    } else if (key.startsWith(BACKUP_KEYS.profileOverride)) {
+      const profile = parse<Profile>(raw);
+      if (profile) profileOverrides[key.slice(BACKUP_KEYS.profileOverride.length) as AppLanguage] = profile;
     }
   }
+  // Applications still without a recorded history export the one they read as.
+  for (const [id, status] of Object.entries(legacyStatuses)) {
+    if (!statusHistories[id]) statusHistories[id] = seedHistory(status, configOverrides[id] ?? localApps.find((a) => a.id === id) ?? {});
+  }
 
-  // Goes through getBaseProfiles so an account that never opened the profiles
+  // Goes through getAllBaseProfiles so an account that never opened the profiles
   // page still exports the profiles it would show (seeded from the legacy ones).
-  // Trashed profiles are included, so restoring keeps them restorable.
+  // Trashed profiles are included, so importing keeps them restorable.
   const baseProfiles = getAllBaseProfiles();
 
-  return { version: 2, exportedAt: new Date().toISOString(), localApps, statuses, configOverrides, profileOverrides, baseProfiles };
+  return { version: 3, exportedAt: new Date().toISOString(), localApps, statusHistories, configOverrides, profileOverrides, baseProfiles };
 }
 
 /** Triggers a browser download of the backup as a .json file — works the same in Chrome and Firefox. */
@@ -67,61 +67,33 @@ export function downloadBackup(backup: DataBackup): void {
   URL.revokeObjectURL(url);
 }
 
-export type ParseBackupResult =
-  | { ok: true; backup: DataBackup }
-  | { ok: false; error: string };
-
-/** Parses and structurally validates a backup file's contents. */
-export function parseBackup(raw: string): ParseBackupResult {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return { ok: false, error: `Invalid JSON: ${(e as SyntaxError).message}` };
-  }
-  if (typeof parsed !== 'object' || parsed === null) {
-    return { ok: false, error: 'Expected a JSON object.' };
-  }
-
-  const p = parsed as Record<string, unknown>;
-  if (!Array.isArray(p.localApps)) return { ok: false, error: 'Not a valid backup file — missing "localApps" array.' };
-  if (typeof p.statuses !== 'object' || p.statuses === null) return { ok: false, error: 'Not a valid backup file — missing "statuses" object.' };
-  if (typeof p.configOverrides !== 'object' || p.configOverrides === null) return { ok: false, error: 'Not a valid backup file — missing "configOverrides" object.' };
-  if (typeof p.profileOverrides !== 'object' || p.profileOverrides === null) return { ok: false, error: 'Not a valid backup file — missing "profileOverrides" object.' };
-  if (p.baseProfiles !== undefined && !Array.isArray(p.baseProfiles)) return { ok: false, error: 'Not a valid backup file — "baseProfiles" must be an array.' };
-
-  return {
-    ok: true,
-    backup: {
-      version: 2,
-      exportedAt: typeof p.exportedAt === 'string' ? p.exportedAt : new Date().toISOString(),
-      localApps: p.localApps as ApplicationConfig[],
-      statuses: p.statuses as Record<string, ApplicationStatus>,
-      configOverrides: p.configOverrides as Record<string, Omit<ApplicationConfig, 'status'>>,
-      profileOverrides: p.profileOverrides as Partial<Record<AppLanguage, Profile>>,
-      baseProfiles: p.baseProfiles as BaseProfile[] | undefined,
-    },
-  };
+export interface ImportSummary {
+  added: string[];
+  skipped: string[];
+  addedProfiles: string[];
 }
 
-/** Replaces every locally-stored application/profile key with the given backup's contents. */
-export function applyBackup(backup: DataBackup): void {
-  const toRemove = allKeys().filter(
-    (key) => key === LOCAL_APPS_KEY || key.startsWith(STATUS_PREFIX) || key.startsWith(CONFIG_PREFIX) || key.startsWith(PROFILE_PREFIX),
-  );
-  toRemove.forEach((key) => storage.removeItem(key));
-
-  storage.setItem(LOCAL_APPS_KEY, JSON.stringify(backup.localApps));
-  Object.entries(backup.statuses).forEach(([id, status]) => {
-    storage.setItem(`${STATUS_PREFIX}${id}`, status);
-  });
-  Object.entries(backup.configOverrides).forEach(([id, config]) => {
-    storage.setItem(`${CONFIG_PREFIX}${id}`, JSON.stringify(config));
-  });
-  Object.entries(backup.profileOverrides).forEach(([lang, profile]) => {
-    storage.setItem(`${PROFILE_PREFIX}${lang}`, JSON.stringify(profile));
-  });
-  if (backup.baseProfiles) {
-    storage.setItem(BASE_PROFILES_KEY, JSON.stringify(backup.baseProfiles));
+/**
+ * Adds a backup to the account without overwriting anything: the server
+ * merges it, or, in the demo, the same merge runs on this tab's storage.
+ * The caller reloads the page afterwards to read the result.
+ */
+export async function importBackup(backup: DataBackup): Promise<ImportSummary> {
+  if (isDemo) {
+    const current = Object.fromEntries(storage.keys().map((k) => [k, storage.getItem(k) ?? '']));
+    const result = mergeBackup(current, backup);
+    if (!result.ok) throw new Error(result.error);
+    for (const [key, value] of Object.entries(result.set)) storage.setItem(key, value);
+    await flush();
+    return result;
   }
+  // Pending edits first, so the server merges against the current state.
+  await flush();
+  const res = await fetch('/api/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(backup),
+  });
+  if (!res.ok) throw await errorFrom(res, 'Import failed');
+  return res.json();
 }

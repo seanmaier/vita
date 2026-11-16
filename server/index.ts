@@ -33,6 +33,7 @@ import type { ApplicationConfig } from '../src/types.ts';
 import { db, transaction } from './db.ts';
 import { affectedAppIds, BROWSER_AUTHOR, deleteVersions, recordChanges, snapshot } from './history.ts';
 import { refusedStorageKeys } from './statusHistory.ts';
+import { mergeBackup, parseBackupValue } from '../src/domain/backupMerge.ts';
 import type { V1Env } from './http.ts';
 import { purgeOldInboundEvents } from './inboundMail.ts';
 import { accessLog, clientIp, log, requestFields } from './log.ts';
@@ -266,6 +267,30 @@ app.put('/api/data', requireUser, async (c) => {
     }
   });
   return c.body(null, 204);
+});
+
+// Adds a backup file to the account: applications, base profiles and
+// profile overrides it doesn't have yet. Nothing that exists is overwritten
+// (see src/domain/backupMerge.ts); the answer lists what was added and skipped.
+app.post('/api/import', requireUser, async (c) => {
+  const parsed = parseBackupValue(await c.req.json().catch(() => undefined));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const userId = c.get('user').id;
+  const outcome = transaction(() => {
+    const rows = db.prepare('SELECT key, value FROM kv WHERE user_id = ?').all(userId) as { key: string; value: string }[];
+    const result = mergeBackup(Object.fromEntries(rows.map((r) => [r.key, r.value])), parsed.backup);
+    if (!result.ok) return result;
+    const before = snapshot(userId, result.added);
+    const upsert = db.prepare(
+      'INSERT INTO kv (user_id, key, value) VALUES (?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value',
+    );
+    for (const [key, value] of Object.entries(result.set)) upsert.run(userId, key, value);
+    recordChanges(userId, before, BROWSER_AUTHOR, () => 'Imported from a backup');
+    return result;
+  });
+  if (!outcome.ok) return c.json({ error: outcome.error }, 400);
+  const { added, skipped, addedProfiles } = outcome;
+  return c.json({ added, skipped, addedProfiles });
 });
 
 app.use('/api/v1/*', requireUserOrToken);
