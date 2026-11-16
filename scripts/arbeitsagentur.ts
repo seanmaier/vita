@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import type { JobLeadInput } from '../src/types.ts';
 
 const BASE = 'https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs';
-const API_KEY = 'jobboerse-jobsuche';
+const API_KEY = 'jobboerse-jobsuche'; // secret-scan:allow (public Bundesagentur key, same for everyone)
 const DETAIL_URL = 'https://www.arbeitsagentur.de/jobsuche/jobdetail/';
 
 export interface AgItem {

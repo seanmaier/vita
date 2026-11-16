@@ -1,9 +1,12 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { TextareaHTMLAttributes } from 'react';
 
-type Props = TextareaHTMLAttributes<HTMLTextAreaElement>;
+type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  /** Empty lines kept below the text. */
+  extraLines?: number;
+};
 
-export function AutoTextarea({ className, ...rest }: Props) {
+export function AutoTextarea({ className, extraLines = 0, ...rest }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useLayoutEffect(() => {
@@ -16,8 +19,30 @@ export function AutoTextarea({ className, ...rest }: Props) {
     const borderY = style.boxSizing === 'border-box'
       ? parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth)
       : 0;
+    // Collapsing the box below shrinks the page for a moment; on a long
+    // document the browser clamps the scroll position meanwhile. Remember it
+    // (window and scrollable ancestors) and put it back afterwards.
+    const scrolled: [Element, number][] = [];
+    let classMinHeight = 0;
+    if (extraLines > 0) {
+      scrolled.push([document.scrollingElement ?? document.documentElement, window.scrollY]);
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        if (a.scrollTop > 0) scrolled.push([a, a.scrollTop]);
+      }
+      // The previous inline min-height (which includes the extra lines) would
+      // otherwise feed into this measurement and keep the box from shrinking.
+      // Read what the class gives once that inline value is gone.
+      el.style.minHeight = '';
+      classMinHeight = parseFloat(style.minHeight) || 0;
+      el.style.minHeight = '0px';
+    }
     el.style.height = 'auto';
-    const height = `${el.scrollHeight + borderY}px`;
+    let extra = 0;
+    if (extraLines > 0) {
+      const parsed = parseFloat(style.lineHeight);
+      extra = extraLines * (Number.isNaN(parsed) ? 1.2 * parseFloat(style.fontSize) : parsed);
+    }
+    const height = `${Math.max(el.scrollHeight + borderY + extra, classMinHeight)}px`;
     el.style.height = height;
     // A flex item's automatic minimum size resolves to 0 when its overflow
     // isn't visible (which is exactly our case), letting flex-shrink crush it
@@ -26,7 +51,8 @@ export function AutoTextarea({ className, ...rest }: Props) {
     // preventing width-axis shrink where the textarea sits in a row
     // alongside another element (e.g. a remove button).
     el.style.minHeight = height;
-  }, [rest.value]);
+    for (const [node, top] of scrolled) node.scrollTop = top;
+  }, [rest.value, extraLines]);
 
   return (
     <textarea

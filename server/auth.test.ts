@@ -2,7 +2,7 @@ import './test/env.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { db } from './db.ts';
-import { createApiToken, getApiToken, listApiTokens, tokenAllows } from './auth.ts';
+import { createApiToken, getApiToken, listApiTokens, parseUserTokenScope, tokenAllows } from './auth.ts';
 import { createTestUser } from './test/testApp.ts';
 
 test('an ingest token may only POST /api/v1/job-leads', () => {
@@ -66,4 +66,13 @@ test('a token with an unknown stored scope is rejected', () => {
   db.prepare("UPDATE api_tokens SET scope = 'admin' WHERE user_id = ?").run(user.id);
   assert.equal(getApiToken(created.token), null);
   assert.equal(tokenAllows('admin' as never, 'GET', '/api/v1/x'), false);
+});
+
+test('parseUserTokenScope allows only user scopes', () => {
+  assert.deepEqual(parseUserTokenScope(undefined), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('full'), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('job-leads:ingest'), { ok: true, scope: 'job-leads:ingest' });
+  for (const bad of ['inbound:deliver', 'admin', '', null, 42]) {
+    assert.equal(parseUserTokenScope(bad).ok, false);
+  }
 });

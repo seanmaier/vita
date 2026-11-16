@@ -44,6 +44,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw await errorFrom(res, 'Changing the password failed');
 }
 
+export type UserTokenScope = 'full' | 'job-leads:ingest';
+
 export interface ApiToken {
   name: string;
   scope: string;
@@ -58,11 +60,11 @@ export async function fetchApiTokens(): Promise<ApiToken[]> {
 }
 
 /** Creates a token and returns its secret, which the server never shows again. */
-export async function createApiToken(name: string): Promise<string> {
+export async function createApiToken(name: string, scope: UserTokenScope = 'full'): Promise<string> {
   const res = await fetch('/api/tokens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, scope }),
   });
   if (!res.ok) throw await errorFrom(res, 'Creating the token failed');
   const body: { token: string } = await res.json();
@@ -192,9 +194,12 @@ export async function saveForwardingFrom(value: string | null): Promise<JobAlert
   return res.json();
 }
 
+/** How many inbound mails one events request fetches. */
+export const JOB_ALERT_EVENTS_LIMIT = 20;
+
 /** The most recent inbound mails for the user's alert address, newest first. */
 export async function fetchJobAlertEvents(): Promise<InboundEvent[]> {
-  const res = await fetch('/api/v1/job-alerts/events?limit=20');
+  const res = await fetch(`/api/v1/job-alerts/events?limit=${JOB_ALERT_EVENTS_LIMIT}`);
   if (!res.ok) throw await errorFrom(res, 'Loading the alert activity failed');
   return res.json();
 }

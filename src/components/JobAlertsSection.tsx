@@ -4,6 +4,7 @@ import {
   createJobAlertAddress,
   fetchJobAlertEvents,
   fetchJobAlerts,
+  JOB_ALERT_EVENTS_LIMIT,
   saveForwardingFrom,
 } from '../utils/api';
 import type { InboundEvent, JobAlertsConfig } from '../types';
@@ -44,6 +45,7 @@ export function JobAlertsSection() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const apply = (next: JobAlertsConfig) => {
     setConfig(next);
@@ -134,9 +136,24 @@ export function JobAlertsSection() {
   // The sender of confirmation mails can be spoofed, so only a fresh code is shown prominently.
   const freshCode = freshConfirmation && latestConfirmation ? confirmationCode(latestConfirmation) : null;
 
-  return (
-    <section className="max-w-[560px] flex flex-col gap-4 mt-12">
-      <span className={nafLabel}>Job alerts</span>
+  const latestLeads = events.find((ev) => ev.kind === 'leads');
+  const isSetUp = Boolean(config?.address) && Boolean(config?.forwardingFrom) && latestLeads !== undefined;
+  const countRecent = (kind: InboundEvent['kind']) =>
+    events.filter((ev) => ev.kind === kind && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS)
+      .length;
+  // The list is capped, so a full list that still reaches back less than 7 days may be missing newer-than-7-days mails.
+  const oldest = events[events.length - 1];
+  const countCapped =
+    events.length >= JOB_ALERT_EVENTS_LIMIT &&
+    Date.now() - parseTimestamp(oldest.receivedAt).getTime() < 7 * DAY_MS;
+  const formatCount = (n: number) => (countCapped ? `${n}+` : String(n));
+  const alertsLast7Days = formatCount(countRecent('leads'));
+  const failedCount = countRecent('failed');
+  const failedLast7Days = formatCount(failedCount);
+
+  const setupGuide = (
+    <>
+      <span className={nafLabel}>Setup</span>
       <p className={hint}>
         Forward job-alert mails from your Gmail to a personal address here, and the jobs in them show up as
         leads.
@@ -148,6 +165,12 @@ export function JobAlertsSection() {
         <li>The confirmation code appears below; enter it in Gmail.</li>
         <li>Create a filter for your job-alert senders with "Forward to" this address.</li>
       </ol>
+    </>
+  );
+
+  return (
+    <section className="max-w-[560px] flex flex-col gap-4">
+      <span className={nafLabel}>Job alerts</span>
 
       {config && !config.available && <p className={hint}>Job alerts are not set up on this server.</p>}
 
@@ -171,45 +194,74 @@ export function JobAlertsSection() {
           <button className={primaryButton} type="button" disabled={busy} onClick={() => void generate()}>
             {config.address ? 'replace address' : 'create address'}
           </button>
-        </>
-      )}
 
-      {config?.address && (
-        <>
-          <form className="flex flex-col gap-2" onSubmit={save}>
-            <label className="flex flex-col gap-1.5">
-              <span className={nafLabel}>Forwarding Gmail address</span>
-              <input
-                className={nafInput}
-                type="email"
-                placeholder="you@gmail.com"
-                value={forwardingFrom}
-                onChange={(e) => {
-                  setForwardingFrom(e.target.value);
-                  setSaved(false);
-                }}
-              />
-            </label>
-            <p className={hint}>
-              Must be the Gmail account you forward from; mails from other senders are bounced (rejected). Leave empty to
-              clear it.
-            </p>
-            <div className="flex items-center gap-3">
-              <button className={primaryButton} type="submit" disabled={busy}>
-                save
-              </button>
-              {saved && <span className={hint}>Saved.</span>}
-            </div>
-          </form>
+          {config.address && (
+            <>
+              <form className="flex flex-col gap-2" onSubmit={save}>
+                <label className="flex flex-col gap-1.5">
+                  <span className={nafLabel}>Forwarding Gmail address</span>
+                  <input
+                    className={nafInput}
+                    type="email"
+                    placeholder="you@gmail.com"
+                    value={forwardingFrom}
+                    onChange={(e) => {
+                      setForwardingFrom(e.target.value);
+                      setSaved(false);
+                    }}
+                  />
+                </label>
+                <p className={hint}>
+                  Must be the Gmail account you forward from; mails from other senders are bounced (rejected). Leave
+                  empty to clear it.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button className={primaryButton} type="submit" disabled={busy}>
+                    save
+                  </button>
+                  {saved && <span className={hint}>Saved.</span>}
+                </div>
+              </form>
 
-          {!config.forwardingFrom && (
-            <p className="text-[12px] text-[color:var(--status-rejected)]">
-              Alerts will be bounced until the forwarding Gmail address is saved (confirmation codes still
-              arrive).
-            </p>
+              {!config.forwardingFrom && (
+                <p className="text-[12px] text-[color:var(--status-rejected)]">
+                  Alerts will be bounced until the forwarding Gmail address is saved (confirmation codes still
+                  arrive).
+                </p>
+              )}
+            </>
           )}
 
-          {freshCode && (
+          {isSetUp && latestLeads ? (
+            <>
+              <span className={nafLabel}>Overview</span>
+              <div className="flex flex-col gap-1">
+                <p className={hint}>
+                  Last alert: {formatTimestamp(latestLeads.receivedAt)}
+                  {latestLeads.sender ? ` · ${latestLeads.sender}` : ''}
+                </p>
+                {latestLeads.detail && <p className={hint}>{latestLeads.detail}</p>}
+                <p className={hint}>Alerts in the last 7 days: {alertsLast7Days}</p>
+                {failedCount > 0 && (
+                  <p className="[font-family:var(--font-mono)] text-[10.5px] leading-[1.6] text-[color:var(--status-rejected)]">
+                    Failed in the last 7 days: {failedLast7Days}
+                  </p>
+                )}
+              </div>
+              <button
+                className={`${hint} self-start underline bg-transparent border-0 p-0 cursor-pointer`}
+                type="button"
+                onClick={() => setShowGuide((v) => !v)}
+              >
+                {showGuide ? 'hide setup guide' : 'show setup guide'}
+              </button>
+              {showGuide && setupGuide}
+            </>
+          ) : (
+            setupGuide
+          )}
+
+          {config.address && freshCode && (
             <div className="flex flex-col gap-1 border-[1.5px] border-[color:var(--accent)] rounded-[5px] p-3">
               <span className="text-[12px] text-[color:var(--ink-invert)]">Gmail confirmation code</span>
               <code className="[font-family:var(--font-mono)] text-[20px] tracking-[0.15em] text-[color:var(--ink-invert)] select-all">
@@ -219,30 +271,34 @@ export function JobAlertsSection() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2">
-            <span className={nafLabel}>Recent activity</span>
-            <button className={primaryButton} type="button" onClick={() => void loadEvents()}>
-              Refresh
-            </button>
-          </div>
-          {events.length === 0 ? (
-            <p className={hint}>Nothing received yet.</p>
-          ) : (
-            <ul className="flex flex-col gap-2 list-none p-0 m-0">
-              {events.map((ev) => (
-                <li key={ev.id} className="border border-[color:var(--rule)] rounded-[5px] px-3 py-2">
-                  <div className={hint}>
-                    {kindLabel[ev.kind]} · {formatTimestamp(ev.receivedAt)}
-                  </div>
-                  {ev.subject && (
-                    <div className="text-[13px] text-[color:var(--ink-invert)] break-words">{ev.subject}</div>
-                  )}
-                  {ev.sender && <div className={`${hint} break-all`}>{ev.sender}</div>}
-                  {ev.detail && <div className={`${hint} whitespace-pre-wrap break-all`}>{ev.detail}</div>}
-                  {ev.kind === 'confirmation' && <div className={hint}>{unverified}</div>}
-                </li>
-              ))}
-            </ul>
+          {config.address && (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className={nafLabel}>Recent activity</span>
+                <button className={primaryButton} type="button" onClick={() => void loadEvents()}>
+                  Refresh
+                </button>
+              </div>
+              {events.length === 0 ? (
+                <p className={hint}>Nothing received yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-2 list-none p-0 m-0">
+                  {events.map((ev) => (
+                    <li key={ev.id} className="border border-[color:var(--rule)] rounded-[5px] px-3 py-2">
+                      <div className={hint}>
+                        {kindLabel[ev.kind]} · {formatTimestamp(ev.receivedAt)}
+                      </div>
+                      {ev.subject && (
+                        <div className="text-[13px] text-[color:var(--ink-invert)] break-words">{ev.subject}</div>
+                      )}
+                      {ev.sender && <div className={`${hint} break-all`}>{ev.sender}</div>}
+                      {ev.detail && <div className={`${hint} whitespace-pre-wrap break-all`}>{ev.detail}</div>}
+                      {ev.kind === 'confirmation' && <div className={hint}>{unverified}</div>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </>
       )}

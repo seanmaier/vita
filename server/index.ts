@@ -21,6 +21,7 @@ import {
   listApiTokens,
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
+  parseUserTokenScope,
   recordFailure,
   revokeApiToken,
   tokenAllows,
@@ -191,11 +192,13 @@ app.post('/api/password', requireUser, async (c) => {
 app.get('/api/tokens', requireUser, (c) => c.json(listApiTokens(c.get('user').id)));
 
 app.post('/api/tokens', requireUser, async (c) => {
-  const body: { name?: unknown } = await c.req.json().catch(() => ({}));
+  const body: { name?: unknown; scope?: unknown } = await c.req.json().catch(() => ({}));
+  const scope = parseUserTokenScope(body.scope);
+  if (!scope.ok) return c.json({ error: scope.error }, 400);
   const name = typeof body.name === 'string' ? body.name.trim() : '';
-  const result = createApiToken(c.get('user').id, name);
+  const result = createApiToken(c.get('user').id, name, scope.scope);
   if (!result.ok) return c.json({ error: result.error }, result.status);
-  log.info('API token created', { user: c.get('user').username, token: name });
+  log.info('API token created', { user: c.get('user').username, token: name, scope: scope.scope });
   return c.json({ token: result.token }, 201);
 });
 
