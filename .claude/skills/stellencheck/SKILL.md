@@ -14,8 +14,13 @@ Basiswissen in der App gespeichert.
 `private/knowledge/priorities.md` und `about-me.md` an (gitignored). Bearbeitet wird die
 Arbeitskopie; nach jeder Änderung `node scripts/knowledge.ts push priorities` (bzw.
 `about-me`). Fehlt ein Dokument in der App (`pull` meldet „not saved“, `get` endet mit
-Exit 2), aus der Vorlage unten (`priorities`) bzw. `private/knowledge/about-me.example.md`
-(`about-me`) anlegen und hochladen.
+Exit 2) und existiert die Arbeitskopie `private/knowledge/<doc>.md`, diese mit
+`node scripts/knowledge.ts push <doc>` hochladen. Die Vorlage unten (`priorities`) bzw.
+`private/knowledge/about-me.example.md` (`about-me`) nur verwenden, wenn es auch lokal keine
+Datei gibt; dann anlegen und mit `push` hochladen. Endet `pull` mit Exit 3, unterscheidet
+sich eine lokale Datei von der App-Version (diese liegt als `<doc>.server.md` daneben):
+Unterschiede kurz zeigen und den Nutzer fragen, welche gelten soll (lokale Datei mit `push`
+hochladen oder durch die `.server.md`-Kopie ersetzen). Nie stillschweigend weitermachen.
 
 Datenschutz: Inhalte nie committen und nur an die eigene App (`JOB_APPS_URL`) senden, an keine anderen Dienste.
 
