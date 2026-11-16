@@ -62,7 +62,12 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
 URL über das Web-Fetch-Werkzeug lesen, Text direkt verwenden. Extrahieren:
 Firma, Rolle, Sprache der Anzeige (`de`/`en`), Ansprechperson, Muss-Anforderungen,
 Kann-Anforderungen, Aufgaben, Tech-Stack, Kultur-/Tonalitätssignale, Standort/Remote.
-Passt die Stelle zu den Ausschlusskriterien im Basiswissen, das sofort ansprechen.
+
+Danach die Passung nach dem Skill `stellencheck` bewerten (Ausschlusskriterien und
+Gewichte aus `private/knowledge/priorities.md`) und das Ergebnis kurz zeigen, falls der
+Nutzer die Stelle nicht gerade erst mit `/stellencheck` geprüft hat. Bei einem
+Ausschlusskriterium oder weniger als 50 % fragen, ob er trotzdem eine Bewerbung will,
+bevor du weitermachst.
 
 ### 2. Aktuellen Stand laden
 

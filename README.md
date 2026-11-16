@@ -101,8 +101,12 @@ backup there and restore it after logging in.
 
 ## AI-assisted applications
 
-The repo ships two Claude Code skills that work against your deployed data:
+The repo ships three Claude Code skills that work against your deployed data:
 
+- `/stellencheck <job ad URL or text>` rates how well a job fits you, as a
+  percentage with knock-out criteria and weighted criteria, against your
+  priorities in `private/knowledge/priorities.md` (gitignored; it asks for them
+  the first time). `/bewerbung` runs the same check before drafting.
 - `/basiswissen` interviews you and builds `private/knowledge/about-me.md`
   (gitignored, template: `about-me.example.md`): the stories, numbers and
   honest skill levels behind your CV.
