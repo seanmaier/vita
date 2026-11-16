@@ -273,3 +273,25 @@ test('a missing APP_URL secret calls nothing and ends temporarily rejected', asy
   assert.equal(f.calls.length, 0);
   assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
 });
+
+test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, { ...env, LOG_HEADERS: '1' }, f.impl, noSleep), 'delivered');
+  const line = logs.find((l) => l.startsWith('job-alerts: headers '));
+  assert.ok(line, 'expected a headers log line');
+  const d = JSON.parse(line.slice('job-alerts: headers '.length));
+  assert.equal(d.envelopeFrom, GMAIL_ENVELOPE);
+  assert.equal(d.from, 'jobalerts-noreply@linkedin.com');
+  assert.ok(!line.includes('Neue Jobs'), 'must not log the subject');
+});
+
+test('without LOG_HEADERS no header diagnostics are logged', async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  await handleEmail(m.message, env, fakeFetch(201).impl, noSleep);
+  assert.ok(!logs.some((l) => l.startsWith('job-alerts: headers ')));
+});
