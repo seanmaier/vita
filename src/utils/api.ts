@@ -1,5 +1,5 @@
 import { flush, hydrate, localWriteCount } from './storage';
-import type { JobLead, JobLeadStatus } from '../types';
+import type { InboundEvent, JobAlertsConfig, JobLead, JobLeadStatus } from '../types';
 
 export interface SessionUser {
   id: number;
@@ -144,5 +144,40 @@ export async function updateLead(
     body: JSON.stringify(patch),
   });
   if (!res.ok) throw await errorFrom(res, 'Updating the job lead failed');
+  return res.json();
+}
+
+export async function fetchJobAlerts(): Promise<JobAlertsConfig> {
+  const res = await fetch('/api/v1/job-alerts');
+  if (!res.ok) throw await errorFrom(res, 'Loading the job alert settings failed');
+  return res.json();
+}
+
+/** Creates the user's alert address, or replaces it (the old one stops working at once). */
+export async function createJobAlertAddress(): Promise<JobAlertsConfig> {
+  const res = await fetch('/api/v1/job-alerts/address', { method: 'POST' });
+  if (!res.ok) throw await errorFrom(res, 'Creating the alert address failed');
+  return res.json();
+}
+
+export async function saveForwardingFrom(value: string | null): Promise<JobAlertsConfig> {
+  const res = await fetch('/api/v1/job-alerts', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ forwardingFrom: value }),
+  });
+  if (!res.ok) {
+    const body: { details?: unknown } = await res.clone().json().catch(() => ({}));
+    const details = Array.isArray(body.details) ? body.details.filter((d) => typeof d === 'string') : [];
+    if (details.length > 0) throw new Error(details.join(' '));
+    throw await errorFrom(res, 'Saving the forwarding address failed');
+  }
+  return res.json();
+}
+
+/** The most recent inbound mails for the user's alert address, newest first. */
+export async function fetchJobAlertEvents(): Promise<InboundEvent[]> {
+  const res = await fetch('/api/v1/job-alerts/events?limit=20');
+  if (!res.ok) throw await errorFrom(res, 'Loading the alert activity failed');
   return res.json();
 }
