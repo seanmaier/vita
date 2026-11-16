@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
 import { ApplicationPage } from './pages/ApplicationPage';
 import { NewApplicationPage } from './pages/NewApplicationPage';
@@ -7,7 +7,10 @@ import { EditApplicationPage } from './pages/EditApplicationPage';
 import { BaseProfilesPage } from './pages/BaseProfilesPage';
 import { BaseProfileEditPage } from './pages/BaseProfileEditPage';
 import { LoginPage } from './pages/LoginPage';
-import { AccountPage } from './pages/AccountPage';
+import { AccountLayout } from './pages/account/AccountLayout';
+import { PasswordSection } from './pages/account/PasswordSection';
+import { JobAlertsSection } from './components/JobAlertsSection';
+import { ApiTokensSection } from './components/ApiTokensSection';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { LeadsPage } from './pages/LeadsPage';
 import { TrashPage } from './pages/TrashPage';
@@ -23,8 +26,17 @@ const router = createBrowserRouter([
   { path: '/', element: <DashboardPage /> },
   { path: '/profiles', element: <BaseProfilesPage /> },
   ...(isDemo ? [] : [
-    { path: '/account', element: <AccountPage /> },
-    { path: '/knowledge', element: <KnowledgePage /> },
+    {
+      path: '/account',
+      element: <AccountLayout />,
+      children: [
+        { index: true, element: <PasswordSection /> },
+        { path: 'job-alerts', element: <JobAlertsSection /> },
+        { path: 'knowledge', element: <KnowledgePage /> },
+        { path: 'tokens', element: <ApiTokensSection /> },
+      ],
+    },
+    { path: '/knowledge', element: <Navigate to="/account/knowledge" replace /> },
     { path: '/leads', element: <LeadsPage /> },
   ]),
   { path: '/profiles/:id', element: <BaseProfileEditPage /> },

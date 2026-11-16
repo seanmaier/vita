@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useBlocker } from 'react-router-dom';
+import { useBlocker } from 'react-router-dom';
 import { fetchKnowledge, saveKnowledge } from '../utils/api';
 import type { KnowledgeDoc } from '../utils/api';
-import { nafLabel, primaryButton } from '../styles/formStyles';
+import { nafLabel, primaryButton, tabClass } from '../styles/formStyles';
 import { AutoTextarea } from '../components/AutoTextarea';
 import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
 
@@ -10,13 +10,6 @@ const TABS: { doc: KnowledgeDoc; label: string }[] = [
   { doc: 'about-me', label: 'About me' },
   { doc: 'priorities', label: 'Priorities' },
 ];
-
-const tabClass = (active: boolean) =>
-  `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
-    active
-      ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
-      : 'border-transparent text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)]'
-  }`;
 
 export function KnowledgePage() {
   const [doc, setDoc] = useState<KnowledgeDoc>('about-me');
@@ -116,17 +109,10 @@ export function KnowledgePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
-      <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/account">
-          ← Account
-        </Link>
-        <span>
-          <span className="text-[color:var(--ink-3)]">~/</span>
-          <span className="text-[color:var(--accent)]">knowledge</span>
-          <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
-        </span>
-      </header>
+    <div>
+      <p className="[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] mb-4">
+        Background about you that the AI assistant reads for applications and job checks.
+      </p>
 
       <div className="flex border-b border-[color:var(--rule)] mb-5" role="tablist">
         {TABS.map((t) => (

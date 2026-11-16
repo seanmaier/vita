@@ -135,7 +135,7 @@ export function JobAlertsSection() {
   const freshCode = freshConfirmation && latestConfirmation ? confirmationCode(latestConfirmation) : null;
 
   return (
-    <section className="max-w-[560px] flex flex-col gap-4 mt-12">
+    <section className="max-w-[560px] flex flex-col gap-4">
       <span className={nafLabel}>Job alerts</span>
       <p className={hint}>
         Forward job-alert mails from your Gmail to a personal address here, and the jobs in them show up as

@@ -66,7 +66,7 @@ export function ApiTokensSection() {
   };
 
   return (
-    <section className="max-w-[560px] flex flex-col gap-4 mt-12">
+    <section className="max-w-[560px] flex flex-col gap-4">
       <span className={nafLabel}>API tokens</span>
       <p className={hint}>
         Let scripts and AI assistants read and edit your applications through <code>/api/v1</code>, without

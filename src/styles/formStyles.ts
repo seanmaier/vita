@@ -46,3 +46,12 @@ export const editSaveBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color
 export const nafDragHandle = 'hidden pointer-fine:flex items-center justify-center shrink-0 w-5 h-[34px] text-[color:var(--ink-3)] cursor-grab active:cursor-grabbing rounded hover:text-[color:var(--accent)]';
 export const dropBefore = 'shadow-[0_-2px_0_0_var(--accent)]';
 export const dropAfter = 'shadow-[0_2px_0_0_var(--accent)]';
+
+// Tab-style control with an accent bottom border when active; used by the
+// account section nav and the knowledge document tabs.
+export const tabClass = (active: boolean) =>
+  `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
+    active
+      ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
+      : 'border-transparent text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)]'
+  }`;
