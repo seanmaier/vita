@@ -1,7 +1,9 @@
 import PostalMime from 'postal-mime';
 import { extractConfirmation } from './confirmation.ts';
 import { headerDiagnostics } from './diagnostics.ts';
+import { headerValues, type ParsedMail } from './headers.ts';
 import { parseAlert, sourceForSender } from './parsers.ts';
+import { cloudflareSpfPass } from './spf.ts';
 import type { JobLeadInput } from './types.ts';
 
 export interface Env {
@@ -16,7 +18,6 @@ export interface Env {
 export type EmailOutcome = 'delivered' | 'rejected' | 'unavailable';
 
 type Message = Pick<ForwardableEmailMessage, 'from' | 'to' | 'raw' | 'headers' | 'setReject'>;
-type ParsedMail = Awaited<ReturnType<typeof PostalMime.parse>>;
 
 interface InboundPayload {
   recipient: string;
@@ -96,7 +97,10 @@ function formatSender(from: { name?: string; address?: string } | undefined): st
   return from.name ? `${from.name} <${from.address}>` : from.address;
 }
 
-/** Decide what the app is told about this mail. The app does the per-user sender check. */
+/**
+ * Decide what the app is told about this mail. The app checks that the envelope sender is the
+ * user's forwarding address; this only passes content on once Cloudflare confirmed that sender by SPF.
+ */
 function buildPayload(message: Message, parsed: ParsedMail | null): { payload: InboundPayload; log: string } {
   const base = { recipient: message.to, envelopeFrom: message.from };
   if (!parsed) return { payload: { ...base, kind: 'failed', detail: 'unparseable' }, log: 'failed (unparseable)' };
@@ -106,6 +110,11 @@ function buildPayload(message: Message, parsed: ParsedMail | null): { payload: I
     subject: truncate(parsed.subject, MAX_SHORT_FIELD),
     sender: truncate(formatSender(parsed.from), MAX_SHORT_FIELD),
   };
+
+  if (!cloudflareSpfPass(headerValues(parsed, 'authentication-results'), message.from)) {
+    // Subject and sender are chosen freely by an unverified sender, so only the reason is passed on.
+    return { payload: { ...base, kind: 'failed', detail: 'sender not verified (SPF)' }, log: 'failed (spf)' };
+  }
 
   if (message.from.trim().toLowerCase() === GMAIL_CONFIRMATION_SENDER) {
     const { code, url } = extractConfirmation(parsed.text ?? parsed.html ?? '');

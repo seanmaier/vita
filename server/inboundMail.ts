@@ -24,7 +24,7 @@ export function purgeOldInboundEvents(): number {
   return Number(result.changes);
 }
 
-/** The user an alert address belongs to, plus the Gmail they registered. */
+/** The user an alert address belongs to, plus the address they forward from. */
 function findRecipient(raw: string): { userId: number; forwardingFrom: string | null } | null {
   const recipient = raw.trim();
   const at = recipient.lastIndexOf('@');
