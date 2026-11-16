@@ -84,8 +84,14 @@ export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPE
 
 /** Whether a token of this scope may call the given endpoint. Exact path match, on purpose. */
 export function tokenAllows(scope: TokenScope, method: string, path: string): boolean {
-  if (scope === 'full') return path.startsWith('/api/v1/');
-  return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+  switch (scope) {
+    case 'full':
+      return path.startsWith('/api/v1/');
+    case 'job-leads:ingest':
+      return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+    default:
+      return false;
+  }
 }
 
 export interface ApiTokenInfo {
@@ -137,7 +143,7 @@ export function getApiToken(token: string): { user: User; scope: TokenScope } | 
       'SELECT u.id, u.username, t.scope FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?',
     )
     .get(hash) as { id: number; username: string; scope: TokenScope } | undefined;
-  if (!row) return null;
+  if (!row || !isTokenScope(row.scope)) return null;
   db.prepare("UPDATE api_tokens SET last_used_at = datetime('now') WHERE token_hash = ?").run(hash);
   return { user: { id: row.id, username: row.username }, scope: row.scope };
 }

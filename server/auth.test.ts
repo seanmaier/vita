@@ -1,6 +1,7 @@
 import './test/env.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { db } from './db.ts';
 import { createApiToken, getApiToken, listApiTokens, tokenAllows } from './auth.ts';
 import { createTestUser } from './test/testApp.ts';
 
@@ -27,13 +28,11 @@ test('createApiToken stores the scope and defaults to full', () => {
   assert.equal(getApiToken(plain.token)?.scope, 'full');
   assert.equal(getApiToken(plain.token)?.user.id, user.id);
   assert.equal(getApiToken('jat_unknown'), null);
-  assert.deepEqual(
-    listApiTokens(user.id).map((t) => [t.name, t.scope]),
-    [
-      ['worker', 'job-leads:ingest'],
-      ['laptop', 'full'],
-    ].sort(),
-  );
+  // created_at has 1 s precision, so the list order isn't stable here.
+  assert.deepEqual(Object.fromEntries(listApiTokens(user.id).map((t) => [t.name, t.scope])), {
+    worker: 'job-leads:ingest',
+    laptop: 'full',
+  });
 });
 
 test('createApiToken rejects an unknown scope', () => {
@@ -50,4 +49,13 @@ test('getApiToken still records last use', () => {
   assert.equal(listApiTokens(user.id)[0].last_used_at, null);
   getApiToken(created.token);
   assert.notEqual(listApiTokens(user.id)[0].last_used_at, null);
+});
+
+test('a token with an unknown stored scope is rejected', () => {
+  const user = createTestUser();
+  const created = createApiToken(user.id, 'tampered');
+  assert.ok(created.ok);
+  db.prepare("UPDATE api_tokens SET scope = 'admin' WHERE user_id = ?").run(user.id);
+  assert.equal(getApiToken(created.token), null);
+  assert.equal(tokenAllows('admin' as never, 'GET', '/api/v1/x'), false);
 });
