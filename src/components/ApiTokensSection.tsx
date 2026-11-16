@@ -16,6 +16,7 @@ function formatTimestamp(value: string | null): string {
 export function ApiTokensSection() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
+  const [scope, setScope] = useState<'full' | 'job-leads:ingest'>('full');
   const [created, setCreated] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function ApiTokensSection() {
     setError(null);
     setCopied(false);
     try {
-      const token = await createApiToken(name);
+      const token = await createApiToken(name, scope);
       setCreated({ name: name.trim(), token });
       setName('');
       await load();
@@ -122,6 +123,15 @@ export function ApiTokensSection() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        <select
+          className={nafInput}
+          aria-label="Scope"
+          value={scope}
+          onChange={(e) => setScope(e.target.value as 'full' | 'job-leads:ingest')}
+        >
+          <option value="full">full — everything a script needs</option>
+          <option value="job-leads:ingest">job-leads:ingest — can only add job leads</option>
+        </select>
         <button className={`${primaryButton} shrink-0`} type="submit" disabled={busy}>
           {busy ? 'creating…' : 'create token'}
         </button>

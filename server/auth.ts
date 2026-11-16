@@ -82,6 +82,17 @@ export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
 
+// inbound:deliver can deliver mail to any user's address, so it stays CLI-only.
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest'] as const satisfies readonly TokenScope[];
+
+export function parseUserTokenScope(raw: unknown): { ok: true; scope: TokenScope } | { ok: false; error: string } {
+  if (raw === undefined) return { ok: true, scope: 'full' };
+  if (typeof raw === 'string' && (USER_TOKEN_SCOPES as readonly string[]).includes(raw)) {
+    return { ok: true, scope: raw as TokenScope };
+  }
+  return { ok: false, error: `Scope must be one of: ${USER_TOKEN_SCOPES.join(', ')}.` };
+}
+
 /** Whether a token of this scope may call the given endpoint. Exact path match, on purpose. */
 export function tokenAllows(scope: TokenScope, method: string, path: string): boolean {
   switch (scope) {

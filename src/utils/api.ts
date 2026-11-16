@@ -57,11 +57,11 @@ export async function fetchApiTokens(): Promise<ApiToken[]> {
 }
 
 /** Creates a token and returns its secret, which the server never shows again. */
-export async function createApiToken(name: string): Promise<string> {
+export async function createApiToken(name: string, scope: 'full' | 'job-leads:ingest' = 'full'): Promise<string> {
   const res = await fetch('/api/tokens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, scope }),
   });
   if (!res.ok) throw await errorFrom(res, 'Creating the token failed');
   const body: { token: string } = await res.json();
