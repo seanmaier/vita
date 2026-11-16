@@ -37,10 +37,16 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
 - Request-Bodies immer mit dem Write-Tool als UTF-8-JSON ins Scratchpad schreiben und den
   Pfad übergeben, nie inline in der Shell.
 - Bei `HTTP 400` stehen in `details` alle Validierungsfehler: korrigieren und erneut senden.
-- Felder einer Bewerbung: `id, company, role, status, language, font, appliedDate,
-  interviewDate, finalDecisionDate, notes, url, baseProfileId, summaryOverride,
-  featuredProjectIds, skillGroupsOverride, coverLetter` (siehe `src/types.ts`).
-  `PATCH` überschreibt nur die übergebenen Felder; `null` entfernt ein optionales Feld.
+- Felder einer Bewerbung: `id, company, role, language, font, notes, url, baseProfileId,
+  summaryOverride, featuredProjectIds, skillGroupsOverride, coverLetter` (siehe
+  `src/types.ts`). `PATCH` überschreibt nur die übergebenen Felder; `null` entfernt ein
+  optionales Feld.
+- `status`, `appliedDate`, `interviewDate`, `finalDecisionDate` und `statusHistory` sind
+  nur lesbar: Sie folgen dem Statusverlauf. `POST`/`PATCH` mit diesen Feldern gibt `400`.
+  Ändern nur auf ausdrücklichen Wunsch des Nutzers über
+  `POST applications/<id>/transitions` mit `{ "to": "sent", "date": "2026-11-16" }`
+  (erlaubte Schritte nennt die `409`-Antwort), rückgängig mit
+  `DELETE applications/<id>/transitions/last`.
 - Neue Bewerbungen bekommen serverseitig immer den Status `drafting`.
 - Listen enthalten nichts aus dem Papierkorb. Dinge im Papierkorb lassen sich nicht ändern
   (`409`). Bewerbungen löscht nur der Nutzer in der App; dafür gibt es keinen API-Aufruf.
