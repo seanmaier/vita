@@ -15,17 +15,29 @@
 # Docker can't rename volumes, so the default keeps the name from before
 # the app was called Vita; existing deployments need no change.
 #
+# Daily backups go to a second external volume, created the same way:
+#   docker volume create vita-backups
+# deploy/vita-backup.sh creates, lists and restores them (see the README).
+#
 # Stack environment variables (set them in Portainer, not here):
 #   PROXY_NETWORK  required, name of that existing Docker network
 #   DATA_VOLUME    optional, defaults to job-applications-data
+#   BACKUP_VOLUME  optional, defaults to vita-backups
+#   LOG_LEVEL      optional, debug | info | warn | error, defaults to info
+#   INBOUND_DOMAIN optional, the domain the email worker's catch-all receives
+#                  mail for (e.g. alerts.example.org); job alerts are off
+#                  while it is unset
 services:
   app:
     image: ghcr.io/seanmaier/vita:latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      INBOUND_DOMAIN: ${INBOUND_DOMAIN:-}
     volumes:
       - app-data:/data
+      - backups:/backups
     networks:
       proxy:
         aliases:
@@ -36,6 +48,9 @@ volumes:
   app-data:
     external: true
     name: ${DATA_VOLUME:-job-applications-data}
+  backups:
+    external: true
+    name: ${BACKUP_VOLUME:-vita-backups}
 
 networks:
   proxy:

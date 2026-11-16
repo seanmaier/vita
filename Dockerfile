@@ -16,6 +16,7 @@ FROM node:24-alpine
 ENV NODE_ENV=production \
     PORT=3000 \
     DB_PATH=/data/app.db \
+    BACKUP_DIR=/backups \
     STATIC_DIR=/app/dist
 
 WORKDIR /app
@@ -32,7 +33,8 @@ COPY src/types.ts ./src/types.ts
 COPY src/utils ./src/utils
 COPY --from=builder /app/dist ./dist
 
-RUN mkdir /data && chown node:node /data
+# /backups exists owned by node, so a fresh volume mounted there is writable.
+RUN mkdir /data /backups && chown node:node /data /backups
 VOLUME /data
 USER node
 

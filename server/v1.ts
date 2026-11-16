@@ -10,13 +10,21 @@ import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
 import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
 import { slugify, uniqueId } from '../src/utils/slug.ts';
 import { purgeDate } from '../src/utils/trash.ts';
-import type { User } from './auth.ts';
 import { transaction } from './db.ts';
+import { BROWSER_AUTHOR, getVersion, listVersions, recordChanges, snapshot } from './history.ts';
+import { invalid, readBody, type Body, type V1Env, type Validated } from './http.ts';
+import { inboundMail } from './inboundMail.ts';
+import { jobAlerts } from './jobAlerts.ts';
+import { jobLeads } from './jobLeads.ts';
+import { knowledge } from './knowledge.ts';
 import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
-export const v1 = new Hono<{ Variables: { user: User } }>();
+export const v1 = new Hono<V1Env>();
+
+/** Who a write is recorded as in the version history: the API token's name, or the app for session calls. */
+const authorOf = (c: Context) => (c.get('apiToken') as string | undefined) ?? BROWSER_AUTHOR;
 
 function localApps(userId: number): ApplicationConfig[] {
   return getJson<ApplicationConfig[]>(userId, KEYS.localApps) ?? [];
@@ -51,6 +59,11 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
     items.filter((i) => i.deletedAt).map((i) => ({ ...i, purgesAt: purgeDate(i.deletedAt!).toISOString() })),
   );
 }
+
+v1.route('/knowledge', knowledge);
+v1.route('/job-leads', jobLeads);
+v1.route('/job-alerts', jobAlerts);
+v1.route('/inbound-mail', inboundMail);
 
 v1.get('/me', (c) => c.json(c.get('user')));
 
@@ -91,27 +104,18 @@ const APPLICATION_FIELDS = [
   'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter',
 ];
 const BASE_PROFILE_FIELDS = ['id', 'name', 'language', 'profile'];
+// Not part of the application: a short note on what a write changed, shown
+// in the application's version history like a commit message.
+const CHANGE_MESSAGE = 'changeMessage';
 
-type Body = Record<string, unknown>;
-
-function isPlainObject(v: unknown): v is Body {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
+/** Takes the change message out of a body, or returns what's wrong with it. */
+function takeChangeMessage(body: Body): string | null | string[] {
+  const message = body[CHANGE_MESSAGE];
+  delete body[CHANGE_MESSAGE];
+  if (message === undefined || message === null) return null;
+  if (typeof message !== 'string') return [`"${CHANGE_MESSAGE}" must be a string.`];
+  return message;
 }
-
-function invalid(c: Context, details: string[]) {
-  return c.json({ error: 'Validation failed.', details }, 400);
-}
-
-/** Reads a JSON object body, or lists what's wrong with it, including fields a typo would silently drop. */
-async function readBody(c: Context, allowed: string[]): Promise<Body | string[]> {
-  const body: unknown = await c.req.json().catch(() => undefined);
-  if (!isPlainObject(body)) return ['Expected a JSON object body.'];
-  const unknownFields = Object.keys(body).filter((k) => !allowed.includes(k));
-  if (unknownFields.length) return [`Unknown field(s): ${unknownFields.join(', ')}. Allowed: ${allowed.join(', ')}.`];
-  return body;
-}
-
-type Validated<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 // validateApplicationConfig doesn't carry skillGroupsOverride through, so it
 // is validated and re-attached here.
@@ -141,8 +145,10 @@ function baseProfileIdError(userId: number, body: Body): string | null {
 // New applications always start as drafts, so nothing the assistant creates
 // looks finished until the user has reviewed it in the app.
 v1.post('/applications', async (c) => {
-  const body = await readBody(c, APPLICATION_FIELDS);
+  const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
   if (Array.isArray(body)) return invalid(c, body);
+  const message = takeChangeMessage(body);
+  if (Array.isArray(message)) return invalid(c, message);
   const result = validateApplication({ ...body, status: 'drafting' });
   if (!result.ok) return invalid(c, result.errors);
 
@@ -165,7 +171,9 @@ v1.post('/applications', async (c) => {
     ]);
     if (explicitId && taken.has(result.value.id)) return null;
     const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
+    const before = snapshot(userId, [config.id]);
     setJson(userId, KEYS.localApps, [...apps, config]);
+    recordChanges(userId, before, authorOf(c), () => message);
     return config;
   });
 
@@ -179,8 +187,10 @@ v1.post('/applications', async (c) => {
 // optional one. Saved the way the app's editor saves (the app-config
 // override plus the separate status key), so the app shows it immediately.
 v1.patch('/applications/:id', async (c) => {
-  const body = await readBody(c, APPLICATION_FIELDS);
+  const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
   if (Array.isArray(body)) return invalid(c, body);
+  const message = takeChangeMessage(body);
+  if (Array.isArray(message)) return invalid(c, message);
   const id = c.req.param('id');
   if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
 
@@ -200,8 +210,10 @@ v1.patch('/applications/:id', async (c) => {
     if (!result.ok) return result;
 
     const { status, ...stored } = result.value;
+    const before = snapshot(userId, [id]);
     setJson(userId, KEYS.appConfig(id), stored);
     if ('status' in body) setValue(userId, KEYS.status(id), status);
+    recordChanges(userId, before, authorOf(c), () => message);
     return { ok: true, value: null };
   });
 
@@ -209,6 +221,43 @@ v1.patch('/applications/:id', async (c) => {
   if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
   if (!outcome.ok) return invalid(c, outcome.errors);
   return c.json(findApplication(userId, id));
+});
+
+// ---- Version history -------------------------------------------------------
+// Every change to an application's content is kept as a full snapshot (see
+// server/history.ts), newest first. Status and notes aren't versioned.
+
+v1.get('/applications/:id/versions', (c) => {
+  const userId = c.get('user').id;
+  const id = c.req.param('id');
+  if (!findApplication(userId, id)) return c.json({ error: 'No such application.' }, 404);
+  return c.json(listVersions(userId, id));
+});
+
+// Writes the version's content back as the application's saved edits, keeping
+// its current status and notes, and records that as a new version, so a
+// restore can itself be undone.
+v1.post('/applications/:id/versions/:versionId/restore', (c) => {
+  const userId = c.get('user').id;
+  const id = c.req.param('id');
+  const versionId = Number(c.req.param('versionId'));
+  const outcome = transaction((): ApplicationConfig | 'no-app' | 'no-version' | 'trashed' => {
+    const current = findApplication(userId, id);
+    if (!current) return 'no-app';
+    if (current.deletedAt) return 'trashed';
+    const version = Number.isInteger(versionId) ? getVersion(userId, id, versionId) : null;
+    if (!version) return 'no-version';
+    const before = snapshot(userId, [id]);
+    setJson(userId, KEYS.appConfig(id), { ...version.content, id, ...(current.notes && { notes: current.notes }) });
+    const restoredMessage = version.message ? `Restored: ${version.message}` : 'Restored an earlier version';
+    recordChanges(userId, before, authorOf(c), () => restoredMessage);
+    return findApplication(userId, id)!;
+  });
+
+  if (outcome === 'no-app') return c.json({ error: 'No such application.' }, 404);
+  if (outcome === 'no-version') return c.json({ error: 'No such version.' }, 404);
+  if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+  return c.json(outcome);
 });
 
 function validateBaseProfile(input: Body): Validated<Omit<BaseProfile, 'id'>> {

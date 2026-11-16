@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken } from '../utils/api';
+import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken, type UserTokenScope } from '../utils/api';
 import { nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
+import { TokenListSkeleton } from './Skeleton';
 
 const hint = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] leading-[1.6]';
 
@@ -16,6 +17,7 @@ function formatTimestamp(value: string | null): string {
 export function ApiTokensSection() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
+  const [scope, setScope] = useState<UserTokenScope>('full');
   const [created, setCreated] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function ApiTokensSection() {
     setError(null);
     setCopied(false);
     try {
-      const token = await createApiToken(name);
+      const token = await createApiToken(name, scope);
       setCreated({ name: name.trim(), token });
       setName('');
       await load();
@@ -66,13 +68,14 @@ export function ApiTokensSection() {
   };
 
   return (
-    <section className="max-w-[560px] flex flex-col gap-4 mt-12">
+    <section className="max-w-[560px] flex flex-col gap-4">
       <span className={nafLabel}>API tokens</span>
       <p className={hint}>
         Let scripts and AI assistants read and edit your applications through <code>/api/v1</code>, without
         your password. A token can't log in, change your password or manage tokens.
       </p>
 
+      {!tokens && !error && <TokenListSkeleton />}
       {tokens && tokens.length > 0 && (
         <ul className="flex flex-col gap-2 list-none p-0 m-0">
           {tokens.map((t) => (
@@ -81,7 +84,10 @@ export function ApiTokensSection() {
               className="flex items-center justify-between gap-3 border border-[color:var(--rule)] rounded-[5px] px-3 py-2"
             >
               <div className="min-w-0">
-                <div className="text-[13px] text-[color:var(--ink-invert)] truncate">{t.name}</div>
+                <div className="text-[13px] text-[color:var(--ink-invert)] truncate">
+                  {t.name}
+                  {t.scope !== 'full' && <span className={`${hint} ml-2`}>{t.scope}</span>}
+                </div>
                 <div className={hint}>
                   created {formatTimestamp(t.created_at)} · last used {formatTimestamp(t.last_used_at)}
                 </div>
@@ -119,10 +125,23 @@ export function ApiTokensSection() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        <select
+          className={nafInput}
+          aria-label="Scope"
+          value={scope}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next === 'full' || next === 'job-leads:ingest') setScope(next);
+          }}
+        >
+          <option value="full">full</option>
+          <option value="job-leads:ingest">job-leads:ingest (leads only)</option>
+        </select>
         <button className={`${primaryButton} shrink-0`} type="submit" disabled={busy}>
           {busy ? 'creating…' : 'create token'}
         </button>
       </form>
+      <p className={hint}>full: everything a script or assistant needs. job-leads:ingest: can only add job leads.</p>
 
       {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
     </section>

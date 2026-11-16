@@ -1,4 +1,5 @@
 import { db } from './db.ts';
+import type { KnowledgeDoc } from './knowledge.ts';
 
 // Typed access to the per-user kv rows the frontend writes. Keys and value
 // formats must stay in sync with src/utils/{localApplications,appStorage,
@@ -8,6 +9,7 @@ export const KEYS = {
   baseProfiles: 'base-profiles',
   appConfig: (id: string) => `app-config-${id}`,
   status: (id: string) => `status-${id}`,
+  knowledge: (doc: KnowledgeDoc) => `knowledge-${doc}`,
 };
 
 export function getValue(userId: number, key: string): string | null {
@@ -19,8 +21,11 @@ export function getValue(userId: number, key: string): string | null {
 
 /** Parses a stored JSON value; a corrupt one reads as missing, like the frontend treats it. */
 export function getJson<T>(userId: number, key: string): T | null {
-  const raw = getValue(userId, key);
-  if (raw === null) return null;
+  return parseJson<T>(getValue(userId, key));
+}
+
+export function parseJson<T>(raw: string | null | undefined): T | null {
+  if (raw === null || raw === undefined) return null;
   try {
     return JSON.parse(raw) as T;
   } catch {

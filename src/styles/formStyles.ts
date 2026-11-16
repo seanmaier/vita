@@ -37,8 +37,10 @@ export const napLiveLabel = '[font-family:var(--font-mono)] text-[10px] text-[#4
 
 export const editAppHeader = 'bg-[color:var(--ink)] flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] gap-x-4 gap-y-2 shrink-0';
 export const editAppCompany = 'text-[color:var(--accent)] font-semibold';
-export const editAppHeaderActions = 'flex items-center gap-2 shrink-0';
+export const editAppHeaderActions = 'flex flex-wrap items-center gap-2 shrink-0 max-sm:w-full';
 export const editResetBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-3)] border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)]';
+export const editHistoryBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-2)] border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]';
+export const editMessageInput = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--surface)] text-[color:var(--ink-invert)] border border-[color:var(--rule)] rounded px-2.5 py-[5px] w-[230px] max-sm:w-full max-sm:order-last placeholder:text-[color:var(--ink-3)] focus:outline-none focus:border-[color:var(--accent)]';
 export const editSaveBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer tracking-[0.03em] transition-[filter] duration-150 hover:brightness-110';
 
 // Six-dot grip for drag-reordering. Only shown on fine pointers (mouse/trackpad),
@@ -46,3 +48,12 @@ export const editSaveBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color
 export const nafDragHandle = 'hidden pointer-fine:flex items-center justify-center shrink-0 w-5 h-[34px] text-[color:var(--ink-3)] cursor-grab active:cursor-grabbing rounded hover:text-[color:var(--accent)]';
 export const dropBefore = 'shadow-[0_-2px_0_0_var(--accent)]';
 export const dropAfter = 'shadow-[0_2px_0_0_var(--accent)]';
+
+// Tab-style control with an accent bottom border when active; used by the
+// account section nav and the knowledge document tabs.
+export const tabClass = (active: boolean) =>
+  `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
+    active
+      ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
+      : 'border-transparent text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)]'
+  }`;

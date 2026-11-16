@@ -77,8 +77,39 @@ export function getSessionUser(token: string): User | null {
 // lets the server tell it apart from a session token at a glance.
 const API_TOKEN_PREFIX = 'jat_';
 
+export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'inbound:deliver'] as const;
+export type TokenScope = (typeof TOKEN_SCOPES)[number];
+
+export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
+
+// inbound:deliver can deliver mail to any user's address, so it stays CLI-only.
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest'] as const satisfies readonly TokenScope[];
+
+export function parseUserTokenScope(raw: unknown): { ok: true; scope: TokenScope } | { ok: false; error: string } {
+  if (raw === undefined) return { ok: true, scope: 'full' };
+  if (typeof raw === 'string' && (USER_TOKEN_SCOPES as readonly string[]).includes(raw)) {
+    return { ok: true, scope: raw as TokenScope };
+  }
+  return { ok: false, error: `Scope must be one of: ${USER_TOKEN_SCOPES.join(', ')}.` };
+}
+
+/** Whether a token of this scope may call the given endpoint. Exact path match, on purpose. */
+export function tokenAllows(scope: TokenScope, method: string, path: string): boolean {
+  switch (scope) {
+    case 'full':
+      return path.startsWith('/api/v1/');
+    case 'job-leads:ingest':
+      return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+    case 'inbound:deliver':
+      return method.toUpperCase() === 'POST' && path === '/api/v1/inbound-mail';
+    default:
+      return false;
+  }
+}
+
 export interface ApiTokenInfo {
   name: string;
+  scope: TokenScope;
   created_at: string;
   last_used_at: string | null;
 }
@@ -95,7 +126,8 @@ export type CreateApiTokenResult =
  * again later. Shared by the CLI and the account page, so both apply the
  * same rules.
  */
-export function createApiToken(userId: number, rawName: string): CreateApiTokenResult {
+export function createApiToken(userId: number, rawName: string, scope: TokenScope = 'full'): CreateApiTokenResult {
+  if (!isTokenScope(scope)) return { ok: false, status: 400, error: `Unknown token scope "${scope}".` };
   const name = rawName.trim();
   if (!name) return { ok: false, status: 400, error: 'A token name is required.' };
   if (name.length > MAX_TOKEN_NAME_LENGTH) {
@@ -111,24 +143,28 @@ export function createApiToken(userId: number, rawName: string): CreateApiTokenR
   if (taken) return { ok: false, status: 409, error: `A token named "${name}" already exists.` };
 
   const token = API_TOKEN_PREFIX + randomBytes(32).toString('base64url');
-  db.prepare('INSERT INTO api_tokens (user_id, name, token_hash) VALUES (?, ?, ?)').run(userId, name, hashToken(token));
+  db.prepare('INSERT INTO api_tokens (user_id, name, token_hash, scope) VALUES (?, ?, ?, ?)')
+    .run(userId, name, hashToken(token), scope);
   return { ok: true, token };
 }
 
-export function getApiTokenUser(token: string): User | null {
+/** The token's user and scope, plus the token's name (recorded as the author of what it changes). */
+export function getApiToken(token: string): { user: User; scope: TokenScope; tokenName: string } | null {
   if (!token.startsWith(API_TOKEN_PREFIX)) return null;
   const hash = hashToken(token);
   const row = db
-    .prepare('SELECT u.id, u.username FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?')
-    .get(hash) as User | undefined;
-  if (!row) return null;
+    .prepare(
+      'SELECT u.id, u.username, t.scope, t.name FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?',
+    )
+    .get(hash) as { id: number; username: string; scope: TokenScope; name: string } | undefined;
+  if (!row || !isTokenScope(row.scope)) return null;
   db.prepare("UPDATE api_tokens SET last_used_at = datetime('now') WHERE token_hash = ?").run(hash);
-  return { id: row.id, username: row.username };
+  return { user: { id: row.id, username: row.username }, scope: row.scope, tokenName: row.name };
 }
 
 export function listApiTokens(userId: number): ApiTokenInfo[] {
   return db
-    .prepare('SELECT name, created_at, last_used_at FROM api_tokens WHERE user_id = ? ORDER BY created_at')
+    .prepare('SELECT name, scope, created_at, last_used_at FROM api_tokens WHERE user_id = ? ORDER BY created_at')
     .all(userId) as unknown as ApiTokenInfo[];
 }
 

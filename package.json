@@ -6,22 +6,27 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node --watch --env-file-if-exists=.env server/index.ts",
-    "dev:all": "concurrently -n frontend,backend -c blue,magenta \"npm:dev\" \"npm:dev:server\"",
+    "dev:all": "npm run seed && concurrently -n frontend,backend -c blue,magenta \"npm:dev\" \"npm:dev:server\"",
+    "seed": "node --env-file-if-exists=.env server/seed.ts",
     "build": "tsc -b && vite build",
     "start": "node server/index.ts",
     "users": "node server/cli.ts",
     "api": "node scripts/api.ts",
     "lint": "oxlint",
+    "test": "node --test \"server/**/*.test.ts\" \"scripts/**/*.test.ts\"",
     "preview": "vite preview"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
+    "diff": "9.0.0",
     "hono": "^4.13.16",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.1",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

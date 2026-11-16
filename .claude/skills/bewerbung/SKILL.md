@@ -24,6 +24,7 @@ node scripts/api.ts GET applications
 node scripts/api.ts GET applications/<id>
 node scripts/api.ts POST applications <datei.json>
 node scripts/api.ts PATCH applications/<id> <datei.json>
+node scripts/api.ts GET applications/<id>/versions          # Versionsverlauf, neueste zuerst
 node scripts/api.ts POST base-profiles <datei.json>
 node scripts/api.ts PUT base-profiles/<id> <datei.json>
 node scripts/api.ts DELETE base-profiles/<id>               # nur Papierkorb (Soft Delete)
@@ -50,9 +51,18 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
    sie nach `.env.assistant.example` anzulegen; den Token erstellt er in der App unter
    **account → API tokens**. Bei `HTTP 401` ist der Token ungültig oder widerrufen.
    Nicht weitermachen.
-2. `private/knowledge/about-me.md` lesen. Fehlt die Datei oder ist sie größtenteils leer,
-   darauf hinweisen und `/basiswissen` anbieten. Ohne Basiswissen nur mit den Daten aus
+2. `node scripts/knowledge.ts pull`, dann `private/knowledge/about-me.md` (Arbeitskopie)
+   lesen. Änderungen daran immer mit `node scripts/knowledge.ts push about-me`
+   hochladen. Meldet `pull` „not saved, skipped“ (Exit 0; Exit 2 kommt nur von `get`) und
+   gibt es lokal `private/knowledge/about-me.md`, diese mit
+   `node scripts/knowledge.ts push about-me` hochladen. Endet `pull` mit Exit 3, weicht die
+   lokale Datei von der App-Version ab (Kopie: `about-me.server.md`): Unterschiede kurz
+   zeigen, den Nutzer fragen, welche gelten soll, nie stillschweigend weitermachen. Fehlt
+   das Dokument überall oder ist es größtenteils leer, darauf hinweisen und `/basiswissen`
+   anbieten. Ohne Basiswissen nur mit den Daten aus
    dem Basis-Profil arbeiten und das im Ergebnis offen sagen.
+3. Datenschutz: Basiswissen-Inhalte nie committen und nur an die eigene App
+   (`JOB_APPS_URL`) senden, an keine anderen Dienste.
 
 ## Ablauf
 
@@ -61,7 +71,12 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
 URL über das Web-Fetch-Werkzeug lesen, Text direkt verwenden. Extrahieren:
 Firma, Rolle, Sprache der Anzeige (`de`/`en`), Ansprechperson, Muss-Anforderungen,
 Kann-Anforderungen, Aufgaben, Tech-Stack, Kultur-/Tonalitätssignale, Standort/Remote.
-Passt die Stelle zu den Ausschlusskriterien im Basiswissen, das sofort ansprechen.
+
+Danach die Passung nach dem Skill `stellencheck` bewerten (Ausschlusskriterien und
+Gewichte aus `private/knowledge/priorities.md`, der Arbeitskopie aus `pull`) und das Ergebnis kurz zeigen, falls der
+Nutzer die Stelle nicht gerade erst mit `/stellencheck` geprüft hat. Bei einem
+Ausschlusskriterium oder weniger als 50 % fragen, ob er trotzdem eine Bewerbung will,
+bevor du weitermachst.
 
 ### 2. Aktuellen Stand laden
 
@@ -101,6 +116,10 @@ einarbeiten, bis der Nutzer zustimmt. **Erst dann schreiben.**
 ### 6. Speichern
 
 JSON ins Scratchpad schreiben, `POST applications` (bzw. `PATCH applications/<id>`).
+Immer ein Feld `changeMessage` mitschicken: ein Satz, was und warum geändert wurde, z. B.
+`"Summary auf DevOps zugeschnitten, Kubernetes ergänzt, PHP entfernt"`. Es erscheint im
+Versionsverlauf der Bewerbung (Button **History** im Editor), über den der Nutzer jede
+Änderung nachvollziehen und rückgängig machen kann.
 Dem Nutzer die ID und den Link `<JOB_APPS_URL>/application/<id>` nennen. Status nie ändern,
 außer der Nutzer verlangt es ausdrücklich.
 

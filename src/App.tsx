@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
 import { ApplicationPage } from './pages/ApplicationPage';
 import { NewApplicationPage } from './pages/NewApplicationPage';
@@ -7,9 +7,15 @@ import { EditApplicationPage } from './pages/EditApplicationPage';
 import { BaseProfilesPage } from './pages/BaseProfilesPage';
 import { BaseProfileEditPage } from './pages/BaseProfileEditPage';
 import { LoginPage } from './pages/LoginPage';
-import { AccountPage } from './pages/AccountPage';
+import { AccountLayout } from './pages/account/AccountLayout';
+import { PasswordSection } from './pages/account/PasswordSection';
+import { JobAlertsSection } from './components/JobAlertsSection';
+import { ApiTokensSection } from './components/ApiTokensSection';
+import { KnowledgePage } from './pages/KnowledgePage';
+import { LeadsPage } from './pages/LeadsPage';
 import { TrashPage } from './pages/TrashPage';
 import { fetchCurrentUser, fetchUserData, refreshUserData } from './utils/api';
+import { AppSkeleton } from './components/Skeleton';
 import { hasPendingWrites, hydrate, onSyncStatus, setStorageBackend } from './utils/storage';
 import { DEMO_BASENAME, demoLocale, isDemo, loadDemoData, saveDemoData } from './demo/demoMode';
 import { DemoBanner } from './demo/DemoBanner';
@@ -20,7 +26,20 @@ import { SeasonalEffect } from './components/SeasonalEffect';
 const router = createBrowserRouter([
   { path: '/', element: <DashboardPage /> },
   { path: '/profiles', element: <BaseProfilesPage /> },
-  ...(isDemo ? [] : [{ path: '/account', element: <AccountPage /> }]),
+  ...(isDemo ? [] : [
+    {
+      path: '/account',
+      element: <AccountLayout />,
+      children: [
+        { index: true, element: <PasswordSection /> },
+        { path: 'job-alerts', element: <JobAlertsSection /> },
+        { path: 'knowledge', element: <KnowledgePage /> },
+        { path: 'tokens', element: <ApiTokensSection /> },
+      ],
+    },
+    { path: '/knowledge', element: <Navigate to="/account/knowledge" replace /> },
+    { path: '/leads', element: <LeadsPage /> },
+  ]),
   { path: '/profiles/:id', element: <BaseProfileEditPage /> },
   { path: '/trash', element: <TrashPage /> },
   { path: '/application/new', element: <NewApplicationPage /> },
@@ -91,7 +110,7 @@ export function App() {
   }, []);
 
   if (auth.kind === 'loading') {
-    return <><SeasonalEffect /><div className={`${centered} text-[color:var(--ink-3)]`}>loading…</div></>;
+    return <><SeasonalEffect /><AppSkeleton /></>;
   }
   if (auth.kind === 'error') {
     return <><SeasonalEffect /><div className={`${centered} text-[color:var(--status-rejected)]`}>{auth.message}</div></>;
