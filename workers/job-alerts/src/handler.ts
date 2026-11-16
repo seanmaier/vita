@@ -1,45 +1,35 @@
 import PostalMime from 'postal-mime';
+import { extractConfirmation } from './confirmation.ts';
 import { parseAlert, sourceForSender } from './parsers.ts';
 import type { JobLeadInput } from './types.ts';
 
 export interface Env {
   APP_URL: string;
   APP_TOKEN: string;
-  OWNER_GMAIL: string;
-  OWNER_EMAIL: string;
   CF_ACCESS_CLIENT_ID?: string;
   CF_ACCESS_CLIENT_SECRET?: string;
 }
 
-export type EmailOutcome = 'confirmation' | 'rejected' | 'ingested' | 'forwarded-on-error';
+export type EmailOutcome = 'delivered' | 'rejected' | 'unavailable';
 
 type Message = Pick<ForwardableEmailMessage, 'from' | 'to' | 'raw' | 'headers' | 'forward' | 'setReject'>;
+type ParsedMail = Awaited<ReturnType<typeof PostalMime.parse>>;
+
+interface InboundPayload {
+  recipient: string;
+  envelopeFrom: string;
+  kind: 'leads' | 'confirmation' | 'failed';
+  subject?: string;
+  sender?: string;
+  detail?: string;
+  leads?: JobLeadInput[];
+}
 
 const GMAIL_CONFIRMATION_SENDER = 'forwarding-noreply@google.com';
 const MAX_LEADS = 100;
+const MAX_SHORT_FIELD = 300;
+const MAX_DETAIL = 2000;
 const RETRY_DELAY_MS = 2000;
-
-/**
- * Gmail's auto-forward envelope looks like `name+caf_=…@gmail.com`. Compare ignoring case and the +suffix;
- * for Gmail addresses also ignore dots in the local part and treat googlemail.com as gmail.com.
- */
-export function isFromOwnerGmail(envelopeFrom: string, ownerGmail: string | undefined): boolean {
-  const normalize = (address: string | undefined) => {
-    if (typeof address !== 'string') return null;
-    const lower = address.trim().toLowerCase();
-    const at = lower.lastIndexOf('@');
-    if (at < 1) return null;
-    let local = lower.slice(0, at).split('+')[0];
-    let domain = lower.slice(at + 1);
-    if (domain === 'gmail.com' || domain === 'googlemail.com') {
-      domain = 'gmail.com';
-      local = local.replaceAll('.', '');
-    }
-    return local ? `${local}@${domain}` : null;
-  };
-  const from = normalize(envelopeFrom);
-  return from !== null && from === normalize(ownerGmail);
-}
 
 /** Make leads safe for the app's all-or-nothing validation (it rejects the whole batch on one bad entry). */
 export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
@@ -59,9 +49,9 @@ export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
   return clean;
 }
 
-async function postLeads(
+async function postInbound(
   env: Env,
-  leads: JobLeadInput[],
+  payload: InboundPayload,
   fetchImpl: typeof fetch,
 ): Promise<{ ok: true } | { ok: false; status: string; retryable: boolean }> {
   const headers: Record<string, string> = {
@@ -73,19 +63,58 @@ async function postLeads(
     headers['CF-Access-Client-Secret'] = env.CF_ACCESS_CLIENT_SECRET;
   }
   try {
-    const res = await fetchImpl(`${env.APP_URL.replace(/\/+$/, '')}/api/v1/job-leads`, {
+    const res = await fetchImpl(`${env.APP_URL.replace(/\/+$/, '')}/api/v1/inbound-mail`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ leads }),
+      body: JSON.stringify(payload),
       // Never follow redirects: they would drop the POST body and could carry the bearer token elsewhere.
       redirect: 'manual',
     });
     // Only the app's 201 counts; a 200 (e.g. an Access login page) or any 3xx is a failure.
     if (res.status === 201) return { ok: true };
-    return { ok: false, status: String(res.status), retryable: res.status >= 500 };
+    // The app decided (unknown recipient, sender mismatch, bad body): retrying cannot change that.
+    const decided = res.status === 400 || res.status === 403 || res.status === 404;
+    return { ok: false, status: String(res.status), retryable: !decided };
   } catch {
     return { ok: false, status: 'network', retryable: true };
   }
+}
+
+const truncate = (value: string | undefined, max: number) => (value ? value.slice(0, max) : undefined);
+
+function formatSender(from: { name?: string; address?: string } | undefined): string | undefined {
+  if (!from?.address) return undefined;
+  return from.name ? `${from.name} <${from.address}>` : from.address;
+}
+
+/** Decide what the app is told about this mail. The app does the per-user sender check. */
+function buildPayload(message: Message, parsed: ParsedMail | null): { payload: InboundPayload; log: string } {
+  const base = { recipient: message.to, envelopeFrom: message.from };
+  if (!parsed) return { payload: { ...base, kind: 'failed', detail: 'unparseable' }, log: 'failed (unparseable)' };
+
+  const common = {
+    ...base,
+    subject: truncate(parsed.subject, MAX_SHORT_FIELD),
+    sender: truncate(formatSender(parsed.from), MAX_SHORT_FIELD),
+  };
+
+  if (message.from.trim().toLowerCase() === GMAIL_CONFIRMATION_SENDER) {
+    const { code, url } = extractConfirmation(parsed.text ?? parsed.html ?? '');
+    const parts = [code ? `code: ${code}` : '', url ? `url: ${url}` : ''].filter(Boolean);
+    const detail = truncate(parts.join('\n') || 'no code found', MAX_DETAIL);
+    return { payload: { ...common, kind: 'confirmation', detail }, log: 'confirmation' };
+  }
+
+  const source = parsed.from?.address ? sourceForSender(parsed.from.address) : null;
+  if (!source) {
+    return { payload: { ...common, kind: 'failed', detail: 'unknown alert sender' }, log: 'failed (unknown sender)' };
+  }
+
+  const leads = sanitize(parseAlert(source, parsed.html ?? ''));
+  if (leads.length === 0) {
+    return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0` };
+  }
+  return { payload: { ...common, kind: 'leads', leads }, log: `leads source=${source} leads=${leads.length}` };
 }
 
 export async function handleEmail(
@@ -94,52 +123,31 @@ export async function handleEmail(
   fetchImpl: typeof fetch = fetch,
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 ): Promise<EmailOutcome> {
-  const finish = (outcome: EmailOutcome, detail = '') => {
-    console.log(`job-alerts: ${outcome}${detail}`);
-    return outcome;
-  };
-  const forwardToOwner = async (errorTag: string) => {
-    await message.forward(env.OWNER_EMAIL, new Headers({ 'X-Vita-Ingest-Error': errorTag }));
-  };
-
-  if (message.from.trim().toLowerCase() === GMAIL_CONFIRMATION_SENDER) {
-    await message.forward(env.OWNER_EMAIL);
-    return finish('confirmation');
-  }
-  if (!isFromOwnerGmail(message.from, env.OWNER_GMAIL)) {
-    message.setReject('not accepted');
-    return finish('rejected', ' (envelope sender)');
-  }
-
   const buffer = await new Response(message.raw).arrayBuffer();
-  let parsed: Awaited<ReturnType<typeof PostalMime.parse>>;
+  let parsed: ParsedMail | null = null;
   try {
     parsed = await PostalMime.parse(buffer);
   } catch {
-    await forwardToOwner('unparseable');
-    return finish('forwarded-on-error', ' (unparseable mail)');
+    parsed = null;
   }
 
-  const source = parsed.from?.address ? sourceForSender(parsed.from.address) : null;
-  if (!source) {
-    message.setReject('not accepted');
-    return finish('rejected', ' (unknown sender)');
-  }
-
-  const leads = sanitize(parseAlert(source, parsed.html ?? ''));
-  if (leads.length === 0) {
-    await forwardToOwner('no-leads');
-    return finish('forwarded-on-error', ` source=${source} leads=0`);
-  }
-
-  let result = await postLeads(env, leads, fetchImpl);
+  const { payload, log } = buildPayload(message, parsed);
+  let result = await postInbound(env, payload, fetchImpl);
   if (!result.ok && result.retryable) {
     await sleep(RETRY_DELAY_MS);
-    result = await postLeads(env, leads, fetchImpl);
+    result = await postInbound(env, payload, fetchImpl);
   }
-  if (!result.ok) {
-    await forwardToOwner(result.status);
-    return finish('forwarded-on-error', ` source=${source} leads=${leads.length} status=${result.status}`);
+  if (result.ok) {
+    console.log(`job-alerts: delivered ${log}`);
+    return 'delivered';
   }
-  return finish('ingested', ` source=${source} leads=${leads.length}`);
+  if (!result.retryable) {
+    message.setReject('not accepted');
+    console.log(`job-alerts: rejected ${log} status=${result.status}`);
+    return 'rejected';
+  }
+  // Bounce to the sender instead of dropping the mail silently.
+  message.setReject('temporarily unavailable, please retry later');
+  console.log(`job-alerts: unavailable ${log} status=${result.status}`);
+  return 'unavailable';
 }

@@ -1,10 +1,18 @@
 # Job-Alerts-Worker (vita-job-alerts)
 
-Ein Cloudflare Email Worker, der Job-Alert-Mails aus Gmail übernimmt und als Leads an die Vita-App sendet.
+Ein Cloudflare Email Worker, der Job-Alert-Mails aus Gmail übernimmt und pro Nutzer an die Vita-App zustellt.
 
 ## Was der Worker macht
 
-Ein Gmail-Filter leitet Job-Alert-Mails (z. B. von LinkedIn) an `jobs@alerts.seanmaier.org` weiter. Cloudflare Email Routing übergibt diese Mails an den Worker. Dieser prüft den Envelope-Absender: Er muss die eigene Gmail-Adresse sein (Punkte und `+`-Suffixe werden ignoriert, `googlemail.com` wird wie `gmail.com` behandelt). Danach wird der Alert-Absender bestimmt und die Stellen per `POST /api/v1/job-leads` an die App übergeben. Schlägt etwas fehl (unlesbare Mail, keine Stellen, App-Fehler), leitet der Worker die Mail an `OWNER_EMAIL` weiter und setzt den Header `X-Vita-Ingest-Error`.
+Jeder Nutzer bekommt auf der Account-Seite der App eine eigene Adresse (z. B. `jobs-k7x2@alerts.seanmaier.org`). Ein Gmail-Filter leitet Job-Alert-Mails (z. B. von LinkedIn) an diese Adresse weiter. Eine Catch-all-Regel in Cloudflare Email Routing übergibt alle Mails an der Subdomain an den Worker.
+
+Der Worker kennt keine Nutzeradressen. Er parst die Mail und sendet sie per `POST /api/v1/inbound-mail` an die App. Der Body enthält `recipient` (Empfängeradresse), `envelopeFrom`, `kind` (`leads`, `confirmation` oder `failed`) sowie je nach Fall `subject`, `sender`, `detail` und `leads`. Die App ordnet die Empfängeradresse einem Nutzer zu und prüft, ob der Envelope-Absender zu dessen eingetragener Gmail-Adresse passt.
+
+- 201: zugestellt.
+- 400, 403, 404: Die App lehnt die Mail ab. Der Worker weist sie mit `not accepted` ab, ohne Wiederholung.
+- Netzwerkfehler, 5xx, Weiterleitungen oder sonstige Antworten: Der Worker wiederholt einmal nach 2 s. Hilft das nicht, weist er die Mail mit `temporarily unavailable, please retry later` ab. Der Absender erhält also einen Bounce, nichts wird still verworfen.
+
+Es wird nichts mehr weitergeleitet, daher ist keine verifizierte Zieladresse in Cloudflare nötig.
 
 ## Entwicklung
 
@@ -46,36 +54,22 @@ npx wrangler email routing dns get alerts.seanmaier.org
 
 Akzeptiert `enable` die Subdomain nicht, sie im Dashboard unter **Email → Email Routing → Settings → Subdomains** hinzufügen. Die `dns get`-Ausgabe zeigt die von Cloudflare angelegten MX- und SPF-Einträge.
 
-### 4. Private Zieladresse verifizieren
-
-```sh
-npx wrangler email routing addresses create <private-adresse>
-```
-
-Anschließend den Bestätigungslink in der Mail an `<private-adresse>` klicken. Prüfen mit:
-
-```sh
-npx wrangler email routing addresses list
-```
-
-### 5. Ingest-Token in der App erzeugen
+### 4. Token in der App erzeugen
 
 Im App-Container ausführen:
 
 ```sh
-node server/cli.ts token-add <username> job-alerts-worker --scope job-leads:ingest
+node server/cli.ts token-add <admin> job-alerts-worker --scope inbound:deliver
 ```
 
-Den ausgegebenen Token als `APP_TOKEN` hinterlegen (Schritt 6).
+Den ausgegebenen Token als `APP_TOKEN` hinterlegen (Schritt 5).
 
-### 6. Worker deployen
+### 5. Worker deployen
 
 ```sh
 cd workers/job-alerts
 npm ci
 npx wrangler secret put APP_TOKEN
-npx wrangler secret put OWNER_GMAIL
-npx wrangler secret put OWNER_EMAIL
 # optional, nur wenn Schritt 2 einen Access-Service-Token nötig gemacht hat:
 npx wrangler secret put CF_ACCESS_CLIENT_ID
 npx wrangler secret put CF_ACCESS_CLIENT_SECRET
@@ -84,41 +78,41 @@ npm run deploy
 
 Die Secrets stehen bewusst nicht in `wrangler.jsonc`, da das Repo öffentlich ist.
 
-- `OWNER_GMAIL`: die Gmail-Adresse, von der die Alerts weitergeleitet werden.
-- `OWNER_EMAIL`: die private Zieladresse aus Schritt 4. **Sie muss ein anderes Postfach sein als das Gmail-Konto.** Sonst können weitergeleitete Fehlerkopien erneut den Gmail-Filter treffen.
+### 6. Catch-all-Regel anlegen
 
-### 7. Routing-Regel anlegen
+Die CLI hat keinen eigenen `catch-all`-Befehl. Die Catch-all-Regel existiert in Cloudflare bereits (standardmäßig mit der Aktion `drop`) und wird über `rules update` mit der Regel-ID `catch-all` geändert. `--match-type`, `--match-field` und `--match-value` entfallen dabei (sie werden für Catch-all ignoriert). `rules create` verlangt diese drei Flags und eignet sich daher nur für Einzeladressen-Regeln.
 
 ```sh
-npx wrangler email routing rules create alerts.seanmaier.org \
-  --name "Job-Alerts an Vita" \
-  --match-type literal --match-field to --match-value jobs@alerts.seanmaier.org \
+npx wrangler email routing rules update alerts.seanmaier.org catch-all \
+  --name "Job-Alerts an Vita" --enabled true \
   --action-type worker --action-value vita-job-alerts
-npx wrangler email routing rules list alerts.seanmaier.org
+npx wrangler email routing rules get alerts.seanmaier.org catch-all
 ```
 
-### 8. Gmail einrichten (im Browser)
+### 7. Einrichtung pro Nutzer (in der App und in Gmail)
 
-> **Warnung:** Die Prüfung des Envelope-Absenders ist keine Authentifizierung. Der SPF-Eintrag von gmail.com ist nur `softfail`, der Absender lässt sich also fälschen. Bevor der Gmail-Filter aktiviert wird, muss eine SPF-/`Authentication-Results`-Prüfung ergänzt werden, und zwar anhand der Header einer echten weitergeleiteten Mail (einmalig mit `wrangler tail` protokollieren). Bis dahin nur mit **deaktiviertem** Filter testen. `OWNER_EMAIL` muss außerdem ein eigenes Postfach sein (siehe oben).
+> **Warnung:** Die Prüfung des Envelope-Absenders (jetzt in der App) ist keine Authentifizierung. Der SPF-Eintrag von gmail.com ist nur `softfail`, der Absender lässt sich also fälschen. Bevor die Filter produktiv genutzt werden, muss eine SPF-/`Authentication-Results`-Prüfung ergänzt werden, und zwar anhand der Header einer echten weitergeleiteten Mail (einmalig mit `wrangler tail` protokollieren). Das betrifft jetzt alle Nutzer.
 
-1. Unter **Einstellungen → Weiterleitung und POP/IMAP** die Adresse `jobs@alerts.seanmaier.org` als Weiterleitungsadresse hinzufügen. Die Bestätigungsmail von Google landet über den Worker bei `OWNER_EMAIL`. Der Worker leitet sie dort weiter. Den Bestätigungscode daraus eingeben.
-2. Einen Filter anlegen:
+1. Auf der Account-Seite der App die eigene Job-Alert-Adresse erzeugen und die eigene Gmail-Adresse eintragen.
+2. In Gmail unter **Einstellungen → Weiterleitung und POP/IMAP** die erzeugte Adresse als Weiterleitungsadresse hinzufügen.
+3. Google schickt eine Bestätigungsmail an diese Adresse. Der Worker stellt sie der App zu. Den Bestätigungscode auf der Account-Seite ablesen und in Gmail eingeben.
+4. In Gmail einen Filter anlegen:
    `from:(jobalerts-noreply@linkedin.com OR …)`
-   Die Absender stammen aus den Fixtures. Aktion: **Weiterleiten an** `jobs@alerts.seanmaier.org`.
+   Die Absender stammen aus den Fixtures. Aktion: **Weiterleiten an** die erzeugte Adresse.
 
-### 9. Ende-zu-Ende prüfen
+### 8. Ende-zu-Ende prüfen
 
 ```sh
 npm run tail
 ```
 
-Eine Alert-Mail weiterleiten (oder den nächsten Alert abwarten). Im Log erscheint `job-alerts: ingested`. Die Leads prüfen:
+Eine Alert-Mail weiterleiten (oder den nächsten Alert abwarten). Im Log erscheint `job-alerts: delivered leads …`. Die Leads prüfen:
 
 ```sh
 node scripts/api.ts GET "job-leads?status=new"
 ```
 
-(Vom Repo-Root aus.) Eine Mail von einer fremden Adresse an `jobs@alerts.seanmaier.org` muss abgelehnt werden. Im Log erscheint dann `rejected`.
+(Vom Repo-Root aus.) Eine Mail von einer fremden Adresse an die erzeugte Adresse muss abgelehnt werden. Im Log erscheint dann `rejected`.
 
 ## Hinweis
 
