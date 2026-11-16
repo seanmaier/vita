@@ -2,12 +2,10 @@
   "name": "vita-job-alerts",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  // Secrets (the repo is public, so no personal addresses or tokens here).
+  // Secrets (the repo is public, so no personal addresses, domains or tokens here).
   // Set each with `npx wrangler secret put <NAME>`:
+  //   APP_URL (base URL of the Vita app, e.g. https://vita.example.org),
   //   APP_TOKEN, OWNER_GMAIL, OWNER_EMAIL,
   //   optional: CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
   // They must not also appear under "vars": wrangler refuses that.
-  "vars": {
-    "APP_URL": "https://vita.seanmaier.org"
-  }
 }
