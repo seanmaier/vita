@@ -121,6 +121,11 @@ Stand: <Datum>
 - Gehalt (Untergrenze / Wunsch): …
 - …
 
+## Radar
+- Suchen: "Backend Entwickler" in Hamburg, 30 km; "C# Entwickler" in Hamburg, 30 km
+- Schwelle für Push: 70 %
+- Höchstens bewertet pro Lauf: 25
+
 ## Bewertete Stellen
 
 | Datum | Firma | Rolle | Passung | Empfehlung | Entscheidung |
