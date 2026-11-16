@@ -216,15 +216,45 @@ extension, which colors the timestamps, levels and request IDs:
 docker logs vita-app-1 > vita.log 2>&1
 ```
 
-Data lives in that volume (`/data/app.db` in the container). SQLite also keeps
-recent writes in `app.db-wal`, so back up the whole volume with the container
-stopped:
+### Backups
+
+Data lives in the data volume (`/data/app.db` in the container). Daily
+backups go to a second volume, `/backups` in the container, and the last 7
+days are kept. `deploy/vita-backup.sh` runs on the Docker host:
 
 ```bash
-docker stop vita-app-1        # <stack name>-app-1
-docker run --rm -v job-applications-data:/data -v "$PWD":/backup alpine \
-  tar czf /backup/vita-$(date +%F).tar.gz -C /data .
-docker start vita-app-1
+sh vita-backup.sh create              # snapshot now; also removes backups older than 7 days
+sh vita-backup.sh list
+sh vita-backup.sh restore vita-2026-11-14.db
+```
+
+`create` takes a consistent snapshot while the app keeps running (SQLite
+`VACUUM INTO`, which includes writes still in `app.db-wal`). `restore` stops
+the container, first saves the current database as
+`vita-<date>-pre-restore-<time>.db`, so a restore of the wrong day can be
+undone, then replaces the database and starts the container again. A file that
+isn't an intact Vita database is refused before anything changes.
+
+Setup, once on the host:
+
+1. `docker volume create vita-backups` (or set `BACKUP_VOLUME` to another
+   name), then redeploy the stack. Like the data volume it is external, so
+   removing the stack never deletes the backups.
+2. Copy `deploy/vita-backup.sh` to the host, e.g. `/opt/vita/vita-backup.sh`.
+3. `crontab -e` and add a line for a daily backup at 03:00:
+
+   ```
+   0 3 * * * VITA_CONTAINER=vita-app-1 sh /opt/vita/vita-backup.sh create >> /var/log/vita-backup.log 2>&1
+   ```
+
+   `VITA_CONTAINER` is `<stack name>-app-1` (`docker ps` shows it). The user
+   whose crontab this is must be allowed to run `docker`.
+
+The backups are still on the same disk as the database. To copy one off the
+host:
+
+```bash
+docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14.db /out/
 ```
 
 ## License
