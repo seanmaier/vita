@@ -11,6 +11,7 @@ import { nafInput, nafLabel, primaryButton } from '../styles/formStyles';
 
 const hint = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] leading-[1.6]';
 const DAY_MS = 24 * 60 * 60 * 1000;
+const POLL_MS = 10_000;
 const unverified = 'Unverified — only enter it in Gmail if you just added the forwarding address.';
 
 // SQLite's datetime('now') is UTC without a zone marker.
@@ -51,7 +52,10 @@ export function JobAlertsSection() {
 
   const loadEvents = () =>
     fetchJobAlertEvents()
-      .then(setEvents)
+      .then((list) => {
+        setEvents(list);
+        setError(null);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'Loading the alert activity failed.'));
 
   useEffect(() => {
@@ -62,6 +66,18 @@ export function JobAlertsSection() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Loading the job alert settings failed.'));
   }, []);
+
+  const hasAddress = Boolean(config?.address);
+  const latestConfirmation = events.find((ev) => ev.kind === 'confirmation');
+  const freshConfirmation =
+    latestConfirmation !== undefined && Date.now() - parseTimestamp(latestConfirmation.receivedAt).getTime() < DAY_MS;
+
+  // The Gmail confirmation code arrives asynchronously, so keep looking until one is there.
+  useEffect(() => {
+    if (!hasAddress || freshConfirmation) return;
+    const timer = setInterval(() => void loadEvents(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [hasAddress, freshConfirmation]);
 
   const generate = async () => {
     if (
@@ -116,11 +132,7 @@ export function JobAlertsSection() {
   };
 
   // The sender of confirmation mails can be spoofed, so only a fresh code is shown prominently.
-  const latestConfirmation = events.find((ev) => ev.kind === 'confirmation');
-  const freshCode =
-    latestConfirmation && Date.now() - parseTimestamp(latestConfirmation.receivedAt).getTime() < DAY_MS
-      ? confirmationCode(latestConfirmation)
-      : null;
+  const freshCode = freshConfirmation && latestConfirmation ? confirmationCode(latestConfirmation) : null;
 
   return (
     <section className="max-w-[560px] flex flex-col gap-4 mt-12">
@@ -130,6 +142,8 @@ export function JobAlertsSection() {
         leads.
       </p>
       <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`}>
+        <li>Create your address here.</li>
+        <li>Enter the Gmail address you forward from below.</li>
         <li>In Gmail, open Settings → Forwarding and add this address.</li>
         <li>The confirmation code appears below; enter it in Gmail.</li>
         <li>Create a filter for your job-alert senders with "Forward to" this address.</li>
@@ -175,7 +189,7 @@ export function JobAlertsSection() {
               />
             </label>
             <p className={hint}>
-              Must be the Gmail account you forward from; mails from other senders are ignored. Leave empty to
+              Must be the Gmail account you forward from; mails from other senders are bounced (rejected). Leave empty to
               clear it.
             </p>
             <div className="flex items-center gap-3">
@@ -185,6 +199,13 @@ export function JobAlertsSection() {
               {saved && <span className={hint}>Saved.</span>}
             </div>
           </form>
+
+          {!config.forwardingFrom && (
+            <p className="text-[12px] text-[color:var(--status-rejected)]">
+              Alerts will be bounced until the forwarding Gmail address is saved (confirmation codes still
+              arrive).
+            </p>
+          )}
 
           {freshCode && (
             <div className="flex flex-col gap-1 border-[1.5px] border-[color:var(--accent)] rounded-[5px] p-3">
@@ -196,7 +217,12 @@ export function JobAlertsSection() {
             </div>
           )}
 
-          <span className={nafLabel}>Recent activity</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className={nafLabel}>Recent activity</span>
+            <button className={primaryButton} type="button" onClick={() => void loadEvents()}>
+              Refresh
+            </button>
+          </div>
           {events.length === 0 ? (
             <p className={hint}>Nothing received yet.</p>
           ) : (
