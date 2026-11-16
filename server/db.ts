@@ -47,6 +47,20 @@ db.exec(`
   );
 `);
 
+/**
+ * Schema changes for databases created by older versions. Idempotent: safe to
+ * run on every start and on a production database.
+ */
+export function migrate(): void {
+  const columns = db.prepare('PRAGMA table_info(api_tokens)').all() as { name: string }[];
+  if (!columns.some((c) => c.name === 'scope')) {
+    // What the token may call; tokens that predate scopes keep full access.
+    db.exec("ALTER TABLE api_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'full'");
+  }
+}
+
+migrate();
+
 export function transaction<T>(fn: () => T): T {
   db.exec('BEGIN');
   try {

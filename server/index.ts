@@ -13,7 +13,7 @@ import {
   createSession,
   deleteExpiredSessions,
   deleteSession,
-  getApiTokenUser,
+  getApiToken,
   getSessionUser,
   isLockedOut,
   listApiTokens,
@@ -21,6 +21,7 @@ import {
   MIN_PASSWORD_LENGTH,
   recordFailure,
   revokeApiToken,
+  tokenAllows,
   setPassword,
   SESSION_TTL_MS,
   type User,
@@ -98,9 +99,12 @@ const requireUserOrToken = createMiddleware<{ Variables: { user: User } }>(async
   const auth = c.req.header('authorization');
   if (auth !== undefined) {
     const match = /^Bearer\s+(\S+)$/i.exec(auth);
-    const user = match ? getApiTokenUser(match[1]) : null;
-    if (!user) return c.json({ error: 'Invalid API token.' }, 401);
-    c.set('user', user);
+    const found = match ? getApiToken(match[1]) : null;
+    if (!found) return c.json({ error: 'Invalid API token.' }, 401);
+    if (!tokenAllows(found.scope, c.req.method, c.req.path)) {
+      return c.json({ error: 'This token may not call this endpoint.' }, 403);
+    }
+    c.set('user', found.user);
     return next();
   }
   return requireUser(c, next);

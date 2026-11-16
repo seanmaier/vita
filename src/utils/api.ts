@@ -44,6 +44,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 export interface ApiToken {
   name: string;
+  scope: string;
   created_at: string;
   last_used_at: string | null;
 }
