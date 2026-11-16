@@ -10,7 +10,7 @@ Der Worker kennt keine Nutzeradressen. Er parst die Mail und sendet sie per `POS
 
 - 201: zugestellt.
 - 400, 403, 404: Die App lehnt die Mail ab. Der Worker weist sie mit `not accepted` ab, ohne Wiederholung.
-- Netzwerkfehler, 5xx, Weiterleitungen oder sonstige Antworten: Der Worker wiederholt einmal nach 2 s. Hilft das nicht, weist er die Mail mit `temporarily unavailable, please retry later` ab. Der Absender erhält also einen Bounce, nichts wird still verworfen.
+- Netzwerkfehler, 5xx, Weiterleitungen oder sonstige Antworten: Der Worker wiederholt einmal nach 2 s. Hilft das nicht, weist er die Mail mit `Vita is unavailable right now; please forward this mail again later` ab. Cloudflares `setReject` ist eine permanente Ablehnung: Gmail wiederholt nicht, der Absender erhält einen Bounce und muss die Mail später erneut weiterleiten. Nichts wird still verworfen.
 
 Es wird nichts mehr weitergeleitet, daher ist keine verifizierte Zieladresse in Cloudflare nötig.
 
@@ -27,6 +27,8 @@ npx wrangler deploy --dry-run --outdir <tmp>
 Die Test-Fixtures in `test/fixtures` sind synthetisch.
 
 ## Einrichtung
+
+**Reihenfolge:** Zuerst die App deployen (mit dem Inbound-Endpoint #57 und dem Account-Seiten-Branch `feat/multi-user-alerts`), dann in der App den `inbound:deliver`-Token erzeugen (Schritt 4), erst danach den Worker deployen (Schritt 5). Der Worker stellt sonst an eine App zu, die den Endpoint noch nicht kennt. Die Empfangsdomain stellt die App über die optionale Umgebungsvariable `INBOUND_DOMAIN` ein (Standard: `alerts.seanmaier.org`); sie muss zur Domain passen, für die die Catch-all-Regel des Workers Mails annimmt.
 
 Die Schritte laufen über die CLI. Die Email-Routing-Befehle sind in wrangler 4.162 noch **open beta**.
 
@@ -78,16 +80,31 @@ npm run deploy
 
 Die Secrets stehen bewusst nicht in `wrangler.jsonc`, da das Repo öffentlich ist.
 
-### 6. Catch-all-Regel anlegen
+### 6. Catch-all prüfen und Regel anlegen
 
-Die CLI hat keinen eigenen `catch-all`-Befehl. Die Catch-all-Regel existiert in Cloudflare bereits (standardmäßig mit der Aktion `drop`) und wird über `rules update` mit der Regel-ID `catch-all` geändert. `--match-type`, `--match-field` und `--match-value` entfallen dabei (sie werden für Catch-all ignoriert). `rules create` verlangt diese drei Flags und eignet sich daher nur für Einzeladressen-Regeln.
+Zuerst prüfen, ob die Subdomain eine **eigene** Catch-all-Regel hat oder ob sich Subdomain und Apex-Domain eine zonenweite Catch-all-Regel teilen:
 
 ```sh
-npx wrangler email routing rules update alerts.seanmaier.org catch-all \
-  --name "Job-Alerts an Vita" --enabled true \
-  --action-type worker --action-value vita-job-alerts
+npx wrangler email routing rules list seanmaier.org
+npx wrangler email routing rules list alerts.seanmaier.org
+npx wrangler email routing rules get seanmaier.org catch-all
 npx wrangler email routing rules get alerts.seanmaier.org catch-all
 ```
+
+**Fall A: getrennte Catch-all-Regeln** (die Ausgaben unterscheiden sich, die der Subdomain ist eine eigene Regel). Nur dann die Catch-all-Regel von `alerts.seanmaier.org` ändern. Die CLI hat keinen eigenen `catch-all`-Befehl; sie wird über `rules update` mit der Regel-ID `catch-all` geändert. `--match-type`, `--match-field` und `--match-value` entfallen dabei (sie werden für Catch-all ignoriert).
+
+```sh
+npx wrangler email routing rules update alerts.seanmaier.org catch-all   --name "Job-Alerts an Vita" --enabled true   --action-type worker --action-value vita-job-alerts
+npx wrangler email routing rules get alerts.seanmaier.org catch-all
+```
+
+**Fall B: Cloudflare meldet eine gemeinsame Catch-all-Regel für die Zone**. Sie dann **nicht** ändern. Ein Umstellen der zonenweiten Catch-all-Regel auf den Worker würde die gesamte Mail der Hauptdomain an den Worker umleiten. Stattdessen pro Nutzeradresse eine Literal-Regel anlegen (bei höchstens 10 Nutzern machbar):
+
+```sh
+npx wrangler email routing rules create alerts.seanmaier.org   --match-type literal --match-field to --match-value <adresse>   --action-type worker --action-value vita-job-alerts
+```
+
+Das ist für jede neu erzeugte (oder ersetzte) Adresse zu wiederholen.
 
 ### 7. Einrichtung pro Nutzer (in der App und in Gmail)
 
