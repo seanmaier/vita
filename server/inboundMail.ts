@@ -28,7 +28,8 @@ export function purgeOldInboundEvents(): number {
 function findRecipient(raw: string): { userId: number; forwardingFrom: string | null } | null {
   const recipient = raw.trim();
   const at = recipient.lastIndexOf('@');
-  if (at < 1 || recipient.slice(at + 1).toLowerCase() !== inboundDomain()) return null;
+  const domain = inboundDomain();
+  if (!domain || at < 1 || recipient.slice(at + 1).toLowerCase() !== domain) return null;
   const row = db
     .prepare('SELECT user_id, forwarding_from FROM inbound_addresses WHERE local_part = ?')
     .get(recipient.slice(0, at).toLowerCase()) as { user_id: number; forwarding_from: string | null } | undefined;

@@ -153,6 +153,8 @@ export interface InboundEvent {
 }
 
 export interface JobAlertsConfig {
+  /** False when the server has no INBOUND_DOMAIN, i.e. job alerts are off. */
+  available: boolean;
   address: string | null;
   forwardingFrom: string | null;
 }

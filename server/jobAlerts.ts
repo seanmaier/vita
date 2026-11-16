@@ -10,6 +10,7 @@ import { invalid, readBody } from './http.ts';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const NOT_SET_UP = 'Job alerts are not set up on this server (INBOUND_DOMAIN is not set).';
 
 export const jobAlerts = new Hono<{ Variables: { user: User } }>();
 
@@ -22,8 +23,10 @@ function state(userId: number) {
   const row = db.prepare('SELECT local_part, forwarding_from FROM inbound_addresses WHERE user_id = ?').get(userId) as
     | AddressRow
     | undefined;
+  const domain = inboundDomain();
   return {
-    address: row ? `${row.local_part}@${inboundDomain()}` : null,
+    available: domain !== null,
+    address: row && domain ? `${row.local_part}@${domain}` : null,
     forwardingFrom: row?.forwarding_from ?? null,
   };
 }
@@ -37,6 +40,7 @@ function randomLocalPart(): string {
 jobAlerts.get('/', (c) => c.json(state(c.get('user').id)));
 
 jobAlerts.post('/address', (c) => {
+  if (inboundDomain() === null) return c.json({ error: NOT_SET_UP }, 503);
   const userId = c.get('user').id;
   // A new address keeps the registered Gmail; the old address stops working at once.
   db.prepare(

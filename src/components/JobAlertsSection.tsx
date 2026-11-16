@@ -149,7 +149,9 @@ export function JobAlertsSection() {
         <li>Create a filter for your job-alert senders with "Forward to" this address.</li>
       </ol>
 
-      {config && (
+      {config && !config.available && <p className={hint}>Job alerts are not set up on this server.</p>}
+
+      {config?.available && (
         <>
           {config.address ? (
             <div className="flex flex-col gap-2">

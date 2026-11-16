@@ -37,14 +37,14 @@ const eventsOf = async (app: App) =>
   (await app.request('/api/v1/job-alerts/events')).json() as Promise<{ kind: string; detail: string | null }[]>;
 
 test('an unknown recipient is 404', async () => {
-  const res = await deliver({ recipient: 'jobs-zzzzzzzzzz@alerts.seanmaier.org', envelopeFrom: 'a@gmail.com', kind: 'failed' });
+  const res = await deliver({ recipient: 'jobs-zzzzzzzzzz@alerts.example.org', envelopeFrom: 'a@gmail.com', kind: 'failed' });
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: 'Unknown recipient.' });
 });
 
 test('a wrong domain is 404', async () => {
   const { address } = await setup();
-  const res = await deliver({ recipient: address.replace('alerts.seanmaier.org', 'example.org'), envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
+  const res = await deliver({ recipient: address.replace('alerts.example.org', 'example.net'), envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
   assert.equal(res.status, 404);
 });
 
@@ -143,4 +143,15 @@ test('purgeOldInboundEvents deletes events older than 30 days only', async () =>
   assert.equal(purgeOldInboundEvents(), 1);
   const left = db.prepare('SELECT COUNT(*) AS n FROM inbound_events WHERE user_id = ?').get(user.id) as { n: number };
   assert.equal(left.n, 1);
+});
+
+test('without INBOUND_DOMAIN every recipient is unknown', async (t) => {
+  const { address } = await setup();
+  const saved = process.env.INBOUND_DOMAIN;
+  delete process.env.INBOUND_DOMAIN;
+  t.after(() => {
+    process.env.INBOUND_DOMAIN = saved;
+  });
+  const res = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
+  assert.equal(res.status, 404);
 });

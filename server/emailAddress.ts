@@ -23,7 +23,11 @@ export function sameMailbox(a: string | undefined | null, b: string | undefined 
   return left !== null && left === normalizeAddress(b);
 }
 
-/** The domain every alert address lives under. */
-export function inboundDomain(): string {
-  return (process.env.INBOUND_DOMAIN || 'alerts.seanmaier.org').toLowerCase();
+/**
+ * The domain every alert address lives under, from INBOUND_DOMAIN. Null when
+ * it isn't set: then this server has no job alerts.
+ */
+export function inboundDomain(): string | null {
+  const domain = process.env.INBOUND_DOMAIN?.trim().toLowerCase();
+  return domain || null;
 }

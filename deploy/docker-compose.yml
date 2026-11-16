@@ -18,14 +18,16 @@
 # Stack environment variables (set them in Portainer, not here):
 #   PROXY_NETWORK  required, name of that existing Docker network
 #   DATA_VOLUME    optional, defaults to job-applications-data
-#   INBOUND_DOMAIN optional, defaults to alerts.seanmaier.org; the domain the
-#                  email worker's catch-all receives mail for
+#   INBOUND_DOMAIN optional, the domain the email worker's catch-all receives
+#                  mail for (e.g. alerts.example.org); job alerts are off
+#                  while it is unset
 services:
   app:
     image: ghcr.io/seanmaier/vita:latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      INBOUND_DOMAIN: ${INBOUND_DOMAIN:-}
     volumes:
       - app-data:/data
     networks:
