@@ -4,6 +4,7 @@ import {
   createJobAlertAddress,
   fetchJobAlertEvents,
   fetchJobAlerts,
+  JOB_ALERT_EVENTS_LIMIT,
   saveForwardingFrom,
 } from '../utils/api';
 import type { InboundEvent, JobAlertsConfig } from '../types';
@@ -137,12 +138,18 @@ export function JobAlertsSection() {
 
   const latestLeads = events.find((ev) => ev.kind === 'leads');
   const isSetUp = Boolean(config?.address) && Boolean(config?.forwardingFrom) && latestLeads !== undefined;
-  const alertsLast7Days = events.filter(
-    (ev) => ev.kind === 'leads' && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS,
-  ).length;
-  const failedLast7Days = events.filter(
-    (ev) => ev.kind === 'failed' && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS,
-  ).length;
+  const countRecent = (kind: InboundEvent['kind']) =>
+    events.filter((ev) => ev.kind === kind && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS)
+      .length;
+  // The list is capped, so a full list that still reaches back less than 7 days may be missing newer-than-7-days mails.
+  const oldest = events[events.length - 1];
+  const countCapped =
+    events.length >= JOB_ALERT_EVENTS_LIMIT &&
+    Date.now() - parseTimestamp(oldest.receivedAt).getTime() < 7 * DAY_MS;
+  const formatCount = (n: number) => (countCapped ? `${n}+` : String(n));
+  const alertsLast7Days = formatCount(countRecent('leads'));
+  const failedCount = countRecent('failed');
+  const failedLast7Days = formatCount(failedCount);
 
   const setupGuide = (
     <>
@@ -235,7 +242,7 @@ export function JobAlertsSection() {
                 </p>
                 {latestLeads.detail && <p className={hint}>{latestLeads.detail}</p>}
                 <p className={hint}>Alerts in the last 7 days: {alertsLast7Days}</p>
-                {failedLast7Days > 0 && (
+                {failedCount > 0 && (
                   <p className="[font-family:var(--font-mono)] text-[10.5px] leading-[1.6] text-[color:var(--status-rejected)]">
                     Failed in the last 7 days: {failedLast7Days}
                   </p>
