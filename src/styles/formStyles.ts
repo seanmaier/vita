@@ -3,6 +3,8 @@
 export const nafSection = 'flex flex-col gap-1.5';
 export const nafRow = 'grid grid-cols-1 sm:grid-cols-2 gap-4';
 export const nafLabel = '[font-family:var(--font-mono)] text-[9.5px] tracking-[0.14em] uppercase text-[color:var(--accent)]';
+// Explanatory small text. Uses --ink-2 because --ink-3 is too faint for text people need to read (about 2:1 contrast).
+export const hintText = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-2)] leading-[1.6]';
 export const nafOptional = 'text-[color:var(--ink-3)] normal-case tracking-normal text-[9px]';
 export const nafInput = '[font-family:var(--font-sans)] text-[13px] bg-[color:var(--surface)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] py-2 px-[11px] text-[color:var(--ink-invert)] [color-scheme:dark] transition-[border-color] duration-150 w-full focus:outline-none focus:border-[color:var(--accent)]';
 export const nafTextarea = '[font-family:var(--font-sans)] text-[12.5px] bg-[color:var(--surface)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] py-2 px-[11px] text-[color:var(--ink-invert)] w-full leading-[1.55] transition-[border-color] duration-150 focus:outline-none focus:border-[color:var(--accent)]';
@@ -55,5 +57,5 @@ export const tabClass = (active: boolean) =>
   `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
     active
       ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
-      : 'border-transparent text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)]'
+      : 'border-transparent text-[color:var(--ink-2)] hover:text-[color:var(--ink-invert)]'
   }`;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { changePassword } from '../../utils/api';
-import { nafInput, nafLabel, nafSection, primaryButton } from '../../styles/formStyles';
+import { hintText, nafInput, nafLabel, nafSection, primaryButton } from '../../styles/formStyles';
 import type { AccountOutletContext } from './AccountLayout';
 
 // Mirrors MIN_PASSWORD_LENGTH on the server, which has the final say.
@@ -66,7 +66,7 @@ export function PasswordSection() {
           value={next}
           onChange={(e) => setNext(e.target.value)}
         />
-        <span className="[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)]">
+        <span className={hintText}>
           At least {MIN_PASSWORD_LENGTH} characters.
         </span>
       </label>
