@@ -107,6 +107,7 @@ export function KnowledgePage() {
     if (pendingDoc) switchTo(pendingDoc);
     if (pendingCancel) {
       setContent(saved ?? '');
+      setSaveError(null);
       setEditing(false);
     }
     setPendingDoc(null);
@@ -126,8 +127,18 @@ export function KnowledgePage() {
       setPendingCancel(true);
       return;
     }
+    setSaveError(null);
     setEditing(false);
   };
+
+  // Cancelling edit mode gets its own wording; tab switches and navigation use the dialog's defaults.
+  const cancelEditLabels = {
+    message: 'You have unsaved edits. Save them, discard them, or keep editing?',
+    cancelLabel: 'Keep editing',
+    discardLabel: 'Discard changes',
+    saveLabel: 'Save',
+  };
+  const dialogLabels = pendingCancel && !pendingDoc && blocker.state !== 'blocked' ? cancelEditLabels : {};
 
   return (
     <div>
@@ -194,7 +205,10 @@ export function KnowledgePage() {
               {saveError && <p className="text-[12px] text-[color:var(--status-rejected)]">{saveError}</p>}
               {justSaved && <p className="text-[12px] text-[color:var(--status-offer)]">Saved.</p>}
 
-              <button className={primaryButton} type="button" onClick={() => setEditing(true)}>
+              <button className={primaryButton} type="button" onClick={() => {
+                  setJustSaved(false);
+                  setEditing(true);
+                }}>
                 edit
               </button>
             </>
@@ -204,14 +218,7 @@ export function KnowledgePage() {
 
       {(pendingDoc || pendingCancel || blocker.state === 'blocked') && (
         <UnsavedChangesDialog
-          {...(pendingCancel && !pendingDoc && blocker.state !== 'blocked'
-            ? {
-                message: 'You have unsaved edits. Save them, discard them, or keep editing?',
-                cancelLabel: 'Keep editing',
-                discardLabel: 'Discard changes',
-                saveLabel: 'Save',
-              }
-            : {})}
+          {...dialogLabels}
           onSave={() => void saveAndLeave()}
           onDiscard={discardAndLeave}
           onCancel={cancelLeave}
