@@ -26,6 +26,23 @@ npx wrangler deploy --dry-run --outdir <tmp>
 
 Die Test-Fixtures in `test/fixtures` sind synthetisch.
 
+### Lokal testen (ohne Cloudflare)
+
+`wrangler dev` simuliert Email Routing: Eine Mail per `POST` an `/cdn-cgi/handler/email` landet im `email()`-Handler, so als hätte Cloudflare sie zugestellt. Die App läuft dabei lokal (`npm run dev:all` im Repo-Root).
+
+1. In der `.env` der App `INBOUND_DOMAIN=alerts.example.org` setzen und die App neu starten.
+2. Token erzeugen (im Repo-Root): `node server/cli.ts token-add <user> local-mail-worker --scope inbound:deliver`
+3. `cp .dev.vars.example .dev.vars` und den Token als `APP_TOKEN` eintragen.
+4. In der App auf der Account-Seite eine Adresse erzeugen und eine Gmail-Adresse eintragen.
+5. Worker starten: `npx wrangler dev`
+6. Eine Mail schicken. `from` ist der Envelope-Absender und muss zur eingetragenen Gmail-Adresse passen, `to` ist die erzeugte Adresse. Die Datei ist eine komplette MIME-Mail (Header, Leerzeile, HTML-Body aus `test/fixtures`):
+
+   ```sh
+   curl -X POST "http://localhost:8787/cdn-cgi/handler/email?from=<gmail>&to=<adresse>" --data-binary @mail.eml
+   ```
+
+   Ergebnis: `Worker successfully processed email`, im Log `job-alerts: delivered leads …`, und die Leads erscheinen in der App. Mit einem anderen `from` lehnt der Worker die Mail ab (`not accepted`, Status 403).
+
 ## Einrichtung
 
 **Reihenfolge:** Zuerst die App deployen (mit dem Inbound-Endpoint #57 und dem Account-Seiten-Branch `feat/multi-user-alerts`), dann in der App den `inbound:deliver`-Token erzeugen (Schritt 4), erst danach den Worker deployen (Schritt 5). Der Worker stellt sonst an eine App zu, die den Endpoint noch nicht kennt. Die Empfangsdomain stellt die App über die Umgebungsvariable `INBOUND_DOMAIN` ein; ohne sie ist die Funktion in der App aus. Sie muss zur Domain passen, für die die Catch-all-Regel des Workers Mails annimmt.
