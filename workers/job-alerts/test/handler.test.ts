@@ -265,3 +265,11 @@ test('the app call has a timeout signal and an abort is retried like a network e
   assert.equal(f.calls.length, 2);
   assert.ok(f.calls[0].init.signal instanceof AbortSignal);
 });
+
+test('a missing APP_URL secret calls nothing and ends temporarily rejected', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, { ...env, APP_URL: '' }, f.impl, noSleep), 'unavailable');
+  assert.equal(f.calls.length, 0);
+  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+});

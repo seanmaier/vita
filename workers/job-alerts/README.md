@@ -4,7 +4,7 @@ Ein Cloudflare Email Worker, der Job-Alert-Mails aus Gmail übernimmt und pro Nu
 
 ## Was der Worker macht
 
-Jeder Nutzer bekommt auf der Account-Seite der App eine eigene Adresse (z. B. `jobs-k7x2@alerts.seanmaier.org`). Ein Gmail-Filter leitet Job-Alert-Mails (z. B. von LinkedIn) an diese Adresse weiter. Eine Catch-all-Regel in Cloudflare Email Routing übergibt alle Mails an der Subdomain an den Worker.
+Jeder Nutzer bekommt auf der Account-Seite der App eine eigene Adresse (z. B. `jobs-k7x2@alerts.example.org`). Ein Gmail-Filter leitet Job-Alert-Mails (z. B. von LinkedIn) an diese Adresse weiter. Eine Catch-all-Regel in Cloudflare Email Routing übergibt alle Mails an der Subdomain an den Worker.
 
 Der Worker kennt keine Nutzeradressen. Er parst die Mail und sendet sie per `POST /api/v1/inbound-mail` an die App. Der Body enthält `recipient` (Empfängeradresse), `envelopeFrom`, `kind` (`leads`, `confirmation` oder `failed`) sowie je nach Fall `subject`, `sender`, `detail` und `leads`. Die App ordnet die Empfängeradresse einem Nutzer zu und prüft, ob der Envelope-Absender zu dessen eingetragener Gmail-Adresse passt.
 
@@ -28,7 +28,9 @@ Die Test-Fixtures in `test/fixtures` sind synthetisch.
 
 ## Einrichtung
 
-**Reihenfolge:** Zuerst die App deployen (mit dem Inbound-Endpoint #57 und dem Account-Seiten-Branch `feat/multi-user-alerts`), dann in der App den `inbound:deliver`-Token erzeugen (Schritt 4), erst danach den Worker deployen (Schritt 5). Der Worker stellt sonst an eine App zu, die den Endpoint noch nicht kennt. Die Empfangsdomain stellt die App über die optionale Umgebungsvariable `INBOUND_DOMAIN` ein (Standard: `alerts.seanmaier.org`); sie muss zur Domain passen, für die die Catch-all-Regel des Workers Mails annimmt.
+**Reihenfolge:** Zuerst die App deployen (mit dem Inbound-Endpoint #57 und dem Account-Seiten-Branch `feat/multi-user-alerts`), dann in der App den `inbound:deliver`-Token erzeugen (Schritt 4), erst danach den Worker deployen (Schritt 5). Der Worker stellt sonst an eine App zu, die den Endpoint noch nicht kennt. Die Empfangsdomain stellt die App über die Umgebungsvariable `INBOUND_DOMAIN` ein; ohne sie ist die Funktion in der App aus. Sie muss zur Domain passen, für die die Catch-all-Regel des Workers Mails annimmt.
+
+In den Befehlen unten steht `<zone>` für die Cloudflare-Zone (z. B. `example.org`), `<alerts-domain>` für die Empfangsdomain, also den Wert von `INBOUND_DOMAIN` (z. B. `alerts.example.org`), und `<app-url>` für die Adresse der App (z. B. `https://vita.example.org`).
 
 Die Schritte laufen über die CLI. Die Email-Routing-Befehle sind in wrangler 4.162 noch **open beta**.
 
@@ -42,7 +44,7 @@ npx wrangler whoami
 ### 2. App erreichbar machen
 
 ```sh
-curl -s https://vita.seanmaier.org/api/health
+curl -s <app-url>/api/health
 ```
 
 Erwartet: `{"ok":true}`. Kommt stattdessen eine Cloudflare-Access-Anmeldeseite, unter **Zero Trust → Access → Service Auth** einen Service Token anlegen. Dessen Werte werden später als `CF_ACCESS_CLIENT_ID` und `CF_ACCESS_CLIENT_SECRET` gesetzt.
@@ -50,8 +52,8 @@ Erwartet: `{"ok":true}`. Kommt stattdessen eine Cloudflare-Access-Anmeldeseite, 
 ### 3. Email Routing für die Subdomain aktivieren
 
 ```sh
-npx wrangler email routing enable alerts.seanmaier.org
-npx wrangler email routing dns get alerts.seanmaier.org
+npx wrangler email routing enable <alerts-domain>
+npx wrangler email routing dns get <alerts-domain>
 ```
 
 Akzeptiert `enable` die Subdomain nicht, sie im Dashboard unter **Email → Email Routing → Settings → Subdomains** hinzufügen. Die `dns get`-Ausgabe zeigt die von Cloudflare angelegten MX- und SPF-Einträge.
@@ -71,6 +73,7 @@ Den ausgegebenen Token als `APP_TOKEN` hinterlegen (Schritt 5).
 ```sh
 cd workers/job-alerts
 npm ci
+npx wrangler secret put APP_URL     # <app-url>
 npx wrangler secret put APP_TOKEN
 # optional, nur wenn Schritt 2 einen Access-Service-Token nötig gemacht hat:
 npx wrangler secret put CF_ACCESS_CLIENT_ID
@@ -78,30 +81,30 @@ npx wrangler secret put CF_ACCESS_CLIENT_SECRET
 npm run deploy
 ```
 
-Die Secrets stehen bewusst nicht in `wrangler.jsonc`, da das Repo öffentlich ist.
+Die Secrets und die App-Adresse stehen bewusst nicht in `wrangler.jsonc`, da das Repo öffentlich ist. Fehlt `APP_URL`, weist der Worker jede Mail vorübergehend ab (Log: `status=APP_URL not set`).
 
 ### 6. Catch-all prüfen und Regel anlegen
 
 Zuerst prüfen, ob die Subdomain eine **eigene** Catch-all-Regel hat oder ob sich Subdomain und Apex-Domain eine zonenweite Catch-all-Regel teilen:
 
 ```sh
-npx wrangler email routing rules list seanmaier.org
-npx wrangler email routing rules list alerts.seanmaier.org
-npx wrangler email routing rules get seanmaier.org catch-all
-npx wrangler email routing rules get alerts.seanmaier.org catch-all
+npx wrangler email routing rules list <zone>
+npx wrangler email routing rules list <alerts-domain>
+npx wrangler email routing rules get <zone> catch-all
+npx wrangler email routing rules get <alerts-domain> catch-all
 ```
 
-**Fall A: getrennte Catch-all-Regeln** (die Ausgaben unterscheiden sich, die der Subdomain ist eine eigene Regel). Nur dann die Catch-all-Regel von `alerts.seanmaier.org` ändern. Die CLI hat keinen eigenen `catch-all`-Befehl; sie wird über `rules update` mit der Regel-ID `catch-all` geändert. `--match-type`, `--match-field` und `--match-value` entfallen dabei (sie werden für Catch-all ignoriert).
+**Fall A: getrennte Catch-all-Regeln** (die Ausgaben unterscheiden sich, die der Subdomain ist eine eigene Regel). Nur dann die Catch-all-Regel von `<alerts-domain>` ändern. Die CLI hat keinen eigenen `catch-all`-Befehl; sie wird über `rules update` mit der Regel-ID `catch-all` geändert. `--match-type`, `--match-field` und `--match-value` entfallen dabei (sie werden für Catch-all ignoriert).
 
 ```sh
-npx wrangler email routing rules update alerts.seanmaier.org catch-all   --name "Job-Alerts an Vita" --enabled true   --action-type worker --action-value vita-job-alerts
-npx wrangler email routing rules get alerts.seanmaier.org catch-all
+npx wrangler email routing rules update <alerts-domain> catch-all   --name "Job-Alerts an Vita" --enabled true   --action-type worker --action-value vita-job-alerts
+npx wrangler email routing rules get <alerts-domain> catch-all
 ```
 
 **Fall B: Cloudflare meldet eine gemeinsame Catch-all-Regel für die Zone**. Sie dann **nicht** ändern. Ein Umstellen der zonenweiten Catch-all-Regel auf den Worker würde die gesamte Mail der Hauptdomain an den Worker umleiten. Stattdessen pro Nutzeradresse eine Literal-Regel anlegen (bei höchstens 10 Nutzern machbar):
 
 ```sh
-npx wrangler email routing rules create alerts.seanmaier.org   --match-type literal --match-field to --match-value <adresse>   --action-type worker --action-value vita-job-alerts
+npx wrangler email routing rules create <alerts-domain>   --match-type literal --match-field to --match-value <adresse>   --action-type worker --action-value vita-job-alerts
 ```
 
 Das ist für jede neu erzeugte (oder ersetzte) Adresse zu wiederholen.

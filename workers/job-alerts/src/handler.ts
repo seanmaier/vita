@@ -56,6 +56,8 @@ async function postInbound(
   payload: InboundPayload,
   fetchImpl: typeof fetch,
 ): Promise<{ ok: true } | { ok: false; status: string; retryable: boolean }> {
+  // A missing secret is a setup error: keep the mail retryable until it is set.
+  if (!env.APP_URL) return { ok: false, status: 'APP_URL not set', retryable: true };
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${env.APP_TOKEN}`,
