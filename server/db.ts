@@ -64,6 +64,23 @@ db.exec(`
     application_id TEXT,
     UNIQUE (user_id, source, external_id)
   );
+
+  -- Each user's own alert address, and the Gmail they forward from.
+  CREATE TABLE IF NOT EXISTS inbound_addresses (
+    user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    local_part      TEXT NOT NULL UNIQUE,
+    forwarding_from TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS inbound_events (
+    id           INTEGER PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind         TEXT NOT NULL CHECK (kind IN ('confirmation', 'failed', 'leads')),
+    received_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    subject      TEXT,
+    sender       TEXT,
+    detail       TEXT
+  );
 `);
 
 /**

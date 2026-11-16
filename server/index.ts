@@ -27,6 +27,8 @@ import {
   type User,
 } from './auth.ts';
 import { db, transaction } from './db.ts';
+import { purgeOldInboundEvents } from './inboundMail.ts';
+import type { V1Env } from './http.ts';
 import { purgeTrash } from './trash.ts';
 import { v1 } from './v1.ts';
 
@@ -95,7 +97,7 @@ const requireUser = createMiddleware<{ Variables: { user: User } }>(async (c, ne
 // /api/v1 also accepts `Authorization: Bearer <api token>`, so scripts can
 // call it without a password. Tokens are deliberately not accepted on the
 // routes above: they can't change the password or overwrite raw storage.
-const requireUserOrToken = createMiddleware<{ Variables: { user: User } }>(async (c, next) => {
+const requireUserOrToken = createMiddleware<V1Env>(async (c, next) => {
   const auth = c.req.header('authorization');
   if (auth !== undefined) {
     const match = /^Bearer\s+(\S+)$/i.exec(auth);
@@ -105,6 +107,7 @@ const requireUserOrToken = createMiddleware<{ Variables: { user: User } }>(async
       return c.json({ error: 'This token may not call this endpoint.' }, 403);
     }
     c.set('user', found.user);
+    c.set('tokenScope', found.scope);
     return next();
   }
   return requireUser(c, next);
@@ -210,6 +213,7 @@ app.get('/*', serveStatic({ root: STATIC_DIR, path: 'index.html' }));
 // in src/utils/trash.ts).
 function housekeeping() {
   deleteExpiredSessions();
+  purgeOldInboundEvents();
   const purged = purgeTrash();
   if (purged.applications || purged.baseProfiles) {
     console.log(`Purged ${purged.applications} application(s) and ${purged.baseProfiles} base profile(s) from the trash.`);

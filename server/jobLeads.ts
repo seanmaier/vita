@@ -53,6 +53,23 @@ function findLead(userId: number, id: number): JobLead | null {
   return row ? toLead(row) : null;
 }
 
+/** Stores leads for a user in one transaction; entries already known are counted as duplicates. */
+export function insertLeads(userId: number, leads: JobLeadInput[]): { created: number; duplicates: number } {
+  const insert = db.prepare(
+    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url)
+     VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, source, external_id) DO NOTHING`,
+  );
+  const created = transaction(() => {
+    let n = 0;
+    for (const l of leads) {
+      const r = insert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
+      n += Number(r.changes);
+    }
+    return n;
+  });
+  return { created, duplicates: leads.length - created };
+}
+
 jobLeads.post('/', async (c) => {
   const body = await readBody(c, ['leads']);
   if (Array.isArray(body)) return invalid(c, body);
@@ -69,20 +86,7 @@ jobLeads.post('/', async (c) => {
   });
   if (errors.length) return invalid(c, errors);
 
-  const userId = c.get('user').id;
-  const insert = db.prepare(
-    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url)
-     VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, source, external_id) DO NOTHING`,
-  );
-  const created = transaction(() => {
-    let n = 0;
-    for (const l of parsed) {
-      const r = insert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
-      n += Number(r.changes);
-    }
-    return n;
-  });
-  return c.json({ created, duplicates: parsed.length - created }, 201);
+  return c.json(insertLeads(c.get('user').id, parsed), 201);
 });
 
 jobLeads.get('/', (c) => {

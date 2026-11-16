@@ -14,6 +14,13 @@ test('an ingest token may only POST /api/v1/job-leads', () => {
   assert.equal(tokenAllows('job-leads:ingest', 'GET', '/api/v1/knowledge/about-me'), false);
 });
 
+test('a delivery token may only POST /api/v1/inbound-mail', () => {
+  assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail'), true);
+  assert.equal(tokenAllows('inbound:deliver', 'GET', '/api/v1/job-leads'), false);
+  assert.equal(tokenAllows('inbound:deliver', 'PUT', '/api/v1/job-alerts'), false);
+  assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x'), false);
+});
+
 test('a full token may call anything under /api/v1', () => {
   assert.equal(tokenAllows('full', 'GET', '/api/v1/knowledge/about-me'), true);
   assert.equal(tokenAllows('full', 'DELETE', '/api/v1/applications/1'), true);

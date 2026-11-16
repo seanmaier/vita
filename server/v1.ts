@@ -10,16 +10,17 @@ import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
 import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
 import { slugify, uniqueId } from '../src/utils/slug.ts';
 import { purgeDate } from '../src/utils/trash.ts';
-import type { User } from './auth.ts';
 import { transaction } from './db.ts';
-import { invalid, readBody, type Body, type Validated } from './http.ts';
+import { invalid, readBody, type Body, type V1Env, type Validated } from './http.ts';
+import { inboundMail } from './inboundMail.ts';
+import { jobAlerts } from './jobAlerts.ts';
 import { jobLeads } from './jobLeads.ts';
 import { knowledge } from './knowledge.ts';
 import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
-export const v1 = new Hono<{ Variables: { user: User } }>();
+export const v1 = new Hono<V1Env>();
 
 function localApps(userId: number): ApplicationConfig[] {
   return getJson<ApplicationConfig[]>(userId, KEYS.localApps) ?? [];
@@ -57,6 +58,8 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
 
 v1.route('/knowledge', knowledge);
 v1.route('/job-leads', jobLeads);
+v1.route('/job-alerts', jobAlerts);
+v1.route('/inbound-mail', inboundMail);
 
 v1.get('/me', (c) => c.json(c.get('user')));
 
