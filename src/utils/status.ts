@@ -10,6 +10,8 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   rejected:  'rejected',
   ghosted:   'ghosted',
   withdrawn: 'withdrawn',
+  accepted:  'accepted',
+  declined:  'declined',
 };
 
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -21,6 +23,8 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   rejected:  'var(--status-rejected)',
   ghosted:   'var(--status-ghosted)',
   withdrawn: 'var(--status-withdrawn)',
+  accepted:  'var(--status-accepted)',
+  declined:  'var(--status-declined)',
 };
 
 /** A sent application without any response for this many days is marked "ghosted". */

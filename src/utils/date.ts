@@ -1,4 +1,4 @@
-import type { AppLanguage } from '../types';
+import type { AppLanguage } from '../types.ts';
 
 const LOCALES: Record<AppLanguage, string> = { en: 'en-US', de: 'de-DE', sv: 'sv-SE' };
 
