@@ -98,7 +98,7 @@ switch (command) {
     if (!username) fail('Usage: token-list <username>');
     const tokens = listApiTokens(userIdOrFail(username));
     if (!tokens.length) console.log('No API tokens.');
-    for (const t of tokens) console.log(`${t.name}\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
+    for (const t of tokens) console.log(`${t.name}\t[${t.scope}]\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
     break;
   }
   case 'token-revoke': {
