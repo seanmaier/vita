@@ -154,6 +154,21 @@ Bounces einordnen:
 - **Log `rejected … status=404`:** Die App kennt die Adresse nicht, oder `INBOUND_DOMAIN` passt nicht zur Subdomain.
 - **Log `unavailable …`:** Die App ist nicht erreichbar, oder `APP_URL`/`APP_TOKEN` fehlen.
 
+## Diagnose: Header protokollieren
+
+Um zu sehen, was Cloudflare bei weitergeleiteten oder umgeleiteten Mails mitliefert (z. B. aus Outlook oder iCloud), lässt sich ein Header-Log einschalten:
+
+```sh
+npx wrangler secret put LOG_HEADERS --name vita-job-alerts    # Wert: 1
+npx wrangler tail vita-job-alerts
+```
+
+Pro Mail erscheint eine Zeile `job-alerts: headers {...}` mit Envelope-Absender und -Empfänger, der `From`-Adresse, `Authentication-Results`, `ARC-Authentication-Results`, `Received-SPF` und je DKIM-Signatur nur Domain (`d`) und Selector (`s`). Betreff, Inhalt und Signaturdaten werden nie protokolliert. Danach wieder ausschalten:
+
+```sh
+npx wrangler secret delete LOG_HEADERS --name vita-job-alerts
+```
+
 ## Hinweis
 
 Die Test-Fixtures sind synthetisch. Sobald die ersten echten Alerts angekommen sind, die Parser (`src/parsers.ts`) mit anonymisierten echten Mails prüfen und die Fixtures ergänzen.

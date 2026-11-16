@@ -6,6 +6,7 @@
   // Set each with `npx wrangler secret put <NAME>`:
   //   APP_URL (base URL of the Vita app, e.g. https://vita.example.org),
   //   APP_TOKEN (app token with scope inbound:deliver),
-  //   optional: CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+  //   optional: CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET,
+  //   optional: LOG_HEADERS=1 (logs envelope and authentication headers, no subject or body)
   // They must not also appear under "vars": wrangler refuses that.
 }
