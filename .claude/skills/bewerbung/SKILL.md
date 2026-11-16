@@ -52,8 +52,13 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
    Nicht weitermachen.
 2. `node scripts/knowledge.ts pull`, dann `private/knowledge/about-me.md` (Arbeitskopie)
    lesen. Änderungen daran immer mit `node scripts/knowledge.ts push about-me`
-   hochladen. Fehlt das Dokument in der App (Exit 2) oder ist es größtenteils leer,
-   darauf hinweisen und `/basiswissen` anbieten. Ohne Basiswissen nur mit den Daten aus
+   hochladen. Meldet `pull` „not saved, skipped“ (Exit 0; Exit 2 kommt nur von `get`) und
+   gibt es lokal `private/knowledge/about-me.md`, diese mit
+   `node scripts/knowledge.ts push about-me` hochladen. Endet `pull` mit Exit 3, weicht die
+   lokale Datei von der App-Version ab (Kopie: `about-me.server.md`): Unterschiede kurz
+   zeigen, den Nutzer fragen, welche gelten soll, nie stillschweigend weitermachen. Fehlt
+   das Dokument überall oder ist es größtenteils leer, darauf hinweisen und `/basiswissen`
+   anbieten. Ohne Basiswissen nur mit den Daten aus
    dem Basis-Profil arbeiten und das im Ergebnis offen sagen.
 3. Datenschutz: Basiswissen-Inhalte nie committen und nur an die eigene App
    (`JOB_APPS_URL`) senden, an keine anderen Dienste.

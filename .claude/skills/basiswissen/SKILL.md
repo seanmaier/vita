@@ -16,8 +16,15 @@ einen Abschnitt oder ein Projekt nennen, auf das du dich beschränkst.
 1. **Dokument holen.** `node scripts/knowledge.ts pull` speichert die Dokumente aus der App
    nach `private/knowledge/` (Arbeitskopie). Bearbeitet wird diese Datei; nach jeder Änderung
    `node scripts/knowledge.ts push about-me`. Fehlt das Dokument in der App (`pull` meldet
-   „not saved“, `get` endet mit Exit 2), `private/knowledge/about-me.example.md` nach
-   `private/knowledge/about-me.md` kopieren (Hinweisblock am Anfang entfernen) und hochladen.
+   „not saved“, `get` endet mit Exit 2) und existiert die Arbeitskopie
+   `private/knowledge/about-me.md`, diese mit `node scripts/knowledge.ts push about-me`
+   hochladen. Die Vorlage `private/knowledge/about-me.example.md` nur verwenden, wenn es
+   auch lokal keine Datei gibt (nach `about-me.md` kopieren, Hinweisblock am Anfang
+   entfernen, dann `push`). Endet `pull` mit Exit 3, unterscheidet sich eine lokale Datei
+   von der App-Version (die liegt dann als `private/knowledge/<doc>.server.md` daneben):
+   Unterschiede kurz zeigen und den Nutzer fragen, welche Version gelten soll (lokale Datei
+   mit `push` hochladen oder durch die `.server.md`-Kopie ersetzen). Nie stillschweigend
+   weitermachen.
 2. **Vorhandene Daten einlesen.** `node scripts/api.ts GET base-profiles` (siehe Skill
    `bewerbung` zur Einrichtung) und, falls vorhanden, `private/profiles/*.json`. Daraus
    vorbefüllen, was sich ableiten lässt: Stationen, Projekte mit ihrer `id`, Skills,
