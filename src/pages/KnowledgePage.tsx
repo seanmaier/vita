@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useBlocker } from 'react-router-dom';
 import { fetchKnowledge, saveKnowledge } from '../utils/api';
 import type { KnowledgeDoc } from '../utils/api';
 import { nafLabel, primaryButton } from '../styles/formStyles';
@@ -30,6 +30,8 @@ export function KnowledgePage() {
   const [pendingDoc, setPendingDoc] = useState<KnowledgeDoc | null>(null);
 
   const dirty = saved !== null && content !== saved;
+  // Guards in-app navigation (links, browser Back); tab switches are guarded below.
+  const blocker = useBlocker(dirty);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,16 +88,31 @@ export function KnowledgePage() {
     else switchTo(next);
   };
 
-  const saveAndSwitch = async () => {
-    const next = pendingDoc;
+  // The dialog stays open until a save resolves, and ignores clicks meanwhile,
+  // so a late save result can never land on another tab.
+  const saveAndLeave = async () => {
+    if (busy) return;
+    if (!(await save())) {
+      setPendingDoc(null);
+      if (blocker.state === 'blocked') blocker.reset();
+      return;
+    }
+    if (pendingDoc) switchTo(pendingDoc);
     setPendingDoc(null);
-    if (next && (await save())) switchTo(next);
+    if (blocker.state === 'blocked') blocker.proceed();
   };
 
-  const discardAndSwitch = () => {
-    const next = pendingDoc;
+  const discardAndLeave = () => {
+    if (busy) return;
+    if (pendingDoc) switchTo(pendingDoc);
     setPendingDoc(null);
-    if (next) switchTo(next);
+    if (blocker.state === 'blocked') blocker.proceed();
+  };
+
+  const cancelLeave = () => {
+    if (busy) return;
+    setPendingDoc(null);
+    if (blocker.state === 'blocked') blocker.reset();
   };
 
   return (
@@ -119,6 +136,7 @@ export function KnowledgePage() {
             type="button"
             role="tab"
             aria-selected={t.doc === doc}
+            disabled={busy}
             onClick={() => requestSwitch(t.doc)}
           >
             {t.label}
@@ -153,11 +171,11 @@ export function KnowledgePage() {
         </div>
       )}
 
-      {pendingDoc && (
+      {(pendingDoc || blocker.state === 'blocked') && (
         <UnsavedChangesDialog
-          onSave={() => void saveAndSwitch()}
-          onDiscard={discardAndSwitch}
-          onCancel={() => setPendingDoc(null)}
+          onSave={() => void saveAndLeave()}
+          onDiscard={discardAndLeave}
+          onCancel={cancelLeave}
         />
       )}
     </div>
