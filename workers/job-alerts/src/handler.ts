@@ -19,13 +19,23 @@ const GMAIL_CONFIRMATION_SENDER = 'forwarding-noreply@google.com';
 const MAX_LEADS = 100;
 const RETRY_DELAY_MS = 2000;
 
-/** Gmail's auto-forward envelope looks like `name+caf_=…@gmail.com`; compare ignoring case and the +suffix. */
-export function isFromOwnerGmail(envelopeFrom: string, ownerGmail: string): boolean {
-  const normalize = (address: string) => {
+/**
+ * Gmail's auto-forward envelope looks like `name+caf_=…@gmail.com`. Compare ignoring case and the +suffix;
+ * for Gmail addresses also ignore dots in the local part and treat googlemail.com as gmail.com.
+ */
+export function isFromOwnerGmail(envelopeFrom: string, ownerGmail: string | undefined): boolean {
+  const normalize = (address: string | undefined) => {
+    if (typeof address !== 'string') return null;
     const lower = address.trim().toLowerCase();
     const at = lower.lastIndexOf('@');
     if (at < 1) return null;
-    return `${lower.slice(0, at).split('+')[0]}@${lower.slice(at + 1)}`;
+    let local = lower.slice(0, at).split('+')[0];
+    let domain = lower.slice(at + 1);
+    if (domain === 'gmail.com' || domain === 'googlemail.com') {
+      domain = 'gmail.com';
+      local = local.replaceAll('.', '');
+    }
+    return local ? `${local}@${domain}` : null;
   };
   const from = normalize(envelopeFrom);
   return from !== null && from === normalize(ownerGmail);
@@ -67,8 +77,11 @@ async function postLeads(
       method: 'POST',
       headers,
       body: JSON.stringify({ leads }),
+      // Never follow redirects: they would drop the POST body and could carry the bearer token elsewhere.
+      redirect: 'manual',
     });
-    if (res.ok) return { ok: true };
+    // Only the app's 201 counts; a 200 (e.g. an Access login page) or any 3xx is a failure.
+    if (res.status === 201) return { ok: true };
     return { ok: false, status: String(res.status), retryable: res.status >= 500 };
   } catch {
     return { ok: false, status: 'network', retryable: true };

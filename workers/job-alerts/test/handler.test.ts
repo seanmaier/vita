@@ -7,10 +7,10 @@ import { handleEmail, isFromOwnerGmail, type Env } from '../src/handler.ts';
 const env: Env = {
   APP_URL: 'https://app.test',
   APP_TOKEN: 'tok-123',
-  OWNER_GMAIL: 'sean.maier@gmail.com',
+  OWNER_GMAIL: 'owner.name@gmail.com',
   OWNER_EMAIL: 'owner@example.org',
 };
-const OWNER_ENVELOPE = 'sean.maier+caf_=jobs=alerts.example.org@gmail.com';
+const OWNER_ENVELOPE = 'owner.name+caf_=jobs=alerts.example.org@gmail.com';
 
 const linkedinHtml = readFileSync(join(import.meta.dirname, 'fixtures', 'linkedin.html'), 'utf8');
 
@@ -62,9 +62,9 @@ function fakeFetch(...statuses: (number | Error)[]) {
 const noSleep = async () => {};
 
 test('isFromOwnerGmail ignores case and +suffix but nothing else', () => {
-  assert.equal(isFromOwnerGmail('Sean.Maier+caf_=jobs=alerts.seanmaier.org@gmail.com', 'sean.maier@gmail.com'), true);
-  assert.equal(isFromOwnerGmail('sean.maier@gmail.com.evil.io', 'sean.maier@gmail.com'), false);
-  assert.equal(isFromOwnerGmail('other@gmail.com', 'sean.maier@gmail.com'), false);
+  assert.equal(isFromOwnerGmail('Owner.Name+caf_=jobs=alerts.example.org@gmail.com', 'owner.name@gmail.com'), true);
+  assert.equal(isFromOwnerGmail('owner.name@gmail.com.evil.io', 'owner.name@gmail.com'), false);
+  assert.equal(isFromOwnerGmail('other@gmail.com', 'owner.name@gmail.com'), false);
 });
 
 test('foreign envelope sender with spoofed From is rejected without calling the app', async () => {
@@ -167,4 +167,27 @@ test('leads are capped at 100 per batch and titles at 300 chars', async () => {
   const body = JSON.parse(f.calls[0].init.body as string);
   assert.equal(body.leads.length, 100);
   assert.ok(body.leads.every((l: { title: string }) => l.title.length <= 300));
+});
+
+test('a redirect is a non-retried failure that forwards the mail', async () => {
+  const m = fakeMessage(OWNER_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(302);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'forwarded-on-error');
+  assert.equal(f.calls.length, 1);
+  assert.equal((f.calls[0].init as RequestInit).redirect, 'manual');
+  assert.equal(m.forwards[0].headers?.get('X-Vita-Ingest-Error'), '302');
+});
+
+test('a 200 response (e.g. login page) is not treated as ingested', async () => {
+  const m = fakeMessage(OWNER_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(200);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'forwarded-on-error');
+  assert.equal(m.forwards[0].headers?.get('X-Vita-Ingest-Error'), '200');
+});
+
+test('isFromOwnerGmail folds gmail dots and googlemail.com, and fails closed on undefined', () => {
+  assert.equal(isFromOwnerGmail('ownername+x@gmail.com', 'owner.name@gmail.com'), true);
+  assert.equal(isFromOwnerGmail('owner.name@googlemail.com', 'ownername@gmail.com'), true);
+  assert.equal(isFromOwnerGmail('owner.name@example.org', 'ownername@example.org'), false);
+  assert.equal(isFromOwnerGmail('owner.name@gmail.com', undefined), false);
 });
