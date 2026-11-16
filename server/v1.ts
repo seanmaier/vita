@@ -12,6 +12,8 @@ import { slugify, uniqueId } from '../src/utils/slug.ts';
 import { purgeDate } from '../src/utils/trash.ts';
 import type { User } from './auth.ts';
 import { transaction } from './db.ts';
+import { invalid, readBody, type Body, type Validated } from './http.ts';
+import { knowledge } from './knowledge.ts';
 import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
@@ -52,6 +54,8 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
   );
 }
 
+v1.route('/knowledge', knowledge);
+
 v1.get('/me', (c) => c.json(c.get('user')));
 
 // Optional ?language=en|de|sv narrows the list; applications without a stored
@@ -91,27 +95,6 @@ const APPLICATION_FIELDS = [
   'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter',
 ];
 const BASE_PROFILE_FIELDS = ['id', 'name', 'language', 'profile'];
-
-type Body = Record<string, unknown>;
-
-function isPlainObject(v: unknown): v is Body {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function invalid(c: Context, details: string[]) {
-  return c.json({ error: 'Validation failed.', details }, 400);
-}
-
-/** Reads a JSON object body, or lists what's wrong with it, including fields a typo would silently drop. */
-async function readBody(c: Context, allowed: string[]): Promise<Body | string[]> {
-  const body: unknown = await c.req.json().catch(() => undefined);
-  if (!isPlainObject(body)) return ['Expected a JSON object body.'];
-  const unknownFields = Object.keys(body).filter((k) => !allowed.includes(k));
-  if (unknownFields.length) return [`Unknown field(s): ${unknownFields.join(', ')}. Allowed: ${allowed.join(', ')}.`];
-  return body;
-}
-
-type Validated<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 // validateApplicationConfig doesn't carry skillGroupsOverride through, so it
 // is validated and re-attached here.

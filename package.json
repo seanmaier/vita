@@ -12,6 +12,7 @@
     "users": "node server/cli.ts",
     "api": "node scripts/api.ts",
     "lint": "oxlint",
+    "test": "node --test \"server/**/*.test.ts\" \"scripts/**/*.test.ts\"",
     "preview": "vite preview"
   },
   "dependencies": {

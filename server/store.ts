@@ -1,4 +1,5 @@
 import { db } from './db.ts';
+import type { KnowledgeDoc } from './knowledge.ts';
 
 // Typed access to the per-user kv rows the frontend writes. Keys and value
 // formats must stay in sync with src/utils/{localApplications,appStorage,
@@ -8,6 +9,7 @@ export const KEYS = {
   baseProfiles: 'base-profiles',
   appConfig: (id: string) => `app-config-${id}`,
   status: (id: string) => `status-${id}`,
+  knowledge: (doc: KnowledgeDoc) => `knowledge-${doc}`,
 };
 
 export function getValue(userId: number, key: string): string | null {
