@@ -10,14 +10,15 @@ import { CoverLetterDocument } from '../components/cover-letter/CoverLetterDocum
 import { ExportModal } from '../components/ExportModal';
 import { useApplication } from '../hooks/useApplication';
 import { useApplicationStatus } from '../hooks/useApplicationStatus';
-import { STATUS_LABELS, STATUS_COLORS } from '../utils/status';
+import { STATUS_COLORS } from '../utils/status';
+import { StatusOptions } from '../components/StatusOptions';
+import type { StatusAction } from '../utils/statusTransitions';
 import { FONT_LABELS, ALL_FONTS } from '../utils/fonts';
 import { generateTextExport } from '../utils/textExport';
 import { NotesDialog } from '../components/NotesDialog';
 import { ApplicationTimeline } from '../components/ApplicationTimeline';
 import { createNote } from '../utils/notes';
 import { buildPdfFilename, type PrintTarget } from '../utils/pdfFilename';
-import { autoAppliedDateFor, autoInterviewDateFor, autoFinalDecisionDateFor } from '../utils/autoStatusDates';
 import {
   sanitizeFolderName, renderPageCanvases, buildPdfBlob, writeApplicationPdfs, downloadPdfBlob,
 } from '../utils/pdfExport';
@@ -25,7 +26,7 @@ import {
   isFileSystemAccessSupported, getSavedExportFolder, chooseExportFolder, ensureExportFolderPermission,
 } from '../utils/exportFolder';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
-import type { ApplicationConfig, ApplicationStatus, AppFont, CoverLetter } from '../types';
+import type { ApplicationConfig, AppFont, CoverLetter } from '../types';
 
 
 export function ApplicationPage() {
@@ -48,7 +49,7 @@ export function ApplicationPage() {
 
 function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
   const { app, save, isDirty } = useApplication(staticApp);
-  const [status, setStatus] = useApplicationStatus(staticApp.id, staticApp.status, app.appliedDate);
+  const { history, status, act, changeDate } = useApplicationStatus(staticApp);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFolderName, setExportFolderName] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -80,22 +81,6 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
   const handleFontChange = (font: AppFont) => {
     const { status: _s, ...rest } = app;
     save({ ...rest, font });
-  };
-
-  const handleStatusChange = (newStatus: ApplicationStatus) => {
-    const autoApplied = autoAppliedDateFor(status, newStatus, app.appliedDate, app.language);
-    const autoInterview = autoInterviewDateFor(status, newStatus, app.interviewDate, app.language);
-    const autoFinalDecision = autoFinalDecisionDateFor(status, newStatus, app.finalDecisionDate, app.language);
-    if (autoApplied || autoInterview || autoFinalDecision) {
-      const { status: _s, ...rest } = app;
-      save({
-        ...rest,
-        ...(autoApplied && { appliedDate: autoApplied }),
-        ...(autoInterview && { interviewDate: autoInterview }),
-        ...(autoFinalDecision && { finalDecisionDate: autoFinalDecision }),
-      });
-    }
-    setStatus(newStatus);
   };
 
   const handleChooseFolder = async () => {
@@ -203,11 +188,10 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
             className="[font-family:var(--font-mono)] text-[11px] bg-white/7 border border-white/12 rounded px-2.5 py-[5px] cursor-pointer min-w-[140px]"
             value={status}
             style={{ color: STATUS_COLORS[status] }}
-            onChange={(e) => handleStatusChange(e.target.value as ApplicationStatus)}
+            onChange={(e) => act(e.target.value as StatusAction)}
+            aria-label="Status"
           >
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value} className="text-[color:var(--ink-invert)] bg-[color:var(--surface)]">{label}</option>
-            ))}
+            <StatusOptions status={status} canUndo={history.length > 1} />
           </select>
           <Link
             className="[font-family:var(--font-mono)] text-[11px] bg-white/7 text-[color:var(--ink-invert)] border border-white/18 rounded px-3.5 py-[5px] cursor-pointer tracking-[0.04em] no-underline hover:bg-white/14"
@@ -275,7 +259,7 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
             </a>
           )}
           <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-            <ApplicationTimeline app={app} status={status} language={language} onDeleteNote={handleNotesDelete} />
+            <ApplicationTimeline app={app} history={history} status={status} language={language} onDeleteNote={handleNotesDelete} onChangeDate={changeDate} />
           </div>
         </aside>
 

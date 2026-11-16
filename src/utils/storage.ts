@@ -137,4 +137,9 @@ export const storage = {
   keys(): string[] {
     return [...data.keys()];
   },
+  /** Updates the in-memory copy only, for values the server already stored itself (e.g. after a status transition). */
+  setLocal(key: string, value: string): void {
+    data.set(key, value);
+    writeCount++;
+  },
 };
