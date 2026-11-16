@@ -1,14 +1,28 @@
 ---
 name: stellencheck
-description: Bewertet eine Stellenanzeige gegen die Prioritäten und Skills des Nutzers und sagt, ob sie zu ihm passt und zu wie viel Prozent - mit Ausschlusskriterien, gewichteten Kriterien und Empfehlung. Fragt beim ersten Mal (oder mit "prioritaeten") die Prioritäten ab und speichert sie in private/knowledge/priorities.md. Verwenden bei "/stellencheck", wenn der Nutzer eine Stelle (URL oder Text) zur Einschätzung schickt, fragt "passt die Stelle zu mir?", oder bevor /bewerbung eine Bewerbung anlegt.
+description: Bewertet eine Stellenanzeige gegen die Prioritäten und Skills des Nutzers und sagt, ob sie zu ihm passt und zu wie viel Prozent - mit Ausschlusskriterien, gewichteten Kriterien und Empfehlung. Fragt beim ersten Mal (oder mit "prioritaeten") die Prioritäten ab und speichert sie als Basiswissen in der App. Verwenden bei "/stellencheck", wenn der Nutzer eine Stelle (URL oder Text) zur Einschätzung schickt, fragt "passt die Stelle zu mir?", oder bevor /bewerbung eine Bewerbung anlegt.
 argument-hint: "<URL oder Text der Stellenanzeige> | prioritaeten"
 ---
 
 # Stellencheck
 
 Ziel: schnell und ehrlich entscheiden, ob sich eine Bewerbung lohnt. Grundlage sind
-`private/knowledge/priorities.md` (was der Nutzer will) und `private/knowledge/about-me.md`
-(was er kann). Beide Dateien sind gitignored; nie committen, nie an externe Dienste senden.
+dem Dokument `priorities` (was der Nutzer will) und `about-me` (was er kann), beide als
+Basiswissen in der App gespeichert.
+
+**Zu Beginn** `node scripts/knowledge.ts pull`: Das legt die Arbeitskopien
+`private/knowledge/priorities.md` und `about-me.md` an (gitignored). Bearbeitet wird die
+Arbeitskopie; nach jeder Änderung `node scripts/knowledge.ts push priorities` (bzw.
+`about-me`). Fehlt ein Dokument in der App (`pull` meldet „not saved“, `get` endet mit
+Exit 2) und existiert die Arbeitskopie `private/knowledge/<doc>.md`, diese mit
+`node scripts/knowledge.ts push <doc>` hochladen. Die Vorlage unten (`priorities`) bzw.
+`private/knowledge/about-me.example.md` (`about-me`) nur verwenden, wenn es auch lokal keine
+Datei gibt; dann anlegen und mit `push` hochladen. Endet `pull` mit Exit 3, unterscheidet
+sich eine lokale Datei von der App-Version (diese liegt als `<doc>.server.md` daneben):
+Unterschiede kurz zeigen und den Nutzer fragen, welche gelten soll (lokale Datei mit `push`
+hochladen oder durch die `.server.md`-Kopie ersetzen). Nie stillschweigend weitermachen.
+
+Datenschutz: Inhalte nie committen und nur an die eigene App (`JOB_APPS_URL`) senden, an keine anderen Dienste.
 
 `$ARGUMENTS` ist die Stellenanzeige. Bei `prioritaeten` oder wenn `priorities.md` fehlt:
 zuerst **Prioritäten erfassen**.
@@ -28,7 +42,8 @@ zuerst **Prioritäten erfassen**.
    - **Gehalt**: Untergrenze und Wunsch (nur zur Bewertung, nie in Anschreiben)
    - **Sprache, Unternehmensgröße, Lernumfeld/Mentoring**
    - **Gewichte**: die Standardgewichte unten zeigen und fragen, ob sie passen
-3. Antworten sofort in `priorities.md` schreiben (Vorlage siehe unten).
+3. Antworten sofort in `priorities.md` schreiben (Vorlage siehe unten) und mit
+   `node scripts/knowledge.ts push priorities` hochladen.
 
 ## Stelle bewerten
 
@@ -52,7 +67,7 @@ zuerst **Prioritäten erfassen**.
    Bewerbung ins Leere schicken.
 5. **Protokollieren**: eine Zeile unter „Bewertete Stellen“ in `priorities.md` ergänzen
    (Datum, Firma, Rolle, Passung, Empfehlung; Entscheidung des Nutzers nachtragen, sobald
-   bekannt).
+   bekannt), danach erneut `push priorities`.
 6. **Kalibrieren**: Entscheidet der Nutzer anders als die Empfehlung (bewirbt sich bei
    < 50 % oder lehnt > 75 % ab), nach dem Grund fragen und anbieten, Gewichte oder
    Ausschlusskriterien anzupassen.

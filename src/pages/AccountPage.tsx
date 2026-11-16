@@ -120,6 +120,15 @@ export function AccountPage() {
         </button>
       </form>
 
+      <p className="mt-10 [font-family:var(--font-mono)] text-[12px]">
+        <Link className="text-[color:var(--accent)] no-underline hover:underline" to="/knowledge">
+          Knowledge documents →
+        </Link>
+        <span className="block mt-1 text-[10.5px] text-[color:var(--ink-3)]">
+          Background about you that the AI assistant reads for applications and job checks.
+        </span>
+      </p>
+
       <ApiTokensSection />
     </div>
   );

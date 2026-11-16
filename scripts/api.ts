@@ -8,10 +8,8 @@
 // Reads JOB_APPS_URL and JOB_APPS_TOKEN from the environment or from
 // .env.assistant (gitignored). Bodies come from a file so umlauts and quotes
 // survive every shell untouched.
-import { existsSync, readFileSync } from 'node:fs';
-
-const ENV_FILE = '.env.assistant';
-if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
+import { readFileSync } from 'node:fs';
+import { apiFetch, getConfig } from './apiClient.ts';
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
@@ -26,10 +24,10 @@ if (!METHODS.includes(method.toUpperCase()) || !rawPath || /^[a-z]:/i.test(rawPa
 }
 const path = rawPath.replace(/^\/*/, '/');
 
-const baseUrl = process.env.JOB_APPS_URL?.replace(/\/+$/, '');
-const token = process.env.JOB_APPS_TOKEN;
-if (!baseUrl || !token) {
-  fail(`Set JOB_APPS_URL and JOB_APPS_TOKEN (e.g. in ${ENV_FILE}, see .env.assistant.example).`);
+try {
+  getConfig();
+} catch (e) {
+  fail((e as Error).message);
 }
 
 let body: string | undefined;
@@ -42,19 +40,10 @@ if (bodyFile) {
   }
 }
 
-const res = await fetch(`${baseUrl}/api/v1${path}`, {
-  method: method.toUpperCase(),
-  headers: {
-    Authorization: `Bearer ${token}`,
-    ...(body !== undefined && { 'Content-Type': 'application/json' }),
-  },
-  body,
-});
-
-const text = await res.text();
-let output = text;
+const res = await apiFetch(method, path, body);
+let output = res.text;
 try {
-  output = JSON.stringify(JSON.parse(text), null, 2);
+  output = JSON.stringify(JSON.parse(res.text), null, 2);
 } catch {
   // Not JSON (e.g. a proxy error page): print it as is.
 }

@@ -13,7 +13,7 @@ import { BROWSER_AUTHOR, type VersionContent } from './history.ts';
 import { KEYS, setJson, setValue } from './store.ts';
 
 const USERNAME = 'dev';
-const PASSWORD = 'devpassword';
+const PASSWORD = 'devpassword'; // secret-scan:allow (dev-only seed password, never used in production)
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Refusing to seed test data in production.');
