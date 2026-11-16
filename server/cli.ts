@@ -3,7 +3,7 @@
 //   node server/cli.ts passwd <username> [password]
 //   node server/cli.ts remove <username>
 //   node server/cli.ts list
-//   node server/cli.ts token-add <username> <name> [--scope job-leads:ingest]    (prints the token once)
+//   node server/cli.ts token-add <username> <name> [--scope job-leads:ingest|inbound:deliver]    (prints the token once)
 //   node server/cli.ts token-list <username>
 //   node server/cli.ts token-revoke <username> <name>
 import { randomBytes } from 'node:crypto';

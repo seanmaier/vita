@@ -180,6 +180,8 @@ Files under `private/` are never part of the image.
    port; point the proxy at `http://vita:3000` (`http://job-applications:3000`
    still works for setups from before the rename). The proxy must
    serve the app over HTTPS, since the session cookie is `Secure`.
+   For job alerts, also set `INBOUND_DOMAIN` to the domain the email worker
+   receives mail for (see `workers/job-alerts/README.md`).
 4. Open the container console and create a user:
    `node server/cli.ts add <username>`
 5. Optional auto-redeploy: enable the stack's GitOps updates with the

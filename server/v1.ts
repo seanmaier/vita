@@ -10,17 +10,18 @@ import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
 import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
 import { slugify, uniqueId } from '../src/utils/slug.ts';
 import { purgeDate } from '../src/utils/trash.ts';
-import type { User } from './auth.ts';
 import { transaction } from './db.ts';
 import { BROWSER_AUTHOR, getVersion, listVersions, recordChanges, snapshot } from './history.ts';
-import { invalid, readBody, type Body, type Validated } from './http.ts';
+import { invalid, readBody, type Body, type V1Env, type Validated } from './http.ts';
+import { inboundMail } from './inboundMail.ts';
+import { jobAlerts } from './jobAlerts.ts';
 import { jobLeads } from './jobLeads.ts';
 import { knowledge } from './knowledge.ts';
 import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
-export const v1 = new Hono<{ Variables: { user: User; apiToken?: string } }>();
+export const v1 = new Hono<V1Env>();
 
 /** Who a write is recorded as in the version history: the API token's name, or the app for session calls. */
 const authorOf = (c: Context) => (c.get('apiToken') as string | undefined) ?? BROWSER_AUTHOR;
@@ -61,6 +62,8 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
 
 v1.route('/knowledge', knowledge);
 v1.route('/job-leads', jobLeads);
+v1.route('/job-alerts', jobAlerts);
+v1.route('/inbound-mail', inboundMail);
 
 v1.get('/me', (c) => c.json(c.get('user')));
 

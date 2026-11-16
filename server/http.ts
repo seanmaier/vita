@@ -1,4 +1,8 @@
 import type { Context } from 'hono';
+import type { TokenScope, User } from './auth.ts';
+
+/** Hono env of the /api/v1 routers. tokenScope is unset for cookie sessions. */
+export type V1Env = { Variables: { user: User; tokenScope?: TokenScope; apiToken?: string } };
 
 export type Body = Record<string, unknown>;
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { changePassword, fetchCurrentUser } from '../utils/api';
 import { nafInput, nafLabel, nafSection, primaryButton } from '../styles/formStyles';
 import { ApiTokensSection } from '../components/ApiTokensSection';
+import { JobAlertsSection } from '../components/JobAlertsSection';
 
 // Mirrors MIN_PASSWORD_LENGTH on the server, which has the final say.
 const MIN_PASSWORD_LENGTH = 10;
@@ -129,6 +130,7 @@ export function AccountPage() {
         </span>
       </p>
 
+      <JobAlertsSection />
       <ApiTokensSection />
     </div>
   );

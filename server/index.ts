@@ -31,6 +31,8 @@ import {
 import type { ApplicationConfig } from '../src/types.ts';
 import { db, transaction } from './db.ts';
 import { affectedAppIds, BROWSER_AUTHOR, deleteVersions, recordChanges, snapshot } from './history.ts';
+import type { V1Env } from './http.ts';
+import { purgeOldInboundEvents } from './inboundMail.ts';
 import { accessLog, clientIp, log, requestFields } from './log.ts';
 import { getJson, KEYS, parseJson } from './store.ts';
 import { purgeTrash } from './trash.ts';
@@ -133,7 +135,7 @@ const requireUser = createMiddleware<{ Variables: { user: User } }>(async (c, ne
 // /api/v1 also accepts `Authorization: Bearer <api token>`, so scripts can
 // call it without a password. Tokens are deliberately not accepted on the
 // routes above: they can't change the password or overwrite raw storage.
-const requireUserOrToken = createMiddleware<{ Variables: { user: User; apiToken?: string } }>(async (c, next) => {
+const requireUserOrToken = createMiddleware<V1Env>(async (c, next) => {
   const auth = c.req.header('authorization');
   if (auth !== undefined) {
     const match = /^Bearer\s+(\S+)$/i.exec(auth);
@@ -143,6 +145,7 @@ const requireUserOrToken = createMiddleware<{ Variables: { user: User; apiToken?
       return c.json({ error: 'This token may not call this endpoint.' }, 403);
     }
     c.set('user', found.user);
+    c.set('tokenScope', found.scope);
     c.set('apiToken', found.tokenName);
     return next();
   }
@@ -272,6 +275,7 @@ app.get('/*', serveStatic({ root: STATIC_DIR, path: 'index.html' }));
 function housekeeping() {
   try {
     deleteExpiredSessions();
+    purgeOldInboundEvents();
     const purged = purgeTrash();
     if (purged.applications || purged.baseProfiles) {
       log.info('Purged trash', { applications: purged.applications, baseProfiles: purged.baseProfiles });

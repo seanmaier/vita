@@ -5,3 +5,4 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'vita-test-')), 'app.db');
+process.env.INBOUND_DOMAIN = 'alerts.example.org';

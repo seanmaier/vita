@@ -77,7 +77,7 @@ export function getSessionUser(token: string): User | null {
 // lets the server tell it apart from a session token at a glance.
 const API_TOKEN_PREFIX = 'jat_';
 
-export const TOKEN_SCOPES = ['full', 'job-leads:ingest'] as const;
+export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'inbound:deliver'] as const;
 export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
@@ -89,6 +89,8 @@ export function tokenAllows(scope: TokenScope, method: string, path: string): bo
       return path.startsWith('/api/v1/');
     case 'job-leads:ingest':
       return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+    case 'inbound:deliver':
+      return method.toUpperCase() === 'POST' && path === '/api/v1/inbound-mail';
     default:
       return false;
   }
