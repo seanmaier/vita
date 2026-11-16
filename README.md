@@ -74,6 +74,12 @@ npm run dev:server                   # API on :3000, SQLite in ./data/app.db
 npm run dev                          # Vite on :5173, proxies /api
 ```
 
+Or start both with `npm run dev:all`. It first seeds a test user **`dev`**
+with the password **`devpassword`** and sample applications, one of them
+with a version history to try the editor's **History** button. Seeding
+skips a user that already exists; `npm run seed -- --reset` rebuilds it,
+and it never runs with `NODE_ENV=production`.
+
 All edits (applications, statuses, notes, base profiles) are stored per user
 on the server. To move data over from the old browser-only version, export a
 backup there and restore it after logging in.
@@ -85,6 +91,8 @@ backup there and restore it after logging in.
 - `npm run lint` — run Oxlint
 - `npm run preview` — preview the production build locally
 - `npm run dev:server` — run the API with auto-reload
+- `npm run dev:all` — seed the test user, then run the API and the dev server together
+- `npm run seed [-- --reset]` — create (or rebuild) the `dev` test user with sample data
 - `npm run users -- <add|passwd|remove|list> [username] [password]` — manage users
   (`passwd` is for resetting a forgotten password; users change their own in the app)
 - `npm run users -- <token-add|token-revoke> <username> <name>` / `token-list <username>` —
@@ -127,6 +135,8 @@ Tokens work only here, not on login, password, token or raw-data routes.
 | GET | `/api/v1/applications`, `/api/v1/applications/:id` | applications as the app shows them (saved edits and status merged in); the list takes `?language=en|de|sv`, leaves out trashed ones, and `?trash=true` lists only those |
 | POST | `/api/v1/applications` | create; always starts as `drafting` |
 | PATCH | `/api/v1/applications/:id` | update given fields, `null` removes one (not while trashed) |
+| GET | `/api/v1/applications/:id/versions` | version history, newest first: `id`, `createdAt`, `author`, `message`, `content` |
+| POST | `/api/v1/applications/:id/versions/:versionId/restore` | make an older version current (recorded as a new version) |
 | GET | `/api/v1/base-profiles`, `/api/v1/base-profiles/:id` | base profiles; the list leaves out trashed ones, `?trash=true` lists only those (with `purgesAt`) |
 | POST | `/api/v1/base-profiles` | create (`name`, `language`, `profile`, optional `id`) |
 | PUT | `/api/v1/base-profiles/:id` | replace name, language and profile (not while trashed) |
@@ -134,8 +144,19 @@ Tokens work only here, not on login, password, token or raw-data routes.
 | POST | `/api/v1/base-profiles/:id/restore` | take it out of the trash |
 
 Bodies are validated with the same parsers the app uses; unknown fields are
-rejected. Nothing is deleted for good through the API: base profiles only go
-to the trash; applications are only trashed by you in the app.
+rejected. `POST` and `PATCH` on applications also take an optional
+`changeMessage`: a short note on what changed, shown in the application's
+history like a commit message.
+
+Every change to an application's content, in the app or through the API, is
+kept as a version (the last 50 per application; status and notes aren't
+versioned), one per save, like a commit. The author is the API token's
+name, or "you" for edits in the app, where the optional field next to
+**Save changes** takes the message. The editor's **History** button shows
+each version's changes field by field and can restore any of them.
+
+Nothing is deleted for good through the API: base profiles only go to the
+trash; applications are only trashed by you in the app.
 Only applications stored on the server are visible, not the JSON files in
 `private/applications/`. Open tabs reload their data when you switch back
 to them, so they don't overwrite what the API changed.
@@ -165,15 +186,79 @@ Files under `private/` are never part of the image.
    Polling mechanism and turn on "Re-pull image" and "Force redeployment"
    (the image tag stays `latest`, so the Git commit alone shows no change).
 
-Data lives in that volume (`/data/app.db` in the container). SQLite also keeps
-recent writes in `app.db-wal`, so back up the whole volume with the container
-stopped:
+### Logs
+
+The server writes its log to the container output (`docker logs`, or the
+container's log view in Portainer) in [logfmt](https://brandur.org/logfmt),
+the `key=value` format of Go's `slog`, Heroku and Grafana Loki. Every event
+is exactly one line and starts with `time`, `level` and `msg`:
+
+```
+time=2026-11-10T09:12:03.512Z level=INFO msg=request method=PUT path=/api/data status=204 ms=4 user=sean ip=203.0.113.7 rid=3ca15044-…
+time=2026-11-10T09:12:41.020Z level=WARN msg="Login failed" user=sean ip=203.0.113.7
+```
+
+- Every `/api` request gets a line once it's answered: `INFO` for success,
+  `WARN` for 4xx, `ERROR` for 5xx. The health check and static files are left
+  out; query strings, headers and bodies are never logged.
+- Logins, failed logins, lockouts, password changes and created or revoked API
+  tokens are logged as events.
+- An unexpected error logs `err` and its `stack` (line breaks escaped as `\n`,
+  so the event stays on one line) with the request's `rid`. The same ID comes
+  back in the `X-Request-Id` response header and in the 500 response, so
+  `docker logs vita-app-1 2>&1 | grep <rid>` finds it. An ID the proxy already
+  sent in `X-Request-Id` is kept.
+- `LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default `info`) sets the
+  lowest level shown, e.g. `warn` for errors and failed requests only. Set it
+  as a stack environment variable in Portainer.
+
+To read the log in VS Code, save it to a `.log` file and open it with the
+[Log File Highlighter](https://marketplace.visualstudio.com/items?itemName=emilast.LogFileHighlighter)
+extension, which colors the timestamps, levels and request IDs:
 
 ```bash
-docker stop vita-app-1        # <stack name>-app-1
-docker run --rm -v job-applications-data:/data -v "$PWD":/backup alpine \
-  tar czf /backup/vita-$(date +%F).tar.gz -C /data .
-docker start vita-app-1
+docker logs vita-app-1 > vita.log 2>&1
+```
+
+### Backups
+
+Data lives in the data volume (`/data/app.db` in the container). Daily
+backups go to a second volume, `/backups` in the container, and the last 7
+days are kept. `deploy/vita-backup.sh` runs on the Docker host:
+
+```bash
+sh vita-backup.sh create              # snapshot now; also removes backups older than 7 days
+sh vita-backup.sh list
+sh vita-backup.sh restore vita-2026-11-14.db
+```
+
+`create` takes a consistent snapshot while the app keeps running (SQLite
+`VACUUM INTO`, which includes writes still in `app.db-wal`). `restore` stops
+the container, first saves the current database as
+`vita-<date>-pre-restore-<time>.db`, so a restore of the wrong day can be
+undone, then replaces the database and starts the container again. A file that
+isn't an intact Vita database is refused before anything changes.
+
+Setup, once on the host:
+
+1. `docker volume create vita-backups` (or set `BACKUP_VOLUME` to another
+   name), then redeploy the stack. Like the data volume it is external, so
+   removing the stack never deletes the backups.
+2. Copy `deploy/vita-backup.sh` to the host, e.g. `/opt/vita/vita-backup.sh`.
+3. `crontab -e` and add a line for a daily backup at 03:00:
+
+   ```
+   0 3 * * * VITA_CONTAINER=vita-app-1 sh /opt/vita/vita-backup.sh create >> /var/log/vita-backup.log 2>&1
+   ```
+
+   `VITA_CONTAINER` is `<stack name>-app-1` (`docker ps` shows it). The user
+   whose crontab this is must be allowed to run `docker`.
+
+The backups are still on the same disk as the database. To copy one off the
+host:
+
+```bash
+docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14.db /out/
 ```
 
 ## License

@@ -11,6 +11,7 @@ import { AccountPage } from './pages/AccountPage';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { TrashPage } from './pages/TrashPage';
 import { fetchCurrentUser, fetchUserData, refreshUserData } from './utils/api';
+import { AppSkeleton } from './components/Skeleton';
 import { hasPendingWrites, hydrate, onSyncStatus, setStorageBackend } from './utils/storage';
 import { DEMO_BASENAME, demoLocale, isDemo, loadDemoData, saveDemoData } from './demo/demoMode';
 import { DemoBanner } from './demo/DemoBanner';
@@ -95,7 +96,7 @@ export function App() {
   }, []);
 
   if (auth.kind === 'loading') {
-    return <><SeasonalEffect /><div className={`${centered} text-[color:var(--ink-3)]`}>loading…</div></>;
+    return <><SeasonalEffect /><AppSkeleton /></>;
   }
   if (auth.kind === 'error') {
     return <><SeasonalEffect /><div className={`${centered} text-[color:var(--status-rejected)]`}>{auth.message}</div></>;
