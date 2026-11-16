@@ -6,7 +6,7 @@ Ein Cloudflare Email Worker, der weitergeleitete Job-Alert-Mails (Gmail, Outlook
 
 Jeder Nutzer bekommt auf der Account-Seite der App eine eigene Adresse (z. B. `jobs-k7x2@alerts.example.org`). Eine Regel im Postfach des Nutzers (Gmail-Filter, Outlook-Regel „Umleiten an“, iCloud-Regel) leitet Job-Alert-Mails (z. B. von LinkedIn) an diese Adresse weiter. Für jede Nutzeradresse gibt es in Cloudflare Email Routing eine eigene Regel, die die Mail an den Worker übergibt. Catch-all-Regeln gibt es bei Cloudflare nur für die Hauptdomain, nicht für Subdomains.
 
-Der Worker kennt keine Nutzeradressen. Er prüft, ob Cloudflare den Envelope-Absender per SPF bestätigt hat: Nur der oberste `Authentication-Results`-Header zählt, er muss von `mx.cloudflare.net` stammen und `spf=pass` mit `smtp.mailfrom=<Envelope-Absender>` enthalten (tiefere Header stammen von früheren Stationen und lassen sich fälschen). Fehlt das, meldet er nur `kind: failed` mit `sender not verified (SPF)`, ohne Inhalt. Sonst parst er die Mail und sendet sie per `POST /api/v1/inbound-mail` an die App. Der Body enthält `recipient` (Empfängeradresse), `envelopeFrom`, `kind` (`leads`, `confirmation` oder `failed`) sowie je nach Fall `subject`, `sender`, `detail` und `leads`. Die App ordnet die Empfängeradresse einem Nutzer zu und prüft, ob der Envelope-Absender ohne den Teil ab `+` zu dessen eingetragener Weiterleitungsadresse passt (Gmail: `name+caf_=…@gmail.com`, Outlook: `name+SRS=…@outlook.com`, iCloud: `name@icloud.com`).
+Der Worker kennt keine Nutzeradressen. Er prüft, ob Cloudflare den Envelope-Absender per SPF bestätigt hat: Nur der oberste `Authentication-Results`-Header zählt, er muss von `mx.cloudflare.net` stammen und `spf=pass` mit `smtp.mailfrom=<Envelope-Absender>` enthalten (tiefere Header stammen von früheren Stationen und lassen sich fälschen). Fehlt das, meldet er nur `kind: failed` mit `sender not verified (SPF)`, ohne Inhalt, Betreff und Absender. Sonst parst er die Mail und sendet sie per `POST /api/v1/inbound-mail` an die App. Der Body enthält `recipient` (Empfängeradresse), `envelopeFrom`, `kind` (`leads`, `confirmation` oder `failed`) sowie je nach Fall `subject`, `sender`, `detail` und `leads`. Die App ordnet die Empfängeradresse einem Nutzer zu und prüft, ob der Envelope-Absender ohne den Teil ab `+` zu dessen eingetragener Weiterleitungsadresse passt (Gmail: `name+caf_=…@gmail.com`, Outlook: `name+SRS=…@outlook.com`, iCloud: `name@icloud.com`).
 
 - 201: zugestellt.
 - 400, 403, 404: Die App lehnt die Mail ab. Der Worker weist sie mit `not accepted` ab, ohne Wiederholung.
@@ -148,7 +148,7 @@ Bounces einordnen:
 
 - **`mx.cloudflare.net rejected your message`, kein Eintrag im Log:** Für die Adresse fehlt die Regel aus Schritt 6 (oder DNS ist noch nicht durch).
 - **Log `rejected … status=403`:** Der Envelope-Absender (ohne den Teil ab `+`) passt nicht zur eingetragenen Weiterleitungsadresse.
-- **Log `failed (spf)`:** Cloudflare hat den Absender nicht per SPF bestätigt. Die App speichert nur ein `failed`-Ereignis, wenn die Adresse passt, sonst 403.
+- **Log `failed (spf)`:** Cloudflare hat den Absender nicht per SPF bestätigt. Die App speichert nur ein `failed`-Ereignis ohne Betreff und Absender, wenn die Adresse passt, sonst 403.
 - **Log `rejected … status=404`:** Die App kennt die Adresse nicht, oder `INBOUND_DOMAIN` passt nicht zur Subdomain.
 - **Log `unavailable …`:** Die App ist nicht erreichbar, oder `APP_URL`/`APP_TOKEN` fehlen.
 

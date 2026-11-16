@@ -112,7 +112,8 @@ function buildPayload(message: Message, parsed: ParsedMail | null): { payload: I
   };
 
   if (!cloudflareSpfPass(headerValues(parsed, 'authentication-results'), message.from)) {
-    return { payload: { ...common, kind: 'failed', detail: 'sender not verified (SPF)' }, log: 'failed (spf)' };
+    // Subject and sender are chosen freely by an unverified sender, so only the reason is passed on.
+    return { payload: { ...base, kind: 'failed', detail: 'sender not verified (SPF)' }, log: 'failed (spf)' };
   }
 
   if (message.from.trim().toLowerCase() === GMAIL_CONFIRMATION_SENDER) {

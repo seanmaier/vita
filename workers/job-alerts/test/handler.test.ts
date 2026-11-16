@@ -307,6 +307,9 @@ test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as l
   assert.equal(body.kind, 'failed');
   assert.equal(body.detail, 'sender not verified (SPF)');
   assert.equal(body.leads, undefined);
+  // An unverified sender chooses these freely, so they are not stored.
+  assert.equal(body.subject, undefined);
+  assert.equal(body.sender, undefined);
 });
 
 test('a Gmail confirmation without SPF pass is posted as failed and carries no code', async () => {
