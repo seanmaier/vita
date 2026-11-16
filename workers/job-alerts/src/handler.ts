@@ -31,7 +31,7 @@ const MAX_SHORT_FIELD = 300;
 const MAX_DETAIL = 2000;
 const RETRY_DELAY_MS = 2000;
 const FETCH_TIMEOUT_MS = 10_000;
-const TEMPORARY_REJECT = 'temporarily unavailable, please retry later';
+const TEMPORARY_REJECT = 'Vita is unavailable right now; please forward this mail again later';
 
 /** Make leads safe for the app's all-or-nothing validation (it rejects the whole batch on one bad entry). */
 export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {

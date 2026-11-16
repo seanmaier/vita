@@ -179,7 +179,7 @@ test('two 502s lead to a temporary rejection after one retry', async () => {
   assert.equal(result, 'unavailable');
   assert.equal(f.calls.length, 2);
   assert.equal(slept, 2000);
-  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('a network error followed by success is delivered', async () => {
@@ -195,7 +195,7 @@ test('a redirect is no success and ends temporarily rejected', async () => {
   const f = fakeFetch(302);
   assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
   assert.equal((f.calls[0].init as RequestInit).redirect, 'manual');
-  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('a 200 response (e.g. login page) is not treated as delivered', async () => {
@@ -242,7 +242,7 @@ test('a raw stream that errors ends in a temporary rejection', async () => {
   const f = fakeFetch(201);
   assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
   assert.equal(f.calls.length, 0);
-  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('an unexpected error while building the payload ends in a temporary rejection', async () => {
@@ -254,7 +254,7 @@ test('an unexpected error while building the payload ends in a temporary rejecti
   });
   const f = fakeFetch(201);
   assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
-  assert.deepEqual(m.rejects, ['temporarily unavailable, please retry later']);
+  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('the app call has a timeout signal and an abort is retried like a network error', async () => {
