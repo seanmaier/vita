@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLeads, updateLead } from '../utils/api';
 import type { JobLead, JobLeadStatus } from '../types';
@@ -80,6 +80,9 @@ export function LeadsPage() {
   const [leads, setLeads] = useState<JobLead[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // The tab currently shown, so a late failure can tell whether it still applies.
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
 
   useEffect(() => {
     let cancelled = false;
@@ -100,15 +103,18 @@ export function LeadsPage() {
 
   // Removes the lead right away and puts it back if the server refuses.
   const setStatus = async (lead: JobLead, status: 'dismissed' | 'applied') => {
+    const from = filter;
     setActionError(null);
     setLeads((cur) => cur && cur.filter((l) => l.id !== lead.id));
     try {
       await updateLead(lead.id, { status });
     } catch (e) {
+      // The tab changed meanwhile: its list is reloaded anyway, and this lead doesn't belong in it.
+      if (filterRef.current !== from) return;
       setActionError(e instanceof Error ? e.message : 'Updating the job lead failed.');
       setLeads((cur) => {
         if (!cur || cur.some((l) => l.id === lead.id)) return cur;
-        return [...cur, lead].sort(filter === 'rated' ? byScoreDesc : byNewest);
+        return [...cur, lead].sort(from === 'rated' ? byScoreDesc : byNewest);
       });
     }
   };
