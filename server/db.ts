@@ -45,6 +45,25 @@ db.exec(`
     last_used_at TEXT,
     UNIQUE (user_id, name)
   );
+
+  -- Job postings collected from alerts (email worker, scripts), rated later.
+  CREATE TABLE IF NOT EXISTS job_leads (
+    id             INTEGER PRIMARY KEY,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source         TEXT NOT NULL,
+    external_id    TEXT NOT NULL,
+    title          TEXT NOT NULL,
+    company        TEXT,
+    location       TEXT,
+    url            TEXT NOT NULL,
+    received_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    status         TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'rated', 'dismissed', 'applied')),
+    score          INTEGER CHECK (score BETWEEN 0 AND 100),
+    verdict        TEXT,
+    rated_at       TEXT,
+    application_id TEXT,
+    UNIQUE (user_id, source, external_id)
+  );
 `);
 
 /**

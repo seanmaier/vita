@@ -13,6 +13,7 @@ import { purgeDate } from '../src/utils/trash.ts';
 import type { User } from './auth.ts';
 import { transaction } from './db.ts';
 import { invalid, readBody, type Body, type Validated } from './http.ts';
+import { jobLeads } from './jobLeads.ts';
 import { knowledge } from './knowledge.ts';
 import { getJson, getValue, idsWithStoredKey, KEYS, setJson, setValue } from './store.ts';
 
@@ -55,6 +56,7 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
 }
 
 v1.route('/knowledge', knowledge);
+v1.route('/job-leads', jobLeads);
 
 v1.get('/me', (c) => c.json(c.get('user')));
 
