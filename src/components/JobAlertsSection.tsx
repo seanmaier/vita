@@ -220,7 +220,8 @@ export function JobAlertsSection() {
       </ol>
       <p className={hint}>
         Forwarding a mail by hand does not work: it then comes from you instead of the job site, so no jobs can be
-        read from it. Other mail providers may work if they keep the original sender; they are untested.
+        read from it. Other mail providers may work if the forwarded mail is sent from your own address; they are
+        untested. Microsoft 365 work accounts do not work.
       </p>
     </>
   );

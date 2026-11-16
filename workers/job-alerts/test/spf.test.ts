@@ -65,3 +65,22 @@ test('a comment cannot smuggle in a pass', () => {
   const h = 'mx.cloudflare.net; spf=fail (looks like; spf=pass smtp.mailfrom=a@example.org) smtp.mailfrom=a@example.org';
   assert.equal(cloudflareSpfPass([h], 'a@example.org'), false);
 });
+
+test('a pass smuggled in through a broken comment does not count', () => {
+  const h =
+    'mx.cloudflare.net; spf=none (mx.cloudflare.net: no SPF record found for postmaster@x);spf=pass ' +
+    'smtp.mailfrom=victim@gmail.com() smtp.helo=x; spf=softfail smtp.mailfrom=victim@gmail.com';
+  assert.equal(cloudflareSpfPass([h], 'victim@gmail.com'), false);
+});
+
+test('a pass smuggled in through a quoted HELO does not count', () => {
+  const h =
+    'mx.cloudflare.net; spf=none smtp.helo="a;spf=pass smtp.mailfrom=victim@gmail.com"; ' +
+    'spf=softfail smtp.mailfrom=victim@gmail.com';
+  assert.equal(cloudflareSpfPass([h], 'victim@gmail.com'), false);
+});
+
+test('mailfrom followed by end of header or by another property', () => {
+  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org'), true);
+  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org x=y'], 'a@example.org'), true);
+});
