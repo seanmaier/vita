@@ -18,8 +18,8 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
   `NTFY_URL` (über `scripts/notify.ts`). Sonst nichts.
 - **Keine Bewerbungen anlegen**, nichts in `priorities.md` protokollieren (das bleibt
   `/stellencheck` vorbehalten) und keine Wissensdokumente ändern.
-- **Höchstens „Höchstens bewertet pro Lauf“ Leads pro Lauf** bewerten. Der Rest bleibt
-  `new` und kommt im nächsten Lauf dran.
+- **Höchstens „Höchstens bewertet pro Lauf“ Leads pro Lauf** bewerten, und zwar die ältesten.
+  Der Rest bleibt `new` und kommt im nächsten Lauf dran.
 - **Keine Push-Nachricht, wenn nichts die Schwelle erreicht.**
 
 ## Ablauf
@@ -34,8 +34,10 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    ```
    Die Antwort nennt `created` und `duplicates`; Dubletten fängt der Server ab. Bei Fehler
    einer Suche mit den übrigen weitermachen und den Fehler am Ende nennen.
-3. **Offene Leads holen:** `node scripts/api.ts GET "job-leads?status=new&limit=<Höchstens bewertet pro Lauf>"`
-   (Liste von Leads mit `id`, `title`, `company`, `location`, `url`).
+3. **Offene Leads holen:** `node scripts/api.ts GET "job-leads?status=new&limit=200"`
+   (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url`).
+   Davon die **ältesten** N bewerten (N = „Höchstens bewertet pro Lauf“), also die letzten N
+   der Liste; so bleibt kein Lead dauerhaft liegen.
 4. **Bewerten.** Jede Anzeige (`url`) lesen und nach den Regeln aus
    `.claude/skills/stellencheck/SKILL.md`, Abschnitt „Stelle bewerten“, Schritte 1–3,
    bewerten (Regeln dort lesen, nicht von hier aus nachbauen). Ist die Anzeige nicht
