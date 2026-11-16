@@ -8,9 +8,9 @@ import {
   saveForwardingFrom,
 } from '../utils/api';
 import type { InboundEvent, JobAlertsConfig } from '../types';
-import { nafInput, nafLabel, primaryButton } from '../styles/formStyles';
+import { hintText, nafInput, nafLabel, primaryButton } from '../styles/formStyles';
 
-const hint = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] leading-[1.6]';
+const hint = hintText;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const POLL_MS = 10_000;
 const unverified = 'Unverified — only enter it in Gmail if you just added the forwarding address.';
@@ -85,8 +85,8 @@ export function JobAlertsSection() {
     if (
       config?.address &&
       !confirm(
-        'Replace the alert address? The old address stops working at once. Update the Gmail forwarding address ' +
-          'and the filter that forwards your job alerts to the new one.',
+        'Replace the alert address? The old address stops working at once. The new one has to be activated by ' +
+          'the admin again; then update the Gmail forwarding address and the filter to it.',
       )
     ) {
       return;
@@ -155,16 +155,26 @@ export function JobAlertsSection() {
     <>
       <span className={nafLabel}>Setup</span>
       <p className={hint}>
-        Forward job-alert mails from your Gmail to a personal address here, and the jobs in them show up as
-        leads.
+        Gmail forwards your job-alert mails (LinkedIn, StepStone, Indeed, Glassdoor) to your personal address here,
+        and the jobs in them show up as leads.
       </p>
       <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`}>
-        <li>Create your address here.</li>
-        <li>Enter the Gmail address you forward from below.</li>
-        <li>In Gmail, open Settings → Forwarding and add this address.</li>
-        <li>The confirmation code appears below; enter it in Gmail.</li>
-        <li>Create a filter for your job-alert senders with "Forward to" this address.</li>
+        <li>Create your address above and save the Gmail address you forward from.</li>
+        <li>
+          Send the address to the admin. It only receives mail once the admin has activated it; until then, mails
+          to it bounce with "rejected".
+        </li>
+        <li>In Gmail, open Settings → Forwarding and POP/IMAP and add the address as a forwarding address.</li>
+        <li>The confirmation code from Google appears below; enter it in Gmail.</li>
+        <li>
+          Create a Gmail filter for your job-alert senders, e.g.{' '}
+          <code>from:(jobalerts-noreply@linkedin.com)</code>, with "Forward to" this address.
+        </li>
       </ol>
+      <p className={hint}>
+        Only the filter works: a mail you forward by hand comes from you instead of the job site, so no jobs can be
+        read from it. Other mail providers than Gmail are not supported.
+      </p>
     </>
   );
 
