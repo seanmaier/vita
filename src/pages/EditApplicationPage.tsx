@@ -124,6 +124,8 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
     ...(app.interviewDate && { interviewDate: app.interviewDate }),
     ...(app.finalDecisionDate && { finalDecisionDate: app.finalDecisionDate }),
     ...(app.notes && { notes: app.notes }),
+    // Set by /stellencheck; not editable here, but kept on save.
+    ...(app.fit && { fit: app.fit }),
     ...(hasSummaryOverride && { summaryOverride }),
     featuredProjectIds: featuredIds,
     ...(hasSkillGroupsOverride && { skillGroupsOverride }),

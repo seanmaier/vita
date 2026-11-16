@@ -8,6 +8,7 @@ import { STATUS_LABELS } from '../utils/status';
 import { changeStatus, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
 import { derivedDates } from '../domain/statusMachine';
 import { ApplicationCard } from '../components/dashboard/ApplicationCard';
+import { fitScore } from '../components/dashboard/FitBadge';
 import { ImportApplicationModal } from '../components/ImportApplicationModal';
 import { BackupModal } from '../components/BackupModal';
 import { DashboardNav } from '../components/dashboard/DashboardNav';
@@ -19,12 +20,13 @@ import { createNote } from '../utils/notes';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
 import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note, StatusTransition } from '../types';
 
-type SortField = 'company' | 'role' | 'language' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
+type SortField = 'company' | 'role' | 'language' | 'fit' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
 
 const SORT_LABELS: Record<SortField, string> = {
   company: 'company',
   role: 'role',
   language: 'language',
+  fit: 'fit',
   status: 'status',
   appliedDate: 'applied',
   interviewDate: 'interview',
@@ -110,6 +112,9 @@ export function DashboardPage() {
     return { ...rest, status: statusOf(history), ...derivedDates(history, languageFor(app)) };
   });
 
+  // Checked jobs aren't applications yet, so the stats leave them out.
+  const appliedApps = statsApps.filter((app) => app.status !== 'evaluated' && app.status !== 'skipped');
+
   const hasActiveFilter = !!(search || statusFilter || languageFilter || statFilter);
   const clearFilters = () => {
     setSearch('');
@@ -134,6 +139,8 @@ export function DashboardPage() {
       const q = search.trim().toLowerCase();
       if (q && !app.company.toLowerCase().includes(q) && !app.role.toLowerCase().includes(q)) return false;
       if (statusFilter && app.status !== statusFilter) return false;
+      // Jobs decided against stay out of the way unless asked for.
+      if (!statusFilter && app.status === 'skipped') return false;
       if (languageFilter && languageFor(app) !== languageFilter) return false;
       if (!matchesStat(app, statFilter)) return false;
       return true;
@@ -142,6 +149,8 @@ export function DashboardPage() {
       if (!sortField) return 0;
       const value = (app: typeof a) => {
         if (sortField === 'language') return languageFor(app);
+        // Scores sort as fixed-width numbers; unchecked jobs come first ascending.
+        if (sortField === 'fit') return app.fit ? String(fitScore(app.fit)).padStart(3, '0') : '';
         // Dates are formatted per language, so compare them as ISO dates.
         if (sortField === 'appliedDate' || sortField === 'interviewDate' || sortField === 'finalDecisionDate') {
           return numericDateToIso(app[sortField] ?? '');
@@ -156,7 +165,7 @@ export function DashboardPage() {
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[1220px] mx-auto sm:pt-12 sm:px-8">
       <DashboardNav trashCount={trashSize} ratedLeadCount={ratedLeadCount} onImport={() => setImportOpen(true)} onBackup={() => setBackupOpen(true)} />
 
-      <StatsBar applications={statsApps} activeFilter={statFilter} onSelect={handleStatSelect} />
+      <StatsBar applications={appliedApps} activeFilter={statFilter} onSelect={handleStatSelect} />
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -221,7 +230,7 @@ export function DashboardPage() {
       {/* A table from lg up (scrolling sideways rather than crushing columns
           in narrow windows); below that each application is a card. */}
       <div data-tour="app-list" className="lg:overflow-x-auto">
-      <div className="lg:min-w-[1004px]">
+      <div className="lg:min-w-[1052px]">
 
       {/* Column headers */}
       <div className="hidden lg:flex items-center border-b border-[color:var(--rule)] pb-1.5">
@@ -243,6 +252,12 @@ export function DashboardPage() {
           onClick={() => toggleSort('language')}
         >
           lang{sortIndicator('language')}
+        </button>
+        <button
+          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[48px] shrink-0"
+          onClick={() => toggleSort('fit')}
+        >
+          fit{sortIndicator('fit')}
         </button>
         <button
           className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[116px] shrink-0 pr-1"

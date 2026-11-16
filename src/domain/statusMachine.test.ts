@@ -38,13 +38,29 @@ test('the transition table matches the design', () => {
     withdrawn: [],
     accepted: [],
     declined: [],
+    evaluated: ['drafting', 'skipped'],
+    skipped: [],
   });
+});
+
+test('a checked job starts as evaluated and is either drafted or skipped', () => {
+  const start = [entry('evaluated')];
+  assert.ok(validateHistory(start).ok);
+  assert.ok(appendTransition(start, 'drafting', '2026-11-16', NOW).ok);
+  const skipped = appendTransition(start, 'skipped', '2026-11-16', NOW);
+  assert.ok(skipped.ok);
+  assert.equal(appendTransition(skipped.history, 'drafting', '2026-11-16', NOW).ok, false);
+  assert.equal(undoLast(start).ok, false);
+  assert.equal(appendTransition([entry('drafting')], 'evaluated', '2026-11-16', NOW).ok, false);
+  assert.deepEqual(seedHistory('evaluated', {}), path(['evaluated', null]));
+  assert.deepEqual(seedHistory('skipped', {}), path(['evaluated', null], ['skipped', null]));
+  assert.equal(validateHistory([entry('evaluated'), entry('sent')]).ok, false);
 });
 
 test('every edge of the table can be walked', () => {
   for (const [from, targets] of Object.entries(TRANSITIONS) as [StoredStatus, StoredStatus[]][]) {
     for (const to of targets) {
-      const history = [entry('drafting'), ...(from === 'drafting' ? [] : [entry(from)])];
+      const history = from === 'drafting' || from === 'evaluated' ? [entry(from)] : [entry('drafting'), entry(from)];
       assert.ok(appendTransition(history, to, '2026-11-01', NOW).ok, `${from} -> ${to}`);
     }
   }
@@ -144,7 +160,7 @@ test('a stored ghosted status seeds as sent', () => {
 });
 
 test('every seeded history is valid', () => {
-  for (const status of ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined'] as const) {
+  for (const status of ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'] as const) {
     assert.ok(validateHistory(seedHistory(status, { appliedDate: '2026-10-01' })).ok, status);
   }
 });

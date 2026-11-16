@@ -61,7 +61,27 @@ export type ApplicationStatus =
   | 'ghosted'
   | 'withdrawn'
   | 'accepted'
-  | 'declined';
+  | 'declined'
+  /** A checked job (see /stellencheck) without a decision yet. */
+  | 'evaluated'
+  /** A checked job the user decided not to apply to. */
+  | 'skipped';
+
+/** What /stellencheck recommends for a job. */
+export type FitRecommendation = 'apply' | 'apply-if' | 'unlikely' | 'exclude';
+
+/** How well a job fits, as rated by /stellencheck against the user's priorities. */
+export interface JobFit {
+  /** 0–100, the computed fit. */
+  score: number;
+  /** 0–100, the fit after a cap from the priorities; the score that counts when set. */
+  cappedScore?: number;
+  recommendation: FitRecommendation;
+  /** The main reason in one sentence (for "apply-if", including the condition). */
+  reason: string;
+  /** ISO timestamp of the check. */
+  evaluatedAt: string;
+}
 
 /** A status that is recorded in an application's history; "ghosted" is only ever derived (see src/domain/statusMachine.ts). */
 export type StoredStatus = Exclude<ApplicationStatus, 'ghosted'>;
@@ -128,6 +148,8 @@ export interface ApplicationConfig {
   featuredProjectIds?: string[];
   skillGroupsOverride?: SkillGroup[];
   coverLetter?: CoverLetter;
+  /** The job check's result, if the job was checked. */
+  fit?: JobFit;
   /**
    * Set (ISO timestamp) on the stored entry when the application is moved to
    * the trash; the server purges it after TRASH_RETENTION_DAYS.

@@ -11,6 +11,8 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   withdrawn: 'withdrawn',
   accepted:  'accepted',
   declined:  'declined',
+  evaluated: 'evaluated',
+  skipped:   'skipped',
 };
 
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -24,4 +26,6 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   withdrawn: 'var(--status-withdrawn)',
   accepted:  'var(--status-accepted)',
   declined:  'var(--status-declined)',
+  evaluated: 'var(--status-evaluated)',
+  skipped:   'var(--status-skipped)',
 };

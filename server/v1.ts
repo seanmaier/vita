@@ -3,8 +3,8 @@
 // sync raw storage keys, these routes work on one application or base profile
 // at a time and return the merged, effective view of it.
 import { Hono, type Context } from 'hono';
-import { allowedNext, appendTransition, currentStatus, derivedDates, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '../src/domain/statusMachine.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition } from '../src/types.ts';
+import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '../src/domain/statusMachine.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '../src/types.ts';
 import { validateApplicationConfig } from '../src/utils/parseApplicationConfig.ts';
 import { validateProfile } from '../src/utils/parseProfile.ts';
 import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
@@ -119,7 +119,7 @@ v1.get('/base-profiles/:id', (c) => {
 
 const APPLICATION_FIELDS = [
   'id', 'company', 'role', 'status', 'language', 'font', 'appliedDate', 'interviewDate', 'finalDecisionDate',
-  'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter',
+  'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter', 'fit',
 ];
 // Derived from the status history; changed only through the transitions
 // endpoints below. Still listed above so a request naming them gets this
@@ -168,15 +168,20 @@ function baseProfileIdError(userId: number, body: Body): string | null {
   return null;
 }
 
-// New applications always start as drafts, so nothing the assistant creates
-// looks finished until the user has reviewed it in the app.
+// New applications start as drafts, so nothing the assistant creates looks
+// finished until the user has reviewed it in the app; a job that was only
+// checked (/stellencheck) starts as "evaluated" instead.
 v1.post('/applications', async (c) => {
   const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
   if (Array.isArray(body)) return invalid(c, body);
   const message = takeChangeMessage(body);
   if (Array.isArray(message)) return invalid(c, message);
   if (DATE_FIELDS.some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
-  const result = validateApplication({ ...body, status: 'drafting' });
+  if (body.status !== undefined && !INITIAL_STATUSES.includes(body.status as StoredStatus)) {
+    return invalid(c, [`"status" of a new application must be ${INITIAL_STATUSES.map((st) => `"${st}"`).join(' or ')}.`]);
+  }
+  const initial = (body.status as StoredStatus | undefined) ?? 'drafting';
+  const result = validateApplication({ ...body, status: initial });
   if (!result.ok) return invalid(c, result.errors);
 
   const userId = c.get('user').id;
@@ -201,7 +206,7 @@ v1.post('/applications', async (c) => {
     const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
     const before = snapshot(userId, [config.id]);
     setJson(userId, KEYS.localApps, [...apps, config]);
-    writeHistory(userId, config.id, [{ to: 'drafting', date: null, recordedAt: new Date().toISOString() }]);
+    writeHistory(userId, config.id, [{ to: initial, date: null, recordedAt: new Date().toISOString() }]);
     recordChanges(userId, before, authorOf(c), () => message);
     return config;
   });

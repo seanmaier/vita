@@ -1,10 +1,11 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, Note } from '../types.ts';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, FitRecommendation, JobFit, Note } from '../types.ts';
 import { slugify } from './slug.ts';
 import { isAppLanguage, LANGUAGE_ERROR } from './language.ts';
 import { normalizeNotes } from './notes.ts';
 
-const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined'];
+const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'];
 const FONTS: AppFont[] = ['sans', 'serif', 'mono'];
+export const FIT_RECOMMENDATIONS: FitRecommendation[] = ['apply', 'apply-if', 'unlikely', 'exclude'];
 
 export type ParseResult =
   | { ok: true; config: ApplicationConfig }
@@ -42,6 +43,34 @@ function validateCoverLetter(value: unknown, errors: string[]): CoverLetter | un
     paragraphs: value.paragraphs as string[],
     ...(isString(value.recipientName) && value.recipientName && { recipientName: value.recipientName }),
     ...(isString(value.closing) && value.closing && { closing: value.closing }),
+  };
+}
+
+const isPercent = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
+
+function validateFit(value: unknown, errors: string[]): JobFit | undefined {
+  if (value === undefined) return undefined;
+  if (!isPlainObject(value)) {
+    errors.push('"fit" must be an object with score, recommendation, reason and evaluatedAt.');
+    return undefined;
+  }
+  const before = errors.length;
+  if (!isPercent(value.score)) errors.push('"fit.score" must be a number from 0 to 100.');
+  if (value.cappedScore !== undefined && !isPercent(value.cappedScore)) errors.push('"fit.cappedScore" must be a number from 0 to 100.');
+  if (!FIT_RECOMMENDATIONS.includes(value.recommendation as FitRecommendation)) {
+    errors.push(`"fit.recommendation" must be one of: ${FIT_RECOMMENDATIONS.join(', ')}.`);
+  }
+  if (!isString(value.reason) || !value.reason.trim()) errors.push('"fit.reason" must be a non-empty string.');
+  if (!isString(value.evaluatedAt) || Number.isNaN(Date.parse(value.evaluatedAt))) {
+    errors.push('"fit.evaluatedAt" must be an ISO timestamp.');
+  }
+  if (errors.length > before) return undefined;
+  return {
+    score: value.score as number,
+    ...(value.cappedScore !== undefined && { cappedScore: value.cappedScore as number }),
+    recommendation: value.recommendation as FitRecommendation,
+    reason: (value.reason as string).trim(),
+    evaluatedAt: value.evaluatedAt as string,
   };
 }
 
@@ -110,6 +139,7 @@ export function validateApplicationConfig(input: unknown): ParseResult {
   }
 
   const coverLetter = validateCoverLetter(input.coverLetter, errors);
+  const fit = validateFit(input.fit, errors);
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -129,6 +159,7 @@ export function validateApplicationConfig(input: unknown): ParseResult {
     ...(isString(input.summaryOverride) && input.summaryOverride && { summaryOverride: input.summaryOverride }),
     ...(Array.isArray(input.featuredProjectIds) && { featuredProjectIds: input.featuredProjectIds as string[] }),
     ...(coverLetter && { coverLetter }),
+    ...(fit && { fit }),
   };
 
   return { ok: true, config };
