@@ -1,5 +1,6 @@
 import PostalMime from 'postal-mime';
 import { extractConfirmation } from './confirmation.ts';
+import { headerDiagnostics } from './diagnostics.ts';
 import { parseAlert, sourceForSender } from './parsers.ts';
 import type { JobLeadInput } from './types.ts';
 
@@ -8,6 +9,8 @@ export interface Env {
   APP_TOKEN: string;
   CF_ACCESS_CLIENT_ID?: string;
   CF_ACCESS_CLIENT_SECRET?: string;
+  /** Set to "1" to log envelope and authentication headers of every mail (no subject or body). */
+  LOG_HEADERS?: string;
 }
 
 export type EmailOutcome = 'delivered' | 'rejected' | 'unavailable';
@@ -141,6 +144,14 @@ export async function handleEmail(
       parsed = await PostalMime.parse(buffer);
     } catch {
       parsed = null;
+    }
+
+    if (env.LOG_HEADERS === '1') {
+      try {
+        console.log(`job-alerts: headers ${JSON.stringify(headerDiagnostics(message, parsed))}`);
+      } catch {
+        // Diagnostics must never stop a delivery.
+      }
     }
 
     const { payload, log } = buildPayload(message, parsed);

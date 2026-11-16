@@ -151,6 +151,21 @@ node scripts/api.ts GET "job-leads?status=new"
 
 (Vom Repo-Root aus.) Eine Mail von einer fremden Adresse an die erzeugte Adresse muss abgelehnt werden. Im Log erscheint dann `rejected`.
 
+## Diagnose: Header protokollieren
+
+Um zu sehen, was Cloudflare bei weitergeleiteten oder umgeleiteten Mails mitliefert (z. B. aus Outlook oder iCloud), lässt sich ein Header-Log einschalten:
+
+```sh
+npx wrangler secret put LOG_HEADERS --name vita-job-alerts    # Wert: 1
+npx wrangler tail vita-job-alerts
+```
+
+Pro Mail erscheint eine Zeile `job-alerts: headers {...}` mit Envelope-Absender und -Empfänger, der `From`-Adresse, `Authentication-Results`, `ARC-Authentication-Results`, `Received-SPF` und je DKIM-Signatur nur Domain (`d`) und Selector (`s`). Betreff, Inhalt und Signaturdaten werden nie protokolliert. Danach wieder ausschalten:
+
+```sh
+npx wrangler secret delete LOG_HEADERS --name vita-job-alerts
+```
+
 ## Hinweis
 
 Die Test-Fixtures sind synthetisch. Sobald die ersten echten Alerts angekommen sind, die Parser (`src/parsers.ts`) mit anonymisierten echten Mails prüfen und die Fixtures ergänzen.
