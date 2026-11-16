@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import {
   createJobAlertAddress,
   fetchJobAlertEvents,
@@ -25,6 +25,43 @@ function formatTimestamp(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+type Provider = 'gmail' | 'outlook' | 'icloud';
+
+const PROVIDERS: { value: Provider; label: string }[] = [
+  { value: 'gmail', label: 'Gmail' },
+  { value: 'outlook', label: 'Outlook' },
+  { value: 'icloud', label: 'iCloud' },
+];
+
+const exampleSender = <code>jobalerts-noreply@linkedin.com</code>;
+
+/** The forwarding rule, per mailbox provider. */
+const providerSteps: Record<Provider, ReactNode[]> = {
+  gmail: [
+    'In Gmail, open Settings → Forwarding and POP/IMAP and add the address as a forwarding address.',
+    'The confirmation code from Google appears below; enter it in Gmail.',
+    <>
+      Create a filter for your job-alert senders, e.g. <code>from:(jobalerts-noreply@linkedin.com)</code>, with
+      "Forward to" this address.
+    </>,
+  ],
+  outlook: [
+    <>
+      In Outlook, open Settings → Mail → Rules and add a rule: "From" contains e.g. {exampleSender}.
+    </>,
+    <>
+      As action choose <strong>"Redirect to"</strong> this address, not "Forward to": a forwarded mail comes from you,
+      so no jobs can be read from it.
+    </>,
+  ],
+  icloud: [
+    <>
+      On icloud.com, open Mail → Settings → Rules and add a rule: "is from" e.g. {exampleSender}.
+    </>,
+    'As action choose "Forward to" this address.',
+  ],
+};
+
 const kindLabel: Record<InboundEvent['kind'], string> = {
   confirmation: 'Gmail confirmation',
   failed: 'Could not process',
@@ -46,6 +83,7 @@ export function JobAlertsSection() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [provider, setProvider] = useState<Provider>('gmail');
 
   const apply = (next: JobAlertsConfig) => {
     setConfig(next);
@@ -86,7 +124,7 @@ export function JobAlertsSection() {
       config?.address &&
       !confirm(
         'Replace the alert address? The old address stops working at once. The new one has to be activated by ' +
-          'the admin again; then update the Gmail forwarding address and the filter to it.',
+          'the admin again; then update your forwarding rule (and in Gmail the forwarding address) to it.',
       )
     ) {
       return;
@@ -155,25 +193,34 @@ export function JobAlertsSection() {
     <>
       <span className={nafLabel}>Setup</span>
       <p className={hint}>
-        Gmail forwards your job-alert mails (LinkedIn, StepStone, Indeed, Glassdoor) to your personal address here,
-        and the jobs in them show up as leads.
+        Your mailbox forwards your job-alert mails (LinkedIn, StepStone, Indeed, Glassdoor) to your personal address
+        here, and the jobs in them show up as leads.
       </p>
       <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`}>
-        <li>Create your address above and save the Gmail address you forward from.</li>
+        <li>Create your address above and save the address you forward from.</li>
         <li>
           Send the address to the admin. It only receives mail once the admin has activated it; until then, mails
           to it bounce with "rejected".
         </li>
-        <li>In Gmail, open Settings → Forwarding and POP/IMAP and add the address as a forwarding address.</li>
-        <li>The confirmation code from Google appears below; enter it in Gmail.</li>
-        <li>
-          Create a Gmail filter for your job-alert senders, e.g.{' '}
-          <code>from:(jobalerts-noreply@linkedin.com)</code>, with "Forward to" this address.
-        </li>
+      </ol>
+      <label className="flex flex-col gap-1.5">
+        <span className={nafLabel}>Your mailbox</span>
+        <select className={nafInput} value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
+          {PROVIDERS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`} start={3}>
+        {providerSteps[provider].map((step, i) => (
+          <li key={i}>{step}</li>
+        ))}
       </ol>
       <p className={hint}>
-        Only the filter works: a mail you forward by hand comes from you instead of the job site, so no jobs can be
-        read from it. Other mail providers than Gmail are not supported.
+        Forwarding a mail by hand does not work: it then comes from you instead of the job site, so no jobs can be
+        read from it. Other mail providers may work if they keep the original sender; they are untested.
       </p>
     </>
   );
@@ -209,11 +256,11 @@ export function JobAlertsSection() {
             <>
               <form className="flex flex-col gap-2" onSubmit={save}>
                 <label className="flex flex-col gap-1.5">
-                  <span className={nafLabel}>Forwarding Gmail address</span>
+                  <span className={nafLabel}>Address you forward from</span>
                   <input
                     className={nafInput}
                     type="email"
-                    placeholder="you@gmail.com"
+                    placeholder="you@outlook.com"
                     value={forwardingFrom}
                     onChange={(e) => {
                       setForwardingFrom(e.target.value);
@@ -222,8 +269,8 @@ export function JobAlertsSection() {
                   />
                 </label>
                 <p className={hint}>
-                  Must be the Gmail account you forward from; mails from other senders are bounced (rejected). Leave
-                  empty to clear it.
+                  The mailbox your alerts are forwarded from (Gmail, Outlook or iCloud). Mails from other senders are
+                  bounced (rejected). Leave empty to clear it.
                 </p>
                 <div className="flex items-center gap-3">
                   <button className={primaryButton} type="submit" disabled={busy}>
@@ -235,7 +282,7 @@ export function JobAlertsSection() {
 
               {!config.forwardingFrom && (
                 <p className="text-[12px] text-[color:var(--status-rejected)]">
-                  Alerts will be bounced until the forwarding Gmail address is saved (confirmation codes still
+                  Alerts will be bounced until the address you forward from is saved (Gmail confirmation codes still
                   arrive).
                 </p>
               )}

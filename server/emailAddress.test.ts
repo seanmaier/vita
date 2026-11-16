@@ -21,3 +21,9 @@ test('sameMailbox compares normalized addresses and never matches null', () => {
   assert.equal(sameMailbox('nope', 'nope'), false);
   assert.equal(sameMailbox('a@example.org', null), false);
 });
+
+test('sameMailbox matches an Outlook SRS envelope with the saved Outlook address', () => {
+  assert.equal(sameMailbox('Name+SRS=ileBF=JF=icloud.com=other@outlook.com', 'name@outlook.com'), true);
+  assert.equal(sameMailbox('name@icloud.com', 'name@icloud.com'), true);
+  assert.equal(sameMailbox('Name+SRS=ileBF=JF=icloud.com=other@outlook.com', 'other@icloud.com'), false);
+});
