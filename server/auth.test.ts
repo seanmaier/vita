@@ -27,6 +27,7 @@ test('createApiToken stores the scope and defaults to full', () => {
   assert.equal(getApiToken(scoped.token)?.scope, 'job-leads:ingest');
   assert.equal(getApiToken(plain.token)?.scope, 'full');
   assert.equal(getApiToken(plain.token)?.user.id, user.id);
+  assert.equal(getApiToken(plain.token)?.tokenName, 'laptop');
   assert.equal(getApiToken('jat_unknown'), null);
   // created_at has 1 s precision, so the list order isn't stable here.
   assert.deepEqual(Object.fromEntries(listApiTokens(user.id).map((t) => [t.name, t.scope])), {
