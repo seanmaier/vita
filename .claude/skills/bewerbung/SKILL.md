@@ -41,13 +41,15 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
   summaryOverride, featuredProjectIds, skillGroupsOverride, coverLetter` (siehe
   `src/types.ts`). `PATCH` überschreibt nur die übergebenen Felder; `null` entfernt ein
   optionales Feld.
+- `fit` (Passung aus `/stellencheck`) setzt nur `/stellencheck`.
 - `status`, `appliedDate`, `interviewDate`, `finalDecisionDate` und `statusHistory` sind
   nur lesbar: Sie folgen dem Statusverlauf. `POST`/`PATCH` mit diesen Feldern gibt `400`.
   Ändern nur auf ausdrücklichen Wunsch des Nutzers über
   `POST applications/<id>/transitions` mit `{ "to": "sent", "date": "2026-11-16" }`
   (erlaubte Schritte nennt die `409`-Antwort), rückgängig mit
   `DELETE applications/<id>/transitions/last`.
-- Neue Bewerbungen bekommen serverseitig immer den Status `drafting`.
+- Neue Bewerbungen bekommen den Status `drafting` (`/stellencheck` legt geprüfte Stellen mit
+  `"status": "evaluated"` an).
 - Listen enthalten nichts aus dem Papierkorb. Dinge im Papierkorb lassen sich nicht ändern
   (`409`). Bewerbungen löscht nur der Nutzer in der App; dafür gibt es keinen API-Aufruf.
 
@@ -87,8 +89,14 @@ bevor du weitermachst.
 ### 2. Aktuellen Stand laden
 
 `GET base-profiles` und `GET applications`. Gibt es schon eine Bewerbung für dieselbe
-Firma und Rolle, fragen, ob diese per `PATCH` überarbeitet werden soll, statt eine neue
-anzulegen.
+Firma und Rolle (oder dieselbe `url`):
+- Status `evaluated` (von `/stellencheck`): diese weiterführen, keine neue anlegen. Beim
+  Speichern `PATCH` mit dem Entwurf, danach `POST applications/<id>/transitions` mit
+  `{ "to": "drafting" }`. Ihr `fit` ist die Passung; nicht neu bewerten.
+- Status `skipped`: darauf hinweisen, dass der Nutzer die Stelle abgelehnt hatte, und
+  fragen, ob er es sich anders überlegt hat (dann rückgängig mit
+  `DELETE applications/<id>/transitions/last` und weiter wie bei `evaluated`).
+- Sonst fragen, ob diese per `PATCH` überarbeitet werden soll, statt eine neue anzulegen.
 
 ### 3. Passung analysieren
 
