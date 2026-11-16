@@ -49,7 +49,8 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    - Titel: `Stellenradar: <n> Treffer`
    - Text (Datei): pro Treffer eine Zeile `<score> % · <Firma> · <Rolle>`, höchstens 5,
      nach Score absteigend
-   - `node scripts/notify.ts "Stellenradar: <n> Treffer" <nachricht.txt> https://vita.seanmaier.org/leads`
+   - `node scripts/notify.ts "Stellenradar: <n> Treffer" <nachricht.txt> leads`
+     (`leads` wird gegen `JOB_APPS_URL` aufgelöst; ohne führenden `/`, weil Git Bash ihn umschreibt)
 
    Keine Treffer: keine Nachricht. Fehlt `NTFY_TOPIC` oder ist er zu kurz, bricht
    `notify.ts` ab; dann das im Ergebnis melden, die Bewertungen bleiben gespeichert.

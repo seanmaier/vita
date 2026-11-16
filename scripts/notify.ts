@@ -1,5 +1,6 @@
 // Sends one push message through ntfy.
 //   node scripts/notify.ts <title> <message.txt> [click-url]
+// A click URL without http(s):// (e.g. leads) is a path resolved against JOB_APPS_URL.
 // Reads NTFY_URL (default https://ntfy.sh) and NTFY_TOPIC from the environment or
 // .env.assistant. The topic is the only secret, so it must be long and random
 // (at least 20 characters).
@@ -34,11 +35,20 @@ export function buildNotification(
   return { url: `${baseUrl.replace(/\/+$/, '')}/${topic}`, init: { method: 'POST', headers, body: message } };
 }
 
+/** Absolute URLs pass through; a path like leads or /leads is resolved against the app URL. */
+export function resolveClickUrl(clickUrl: string | undefined, appUrl: string | undefined): string | undefined {
+  if (!clickUrl || /^https?:\/\//i.test(clickUrl)) return clickUrl;
+  const base = appUrl?.replace(/\/+$/, '');
+  if (!base) throw new Error(`Set JOB_APPS_URL to use the relative click URL ${clickUrl}.`);
+  return `${base}/${clickUrl.replace(/^\/+/, '')}`;
+}
+
 async function main(): Promise<void> {
   const [title, messageFile, clickUrl] = process.argv.slice(2);
   if (!title || !messageFile) throw new Error('Usage: node scripts/notify.ts <title> <message.txt> [click-url]');
   const config = { baseUrl: process.env.NTFY_URL || 'https://ntfy.sh', topic: process.env.NTFY_TOPIC ?? '' };
-  const { url, init } = buildNotification(config, title, readFileSync(messageFile, 'utf8'), clickUrl);
+  const click = resolveClickUrl(clickUrl, process.env.JOB_APPS_URL);
+  const { url, init } = buildNotification(config, title, readFileSync(messageFile, 'utf8'), click);
   const res = await fetch(url, init);
   if (!res.ok) throw new Error(`ntfy: HTTP ${res.status}`);
 }

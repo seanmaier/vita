@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildNotification } from './notify.ts';
+import { buildNotification, resolveClickUrl } from './notify.ts';
 
 const topic = 'a'.repeat(32);
 
@@ -32,4 +32,18 @@ test('umlauts in the title do not break the headers', () => {
 
 test('rejects a topic shorter than 20 characters', () => {
   assert.throws(() => buildNotification({ baseUrl: 'https://ntfy.sh', topic: 'short' }, 't', 'b'), /20/);
+});
+
+test('a relative click URL is resolved against the app URL', () => {
+  assert.equal(resolveClickUrl('leads', 'https://vita.example.org/'), 'https://vita.example.org/leads');
+  assert.equal(resolveClickUrl('/leads', 'https://vita.example.org'), 'https://vita.example.org/leads');
+});
+
+test('an absolute click URL passes through and none stays none', () => {
+  assert.equal(resolveClickUrl('https://other.example/x', undefined), 'https://other.example/x');
+  assert.equal(resolveClickUrl(undefined, 'https://vita.example.org'), undefined);
+});
+
+test('a relative click URL without an app URL is an error', () => {
+  assert.throws(() => resolveClickUrl('leads', undefined), /JOB_APPS_URL/);
 });
