@@ -1,0 +1,13 @@
+{
+  "name": "vita-job-alerts",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "vars": {
+    "APP_URL": "https://vita.seanmaier.org",
+    // Placeholders: the repo is public. Enter your real addresses here locally
+    // (do not commit them) or set OWNER_GMAIL / OWNER_EMAIL as secrets via
+    // `wrangler secret put` instead and remove them from this block.
+    "OWNER_GMAIL": "set-me@example.com",
+    "OWNER_EMAIL": "set-me@example.com"
+  }
+}
