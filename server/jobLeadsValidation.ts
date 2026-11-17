@@ -1,5 +1,6 @@
 // Pure validation for job leads, shared by the POST and PATCH routes.
-import type { JobLeadInput, JobLeadSource, JobLeadStatus } from '../src/types.ts';
+import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '../src/types.ts';
+import { criteriaScore, validateCriteria, validateExclusion } from '../src/utils/fitCriteria.ts';
 import { isPlainObject, type Body, type Validated } from './http.ts';
 
 export const LEAD_SOURCES: readonly JobLeadSource[] = ['linkedin', 'stepstone', 'indeed', 'glassdoor', 'arbeitsagentur', 'other'];
@@ -50,9 +51,12 @@ export interface LeadPatch {
   score?: number | null;
   verdict?: string | null;
   applicationId?: string | null;
+  /** The breakdown of the rating; only together with `score`, null removes it. */
+  criteria?: FitCriterion[] | null;
+  exclusion?: string | null;
 }
 
-export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId'];
+export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'];
 
 export function validatePatch(body: Body): Validated<LeadPatch> {
   const errors: string[] = [];
@@ -77,5 +81,25 @@ export function validatePatch(body: Body): Validated<LeadPatch> {
     if (a === null || (typeof a === 'string' && a.length >= 1 && a.length <= 200)) patch.applicationId = a;
     else errors.push('applicationId: must be a string of 1-200 characters or null');
   }
+  validateRating(body, patch, errors);
   return errors.length ? { ok: false, errors } : { ok: true, value: patch };
+}
+
+/** The criteria breakdown must come with the score it explains; the score may sit below it after a cap. */
+function validateRating(body: Body, patch: LeadPatch, errors: string[]): void {
+  if ('criteria' in body && body.criteria !== null) {
+    const criteria = validateCriteria(body.criteria, 'criteria', errors);
+    if (typeof patch.score !== 'number') errors.push('criteria: needs a score in the same request');
+    else if (criteria && patch.score > criteriaScore(criteria) + 1) {
+      errors.push(`score: must not exceed the criteria breakdown (${criteriaScore(criteria)})`);
+    }
+    if (criteria) patch.criteria = criteria;
+  } else if ('criteria' in body) patch.criteria = null;
+  if ('exclusion' in body && body.exclusion !== null) {
+    if (!patch.criteria) errors.push('exclusion: needs a criteria breakdown');
+    else {
+      const exclusion = validateExclusion(body.exclusion, 'exclusion', errors);
+      if (exclusion) patch.exclusion = exclusion;
+    }
+  }
 }

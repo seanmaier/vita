@@ -191,6 +191,10 @@ export interface JobLead extends JobLeadInput {
   verdict: string | null;
   ratedAt: string | null;
   applicationId: string | null;
+  /** How the rating breaks down per criterion; missing for leads rated without it. */
+  criteria?: FitCriterion[];
+  /** The exclusion criterion that applied, if any. */
+  exclusion?: string;
 }
 
 export interface InboundEvent {

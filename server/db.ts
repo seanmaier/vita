@@ -64,6 +64,7 @@ db.exec(`
     verdict        TEXT,
     rated_at       TEXT,
     application_id TEXT,
+    rating         TEXT,
     UNIQUE (user_id, source, external_id)
   );
 
@@ -94,6 +95,11 @@ export function migrate(): void {
   if (!columns.some((c) => c.name === 'scope')) {
     // What the token may call; tokens that predate scopes keep full access.
     db.exec("ALTER TABLE api_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'full'");
+  }
+  const leadColumns = db.prepare('PRAGMA table_info(job_leads)').all() as { name: string }[];
+  if (!leadColumns.some((c) => c.name === 'rating')) {
+    // The criteria breakdown of a rating; leads rated before it stay without one.
+    db.exec('ALTER TABLE job_leads ADD COLUMN rating TEXT');
   }
   migrateStatusHistories();
 }
