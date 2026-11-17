@@ -128,7 +128,7 @@ npx wrangler email routing rules delete <zone> <rule-id>
    - **Outlook.com:** **Einstellungen → E-Mail → Regeln**, Bedingung „Von“, Aktion **„Umleiten an“** (nicht „Weiterleiten an“).
    - **iCloud:** icloud.com → **Mail → Einstellungen → Regeln**, „Von“, **„Weiterleiten an“**.
 
-Angenommen wird eine Mail nur, wenn Cloudflare den Envelope-Absender per SPF bestätigt und dieser ohne den Teil ab `+` der eingetragenen Adresse entspricht. Getestet sind Gmail, Outlook.com und iCloud; Microsoft-365-Firmenkonten schreiben den Absender anders um (`bounces+SRS=…@firma`) und passen nicht. Eine **von Hand** weitergeleitete Mail taugt nicht als Test für Leads: Sie kommt von dir statt von der Jobbörse, die Alert-Quelle ist unbekannt, und die App verbucht sie als `failed`.
+Angenommen wird eine Mail nur, wenn Cloudflare den Envelope-Absender per SPF bestätigt und dieser ohne den Teil ab `+` der eingetragenen Adresse entspricht. Getestet sind Gmail, Outlook.com und iCloud; Microsoft-365-Firmenkonten schreiben den Absender anders um (`bounces+SRS=…@firma`) und passen nicht. Eine **von Hand** weitergeleitete Mail (von der eingetragenen Adresse aus) funktioniert ebenfalls und eignet sich zum Testen: Ihr `From:` ist zwar die eigene Adresse, der Worker liest die Jobbörse dann aus dem zitierten Kopf (`From:`/`Von:`) im Text.
 
 ### 8. Ende-zu-Ende prüfen
 

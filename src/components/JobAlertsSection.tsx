@@ -60,8 +60,8 @@ const providerSteps: Record<Provider, ReactNode[]> = {
       In Outlook, open Settings → Mail → Rules and add a rule: "From" contains e.g. {exampleSender}.
     </>,
     <>
-      As action choose <strong>"Redirect to"</strong> this address, not "Forward to": a forwarded mail comes from you,
-      so no jobs can be read from it.
+      As action choose <strong>"Redirect to"</strong> this address: it passes the alert on unchanged, which works
+      best.
     </>,
   ],
   icloud: [
@@ -231,9 +231,9 @@ export function JobAlertsSection() {
         ))}
       </ol>
       <p className={hint}>
-        Forwarding a mail by hand does not work: it then comes from you instead of the job site, so no jobs can be
-        read from it. Other mail providers may work if the forwarded mail is sent from your own address; they are
-        untested. Microsoft 365 work accounts do not work.
+        You can also forward a single alert by hand from the address you saved, e.g. to test the setup; the job
+        site is then read from the quoted header. Other mail providers may work if the forwarded mail is sent from
+        your own address; they are untested. Microsoft 365 work accounts do not work.
       </p>
     </>
   );
