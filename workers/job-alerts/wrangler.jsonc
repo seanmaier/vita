@@ -2,10 +2,15 @@
   "name": "vita-job-alerts",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
+  // Workers Builds creates a Preview for every pull request, and `wrangler
+  // preview` refuses to run without this block. It stays empty: the Worker has
+  // no bindings or vars that a Preview would need to replace.
+  "previews": {},
   // Secrets (the repo is public, so no tokens, addresses or domains here).
   // Set each with `npx wrangler secret put <NAME>`:
   //   APP_URL (base URL of the Vita app, e.g. https://vita.example.org),
   //   APP_TOKEN (app token with scope inbound:deliver),
-  //   optional: CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+  //   optional: CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET,
+  //   optional: LOG_HEADERS=1 (logs envelope and authentication headers, no subject or body)
   // They must not also appear under "vars": wrangler refuses that.
 }

@@ -67,7 +67,7 @@ db.exec(`
     UNIQUE (user_id, source, external_id)
   );
 
-  -- Each user's own alert address, and the Gmail they forward from.
+  -- Each user's own alert address, and the mailbox they forward from.
   CREATE TABLE IF NOT EXISTS inbound_addresses (
     user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     local_part      TEXT NOT NULL UNIQUE,
