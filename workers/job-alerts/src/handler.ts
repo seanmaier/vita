@@ -1,7 +1,10 @@
 import PostalMime from 'postal-mime';
 import { extractConfirmation } from './confirmation.ts';
+import { headerDiagnostics } from './diagnostics.ts';
+import { headerValues, type ParsedMail } from './headers.ts';
 import { htmlToText } from './links.ts';
 import { forwardedSource, parseAlert, sourceForSender } from './parsers.ts';
+import { cloudflareSpfPass } from './spf.ts';
 import type { JobLeadInput } from './types.ts';
 
 export interface Env {
@@ -9,12 +12,13 @@ export interface Env {
   APP_TOKEN: string;
   CF_ACCESS_CLIENT_ID?: string;
   CF_ACCESS_CLIENT_SECRET?: string;
+  /** Set to "1" to log envelope and authentication headers of every mail (no subject or body). */
+  LOG_HEADERS?: string;
 }
 
 export type EmailOutcome = 'delivered' | 'rejected' | 'unavailable';
 
 type Message = Pick<ForwardableEmailMessage, 'from' | 'to' | 'raw' | 'headers' | 'setReject'>;
-type ParsedMail = Awaited<ReturnType<typeof PostalMime.parse>>;
 
 interface InboundPayload {
   recipient: string;
@@ -94,7 +98,10 @@ function formatSender(from: { name?: string; address?: string } | undefined): st
   return from.name ? `${from.name} <${from.address}>` : from.address;
 }
 
-/** Decide what the app is told about this mail. The app does the per-user sender check. */
+/**
+ * Decide what the app is told about this mail. The app checks that the envelope sender is the
+ * user's forwarding address; this only passes content on once Cloudflare confirmed that sender by SPF.
+ */
 async function buildPayload(
   message: Message,
   parsed: ParsedMail | null,
@@ -107,6 +114,11 @@ async function buildPayload(
     subject: truncate(parsed.subject, MAX_SHORT_FIELD),
     sender: truncate(formatSender(parsed.from), MAX_SHORT_FIELD),
   };
+
+  if (!cloudflareSpfPass(headerValues(parsed, 'authentication-results'), message.from)) {
+    // Subject and sender are chosen freely by an unverified sender, so only the reason is passed on.
+    return { payload: { ...base, kind: 'failed', detail: 'sender not verified (SPF)' }, log: 'failed (spf)' };
+  }
 
   if (message.from.trim().toLowerCase() === GMAIL_CONFIRMATION_SENDER) {
     const { code, url } = extractConfirmation(parsed.text ?? parsed.html ?? '');
@@ -148,6 +160,14 @@ export async function handleEmail(
       parsed = await PostalMime.parse(buffer);
     } catch {
       parsed = null;
+    }
+
+    if (env.LOG_HEADERS === '1') {
+      try {
+        console.log(`job-alerts: headers ${JSON.stringify(headerDiagnostics(message, parsed))}`);
+      } catch {
+        // Diagnostics must never stop a delivery.
+      }
     }
 
     const { payload, log } = await buildPayload(message, parsed);

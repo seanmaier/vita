@@ -1,5 +1,5 @@
 // Each user's own alert address (where their job alert mails get forwarded to)
-// and the Gmail address they forward from. Cookie or full token only.
+// and the address they forward from. Cookie or full token only.
 import { randomInt } from 'node:crypto';
 import { Hono } from 'hono';
 import type { User } from './auth.ts';
@@ -42,7 +42,7 @@ jobAlerts.get('/', (c) => c.json(state(c.get('user').id)));
 jobAlerts.post('/address', (c) => {
   if (inboundDomain() === null) return c.json({ error: NOT_SET_UP }, 503);
   const userId = c.get('user').id;
-  // A new address keeps the registered Gmail; the old address stops working at once.
+  // A new address keeps the registered forwarding address; the old address stops working at once.
   db.prepare(
     `INSERT INTO inbound_addresses (user_id, local_part) VALUES (?, ?)
      ON CONFLICT (user_id) DO UPDATE SET local_part = excluded.local_part`,

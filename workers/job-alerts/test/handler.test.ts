@@ -26,7 +26,10 @@ function rawMail(fromHeader: string, html: string, contentType = 'text/html'): s
   ].join('\r\n');
 }
 
-function fakeMessage(from: string, raw: string) {
+/** By default Cloudflare's topmost header confirms the envelope sender by SPF, as for real forwards. */
+function fakeMessage(from: string, raw: string, { spf = true } = {}) {
+  if (spf) raw = `Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=${from}
+${raw}`;
   const rejects: string[] = [];
   return {
     rejects,
@@ -290,4 +293,63 @@ test('a mail forwarded by hand from iCloud is parsed by the platform in the quot
   assert.deepEqual(body.leads, [
     { source: 'indeed', externalId: jk, title: 'Backend Dev', url: `https://de.indeed.com/viewjob?jk=${jk}` },
   ]);
+});
+
+test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, { ...env, LOG_HEADERS: '1' }, f.impl, noSleep), 'delivered');
+  const line = logs.find((l) => l.startsWith('job-alerts: headers '));
+  assert.ok(line, 'expected a headers log line');
+  const d = JSON.parse(line.slice('job-alerts: headers '.length));
+  assert.equal(d.envelopeFrom, GMAIL_ENVELOPE);
+  assert.equal(d.from, 'jobalerts-noreply@linkedin.com');
+  assert.ok(!line.includes('Neue Jobs'), 'must not log the subject');
+});
+
+test('without LOG_HEADERS no header diagnostics are logged', async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  await handleEmail(m.message, env, fakeFetch(201).impl, noSleep);
+  assert.ok(!logs.some((l) => l.startsWith('job-alerts: headers ')));
+});
+
+test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as leads', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml), { spf: false });
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  const body = bodyOf(f);
+  assert.equal(body.kind, 'failed');
+  assert.equal(body.detail, 'sender not verified (SPF)');
+  assert.equal(body.leads, undefined);
+  // An unverified sender chooses these freely, so they are not stored.
+  assert.equal(body.subject, undefined);
+  assert.equal(body.sender, undefined);
+});
+
+test('a Gmail confirmation without SPF pass is posted as failed and carries no code', async () => {
+  const raw = rawMail('Gmail Team <forwarding-noreply@google.com>', 'Confirmation code: 123456', 'text/plain');
+  const m = fakeMessage('forwarding-noreply@google.com', raw, { spf: false });
+  const f = fakeFetch(201);
+  await handleEmail(m.message, env, f.impl, noSleep);
+  assert.equal(bodyOf(f).kind, 'failed');
+  assert.equal(bodyOf(f).detail, 'sender not verified (SPF)');
+  assert.ok(!(f.calls[0].init.body as string).includes('123456'));
+});
+
+test('an Outlook-redirected LinkedIn alert with SPF pass is posted as leads', async () => {
+  const envelope = 'name+SRS=a=b=linkedin.com=jobalerts@outlook.com';
+  const raw =
+    `Authentication-Results: mx.cloudflare.net; dkim=neutral (body hash did not verify) header.d=linkedin.com; ` +
+    `spf=pass (mx.cloudflare.net: domain of ${envelope} designates 2a01::3 as permitted sender) smtp.mailfrom=${envelope}
+` +
+    rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml);
+  const m = fakeMessage(envelope, raw, { spf: false });
+  const f = fakeFetch(201);
+  await handleEmail(m.message, env, f.impl, noSleep);
+  assert.equal(bodyOf(f).kind, 'leads');
+  assert.equal(bodyOf(f).envelopeFrom, envelope);
 });

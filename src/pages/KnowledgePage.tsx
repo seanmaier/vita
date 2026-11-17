@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { fetchKnowledge, saveKnowledge } from '../utils/api';
 import type { KnowledgeDoc } from '../utils/api';
-import { nafLabel, primaryButton, tabClass } from '../styles/formStyles';
+import { hintText, nafLabel, primaryButton, tabClass } from '../styles/formStyles';
 import { AutoTextarea } from '../components/AutoTextarea';
 import { MarkdownView } from '../components/MarkdownView';
 import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
@@ -142,7 +142,7 @@ export function KnowledgePage() {
 
   return (
     <div>
-      <p className="[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-3)] mb-4">
+      <p className={`${hintText} mb-4`}>
         Background about you that the AI assistant reads for applications and job checks.
       </p>
 
@@ -197,7 +197,7 @@ export function KnowledgePage() {
           ) : (
             <>
               {saved === '' ? (
-                <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)]">Nothing here yet.</p>
+                <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)]">Nothing here yet.</p>
               ) : (
                 <MarkdownView source={saved} />
               )}
