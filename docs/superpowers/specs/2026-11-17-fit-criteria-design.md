@@ -10,8 +10,9 @@ store the per-criterion breakdown too, so a later UI can recompute scores with
 changed weights or a different push threshold and preview the effect on real
 jobs. This is step 1 of 2; step 2 (the UI) is a separate design.
 
-Non-goals: no UI for editing weights or the threshold, no change to how scores
-are displayed, no re-rating of old jobs.
+Non-goals: no UI for editing weights or the threshold, no re-rating of old
+jobs. (Added later at the user's request: the breakdown is *shown* in the UI,
+as a folded table on rated leads and in the fit badge's tooltip.)
 
 Anti-goal: a breakdown that does not add up to the stored score. A later
 recompute must reproduce today's numbers, otherwise the preview is misleading.
@@ -48,7 +49,9 @@ and `exclusion?: string` (the exclusion criterion that applied, if any).
 `exclusion` (string or `null`); `GET` returns them when set. Stored in one new
 nullable column `rating TEXT` holding `{ criteria, exclusion? }` as JSON.
 `criteria` must come with a `score` in the same request (the consistency
-check needs it); `score: null` clears the breakdown as well.
+check needs it); a new `score` without `criteria` (including `null`) clears
+the stored breakdown, since it would no longer explain the score. `exclusion`
+is only accepted together with a `criteria` list in the same request.
 
 **Validation** (one shared function used by both endpoints): 1–20 criteria,
 unique non-empty names, integer weights and fulfilments 0–100, weights summing
@@ -71,8 +74,10 @@ build. Names verbatim from `priorities`.
   `api_tokens.scope`), so a restored older backup is upgraded on start. Old
   rows and old `fit` objects stay valid and simply have no breakdown; nothing
   is back-filled or invented.
-- Vor dem Deploy: nothing special; rollback is safe because older code ignores
-  the extra column and fields.
+- Vor dem Deploy: nothing special. On a rollback older code ignores the
+  column and fields when reading, but the next save of an application
+  rebuilds `fit` from known fields and drops its breakdown (lead rows keep
+  theirs).
 
 ## Left to the builder
 

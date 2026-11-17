@@ -180,3 +180,11 @@ test('a lead rated without a breakdown has no criteria key', async () => {
   const rated = (await (await patch(app, id, { score: 70, verdict: 'ok' })).json()) as Record<string, unknown>;
   assert.ok(!('criteria' in rated) && !('exclusion' in rated));
 });
+
+test('an exclusion without a criteria breakdown in the same request is a 400, also when null', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  assert.equal((await patch(app, id, { exclusion: null })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, exclusion: null })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, criteria, exclusion: null })).status, 200);
+});

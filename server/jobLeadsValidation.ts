@@ -95,9 +95,10 @@ function validateRating(body: Body, patch: LeadPatch, errors: string[]): void {
     }
     if (criteria) patch.criteria = criteria;
   } else if ('criteria' in body) patch.criteria = null;
-  if ('exclusion' in body && body.exclusion !== null) {
+  if ('exclusion' in body) {
+    // Also for null: an exclusion only ever travels with its breakdown.
     if (!patch.criteria) errors.push('exclusion: needs a criteria breakdown');
-    else {
+    else if (body.exclusion !== null) {
       const exclusion = validateExclusion(body.exclusion, 'exclusion', errors);
       if (exclusion) patch.exclusion = exclusion;
     }
