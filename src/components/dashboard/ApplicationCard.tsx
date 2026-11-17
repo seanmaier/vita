@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_LABELS, STATUS_COLORS } from '../../utils/status';
 import { StatusOptions } from '../StatusOptions';
+import { FitBadge } from './FitBadge';
 import type { StatusAction } from '../../utils/statusTransitions';
 import { NotesDialog } from '../NotesDialog';
 import { LANGUAGE_LABELS } from '../../utils/language';
@@ -75,6 +76,7 @@ export function ApplicationCard({
           <div className="flex items-center gap-1.5">
             <span className="[font-family:var(--font-mono)] text-[13.5px] text-[color:var(--ink-invert)] truncate">{application.company}</span>
             <span className={`${langBadgeClass} text-[10px]`} title={LANGUAGE_LABELS[language]}>{language}</span>
+            {application.fit && <FitBadge fit={application.fit} className="text-[11px] shrink-0" />}
           </div>
           <div className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] mt-1 line-clamp-2">{application.role}</div>
         </div>
@@ -172,6 +174,11 @@ export function ApplicationCard({
       {/* Language */}
       <div className="w-[44px] shrink-0 flex items-center justify-center">
         <span className={`${langBadgeClass} text-[9.5px]`} title={LANGUAGE_LABELS[language]}>{language}</span>
+      </div>
+
+      {/* Fit from the job check */}
+      <div className="w-[48px] shrink-0 flex items-center justify-end">
+        <FitBadge fit={application.fit} className="text-[11px]" />
       </div>
 
       {/* Status — inline select on click */}

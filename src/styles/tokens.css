@@ -24,6 +24,8 @@
   --status-withdrawn:  #8B6F56;
   --status-accepted:   #56D364;
   --status-declined:   #6E7681;
+  --status-evaluated:  #58A6FF;
+  --status-skipped:    #484F58;
 }
 
 /* Winter theme: same structure as the default palette above (dark surfaces,

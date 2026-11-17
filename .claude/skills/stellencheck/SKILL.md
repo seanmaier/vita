@@ -50,6 +50,11 @@ zuerst **Prioritäten erfassen**.
 1. **Anzeige lesen** (URL per Web-Fetch-Werkzeug, Text direkt). Extrahieren: Firma, Rolle,
    Anstellungsart, Arbeitsmodell und Ort, Seniorität und geforderte Jahre, Muss- und
    Kann-Anforderungen, Stack, Domäne, Gehalt, Sprache.
+   **Schon bekannt?** `node scripts/api.ts GET applications` lesen (enthält auch geprüfte
+   Stellen mit Status `evaluated` und `skipped`). Gibt es eine mit derselben `url` oder
+   derselben Firma und ähnlicher Rolle, das sofort sagen, mit Status und bisheriger
+   Passung (z. B. „CHECK24 hattest du schon, Status rejected“). Ab `drafting` nicht neu
+   bewerten, außer der Nutzer will es.
 2. **Ausschlusskriterien prüfen.** Trifft eines zu: Gesamtwert höchstens 20 %, Empfehlung
    „nicht bewerben“, Grund an erster Stelle nennen. Ist es nur unklar (z. B. Anstellungsart
    nicht genannt), nicht ausschließen, sondern als offene Frage markieren.
@@ -65,13 +70,26 @@ zuerst **Prioritäten erfassen**.
      erfüllbar; „Senior, 5+ Jahre“ nicht.
 4. **Ergebnis zeigen** (Format unten). Ehrlich bleiben: lieber eine Stelle abraten als eine
    Bewerbung ins Leere schicken.
-5. **Protokollieren**: eine Zeile unter „Bewertete Stellen“ in `priorities.md` ergänzen
-   (Datum, Firma, Rolle, Passung, Empfehlung; Entscheidung des Nutzers nachtragen, sobald
-   bekannt), danach erneut `push priorities`.
-6. **Kalibrieren**: Entscheidet der Nutzer anders als die Empfehlung (bewirbt sich bei
+5. **In der App speichern** (ohne eigene Rückfrage; das Ergebnis ist gerade gezeigt worden).
+   Das Feld `fit` ist
+   `{ "score": <0–100>, "cappedScore": <nur bei Deckel>, "recommendation": "apply" | "apply-if" | "unlikely" | "exclude", "reason": "<der Satz aus dem Ergebnis, bei apply-if mit Bedingung>", "evaluatedAt": "<ISO-Zeit>" }`
+   (`apply` = bewerben, `apply-if` = bewerben, wenn …, `unlikely` = eher nicht,
+   `exclude` = Ausschlusskriterium).
+   - Neue Stelle: `POST applications` mit `company`, `role`, `url`, `language` (Sprache der
+     Anzeige), `"status": "evaluated"`, `fit`, `notes` (Kriterientabelle, Stärken, Risiken,
+     offene Fragen als eine Notiz) und `changeMessage` („Stellencheck: NN %“).
+   - Schon vorhanden: `PATCH applications/<id>` mit dem neuen `fit` und `changeMessage`.
+   Body wie bei `/bewerbung` als UTF-8-JSON ins Scratchpad schreiben. Dem Nutzer die ID nennen.
+   Die alte Tabelle „Bewertete Stellen“ in `priorities.md` nicht mehr fortschreiben.
+6. **Entscheidung festhalten**: Sagt der Nutzer, dass er sich nicht bewirbt,
+   `POST applications/<id>/transitions` mit `{ "to": "skipped" }`. Will er sich bewerben,
+   übernimmt `/bewerbung` (Übergang zu `drafting`).
+7. **Kalibrieren**: Entscheidet der Nutzer anders als die Empfehlung (bewirbt sich bei
    < 50 % oder lehnt > 75 % ab), nach dem Grund fragen und anbieten, Gewichte oder
-   Ausschlusskriterien anzupassen.
-7. **Weiter**: Bei „bewerben“ anbieten, direkt mit `/bewerbung <URL>` weiterzumachen.
+   Ausschlusskriterien anzupassen. Für einen Überblick `GET applications` lesen und
+   `fit` mit dem Status vergleichen: Wie oft führten hohe Werte zu `interview` oder
+   `offer`, wie oft zu `rejected` oder `ghosted`?
+8. **Weiter**: Bei „bewerben“ anbieten, direkt mit `/bewerbung <URL>` weiterzumachen.
 
 ## Ausgabeformat
 
@@ -125,9 +143,7 @@ Stand: <Datum>
 - Suchen: "Backend Entwickler" in Hamburg, 30 km; "C# Entwickler" in Hamburg, 30 km
 - Schwelle für Push: 70 %
 - Höchstens bewertet pro Lauf: 25
-
-## Bewertete Stellen
-
-| Datum | Firma | Rolle | Passung | Empfehlung | Entscheidung |
-|---|---|---|---|---|---|
 ```
+
+Geprüfte Stellen stehen in der App (Status `evaluated`/`skipped`, Feld `fit`), nicht mehr in
+`priorities.md`. Eine vorhandene Tabelle „Bewertete Stellen“ bleibt als Archiv stehen.
