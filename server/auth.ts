@@ -79,8 +79,9 @@ const API_TOKEN_PREFIX = 'jat_';
 
 // full:             everything under /api/v1 (scripts, assistants).
 // job-leads:ingest: only adds job leads to the token owner (a script or worker; admins only).
-// job-leads:radar:  adds, lists and rates job leads and reads the priorities (the
-//                   unattended /stellenradar routine, which reads untrusted job ads).
+// job-leads:radar:  adds, lists and rates job leads and reads the priorities and about-me
+//                   it rates against (the unattended /stellenradar routine, which reads
+//                   untrusted job ads).
 // inbound:deliver:  delivers forwarded mail to any user (the mail worker; admins only).
 export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar', 'inbound:deliver'] as const;
 export type TokenScope = (typeof TOKEN_SCOPES)[number];
@@ -114,7 +115,11 @@ const JOB_LEAD_PATH = /^\/api\/v1\/job-leads\/\d+$/;
 function radarAllows(method: string, path: string): boolean {
   switch (method) {
     case 'GET':
-      return path === '/api/v1/job-leads' || path === '/api/v1/knowledge/priorities';
+      return (
+        path === '/api/v1/job-leads' ||
+        path === '/api/v1/knowledge/priorities' ||
+        path === '/api/v1/knowledge/about-me'
+      );
     case 'POST':
       return path === '/api/v1/job-leads';
     case 'PATCH':
