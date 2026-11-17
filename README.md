@@ -98,6 +98,9 @@ account doesn't have yet; nothing that exists is overwritten.
   (`passwd` is for resetting a forgotten password; users change their own in the app)
 - `npm run users -- <token-add|token-revoke> <username> <name>` / `token-list <username>` —
   manage API tokens as admin (users do it themselves on the account page)
+- `npm run users -- admin <username> on|off` — grant or revoke the admin role. Admins can also create the
+  worker token scopes (`job-leads:ingest`, `inbound:deliver`) on the account page; everyone else gets
+  `full` and `job-leads:radar`
 - `npm run api -- <GET|POST|PUT|PATCH|DELETE> <path> [body.json]` — call `/api/v1`
 
 ## AI-assisted applications
@@ -122,6 +125,10 @@ Setup:
 
 1. In the app, open **account** → **API tokens** and create one, e.g. `claude`.
    It is shown only once; revoke it there when it's no longer needed.
+   Pick the narrowest scope: **full access** for assistants you run yourself,
+   **add leads** (`job-leads:ingest`) for a worker that only collects jobs,
+   **job radar** (`job-leads:radar`) for the scheduled `/stellenradar` agent:
+   it may add, list and rate job leads and read the `priorities` document, nothing else.
 2. `cp .env.assistant.example .env.assistant` and fill in the URL and token.
 3. Check it: `npm run api -- GET me`.
 
@@ -235,8 +242,13 @@ days are kept. `deploy/vita-backup.sh` runs on the Docker host:
 ```bash
 sh vita-backup.sh create              # snapshot now; also removes backups older than 7 days
 sh vita-backup.sh list
-sh vita-backup.sh restore vita-2026-11-14.db
+sh vita-backup.sh restore vita-2026-11-14-030000.db
 ```
+
+Each backup is named with its date and UTC time (`vita-<date>-<HHMMSS>.db`),
+so a backup taken by hand, e.g. right before a deploy, never replaces the
+nightly one. Backups from before this naming (`vita-<date>.db`) are still
+listed, restored and pruned.
 
 `create` takes a consistent snapshot while the app keeps running (SQLite
 `VACUUM INTO`, which includes writes still in `app.db-wal`). `restore` stops
@@ -264,7 +276,7 @@ The backups are still on the same disk as the database. To copy one off the
 host:
 
 ```bash
-docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14.db /out/
+docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14-030000.db /out/
 ```
 
 ## License

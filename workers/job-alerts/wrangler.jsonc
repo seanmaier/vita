@@ -6,6 +6,15 @@
   // preview` refuses to run without this block. It stays empty: the Worker has
   // no bindings or vars that a Preview would need to replace.
   "previews": {},
+  // Workers Logs: keeps console output and one entry per invocation in the
+  // dashboard (Workers → vita-job-alerts → Logs). Set here so a deploy does
+  // not switch logging off again.
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  },
   // Secrets (the repo is public, so no tokens, addresses or domains here).
   // Set each with `npx wrangler secret put <NAME>`:
   //   APP_URL (base URL of the Vita app, e.g. https://vita.example.org),

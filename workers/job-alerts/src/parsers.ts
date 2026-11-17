@@ -1,7 +1,8 @@
 import { extractAnchors } from './links.ts';
 import type { JobLeadInput, JobLeadSource } from './types.ts';
 
-const SENDER_DOMAINS: [string, JobLeadSource][] = [
+// Shown on the account page too (src/data/jobAlertSources.ts); a test keeps both in sync.
+export const SENDER_DOMAINS: [string, JobLeadSource][] = [
   ['linkedin.com', 'linkedin'],
   ['stepstone.de', 'stepstone'],
   ['indeed.com', 'indeed'],

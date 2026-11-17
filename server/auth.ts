@@ -77,20 +77,62 @@ export function getSessionUser(token: string): User | null {
 // lets the server tell it apart from a session token at a glance.
 const API_TOKEN_PREFIX = 'jat_';
 
-export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'inbound:deliver'] as const;
+// full:             everything under /api/v1 (scripts, assistants).
+// job-leads:ingest: only adds job leads to the token owner (a script or worker; admins only).
+// job-leads:radar:  adds, lists and rates job leads and reads the priorities (the
+//                   unattended /stellenradar routine, which reads untrusted job ads).
+// inbound:deliver:  delivers forwarded mail to any user (the mail worker; admins only).
+export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar', 'inbound:deliver'] as const;
 export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
 
-// inbound:deliver can deliver mail to any user's address, so it stays CLI-only.
-export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest'] as const satisfies readonly TokenScope[];
+// Every user may create these on the account page.
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:radar'] as const satisfies readonly TokenScope[];
+// Only admins may: the worker scopes. inbound:deliver delivers mail to any
+// user's address. Existing tokens of these scopes keep working either way.
+export const ADMIN_TOKEN_SCOPES = [
+  ...USER_TOKEN_SCOPES,
+  'job-leads:ingest',
+  'inbound:deliver',
+] as const satisfies readonly TokenScope[];
 
-export function parseUserTokenScope(raw: unknown): { ok: true; scope: TokenScope } | { ok: false; error: string } {
-  if (raw === undefined) return { ok: true, scope: 'full' };
-  if (typeof raw === 'string' && (USER_TOKEN_SCOPES as readonly string[]).includes(raw)) {
-    return { ok: true, scope: raw as TokenScope };
+/** Whether the user has the admin role. Read fresh each time, so revoking it takes effect at once. */
+export function isAdmin(userId: number): boolean {
+  const row = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role: string } | undefined;
+  return row?.role === 'admin';
+}
+
+/** Grants or revokes the admin role; false if there is no such user. CLI only. */
+export function setAdmin(username: string, admin: boolean): boolean {
+  const { changes } = db.prepare('UPDATE users SET role = ? WHERE username = ?').run(admin ? 'admin' : 'user', username);
+  return Number(changes) > 0;
+}
+
+const JOB_LEAD_PATH = /^\/api\/v1\/job-leads\/\d+$/;
+
+function radarAllows(method: string, path: string): boolean {
+  switch (method) {
+    case 'GET':
+      return path === '/api/v1/job-leads' || path === '/api/v1/knowledge/priorities';
+    case 'POST':
+      return path === '/api/v1/job-leads';
+    case 'PATCH':
+      return JOB_LEAD_PATH.test(path);
+    default:
+      return false;
   }
-  return { ok: false, error: `Scope must be one of: ${USER_TOKEN_SCOPES.join(', ')}.` };
+}
+
+/** The scope a user asked for on the account page, if their role allows it. */
+export function parseUserTokenScope(
+  raw: unknown,
+  admin: boolean,
+): { ok: true; scope: TokenScope } | { ok: false; error: string } {
+  const allowed: readonly string[] = admin ? ADMIN_TOKEN_SCOPES : USER_TOKEN_SCOPES;
+  if (raw === undefined) return { ok: true, scope: 'full' };
+  if (typeof raw === 'string' && allowed.includes(raw)) return { ok: true, scope: raw as TokenScope };
+  return { ok: false, error: `Scope must be one of: ${allowed.join(', ')}.` };
 }
 
 /** Whether a token of this scope may call the given endpoint. Exact path match, on purpose. */
@@ -100,6 +142,8 @@ export function tokenAllows(scope: TokenScope, method: string, path: string): bo
       return path.startsWith('/api/v1/');
     case 'job-leads:ingest':
       return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+    case 'job-leads:radar':
+      return radarAllows(method.toUpperCase(), path);
     case 'inbound:deliver':
       return method.toUpperCase() === 'POST' && path === '/api/v1/inbound-mail';
     default:

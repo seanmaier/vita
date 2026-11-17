@@ -13,9 +13,11 @@ const DB_PATH = process.env.DB_PATH ?? path.resolve('data', 'app.db');
 const BACKUP_DIR = process.env.BACKUP_DIR ?? path.resolve('data', 'backups');
 const KEEP_DAYS = Number(process.env.BACKUP_KEEP_DAYS ?? 7);
 
-// vita-2026-11-16.db (daily) and vita-2026-11-16-pre-restore-031500.db (the
-// state just before a restore). Only files matching this are ever pruned.
-const BACKUP_NAME = /^vita-(\d{4}-\d{2}-\d{2})(-pre-restore-\d{6})?\.db$/;
+// vita-2026-11-16-030000.db (a snapshot, UTC) and
+// vita-2026-11-16-pre-restore-031500.db (the state just before a restore).
+// vita-2026-11-16.db is the older, date-only name: still listed, restored and
+// pruned. Only files matching this are ever pruned.
+const BACKUP_NAME = /^vita-(\d{4}-\d{2}-\d{2})(?:-(\d{6})|-pre-restore-(\d{6}))?\.db$/;
 
 function fail(message: string): never {
   console.error(message);
@@ -23,14 +25,22 @@ function fail(message: string): never {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+const timeOfDay = () => new Date().toISOString().slice(11, 19).replaceAll(':', '');
 
 function backups(): { name: string; date: string; size: number }[] {
   if (!existsSync(BACKUP_DIR)) return [];
   return readdirSync(BACKUP_DIR)
     .map((name) => ({ name, match: BACKUP_NAME.exec(name) }))
     .filter((b) => b.match)
-    .map(({ name, match }) => ({ name, date: match![1], size: statSync(path.join(BACKUP_DIR, name)).size }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map(({ name, match }) => ({
+      name,
+      date: match![1],
+      // A date-only name predates timestamps, so it counts as the start of its day.
+      order: `${match![1]}-${match![2] ?? match![3] ?? '000000'}`,
+      size: statSync(path.join(BACKUP_DIR, name)).size,
+    }))
+    .sort((a, b) => a.order.localeCompare(b.order) || a.name.localeCompare(b.name))
+    .map(({ name, date, size }) => ({ name, date, size }));
 }
 
 // VACUUM INTO writes a consistent snapshot, including writes still in the
@@ -80,10 +90,15 @@ function prune() {
 }
 
 function create() {
-  const name = `vita-${today()}.db`;
+  // The time keeps a second backup on the same day (e.g. right before a deploy)
+  // from replacing the nightly one.
+  // Two runs within the same second wait for the next one instead of failing.
+  let name = `vita-${today()}-${timeOfDay()}.db`;
+  while (existsSync(path.join(BACKUP_DIR, name))) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000 - (Date.now() % 1000));
+    name = `vita-${today()}-${timeOfDay()}.db`;
+  }
   const target = path.join(BACKUP_DIR, name);
-  // Running twice a day replaces that day's backup with the newer state.
-  if (existsSync(target)) rmSync(target);
   snapshot(target);
   console.log(`Created ${name} (${formatSize(statSync(target).size)})`);
   prune();
@@ -97,8 +112,7 @@ function restore(file: string | undefined) {
 
   // Keep the current state, so a restore of the wrong day can be undone.
   if (existsSync(DB_PATH)) {
-    const time = new Date().toISOString().slice(11, 19).replaceAll(':', '');
-    const safety = `vita-${today()}-pre-restore-${time}.db`;
+    const safety = `vita-${today()}-pre-restore-${timeOfDay()}.db`;
     snapshot(path.join(BACKUP_DIR, safety));
     console.log(`Saved the current database as ${safety}`);
   }

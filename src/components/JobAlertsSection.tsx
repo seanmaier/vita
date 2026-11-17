@@ -9,6 +9,8 @@ import {
 } from '../utils/api';
 import type { InboundEvent, JobAlertsConfig } from '../types';
 import { hintText, nafInput, nafLabel, primaryButton } from '../styles/formStyles';
+import { JOB_ALERT_SOURCES } from '../data/jobAlertSources';
+import { AlertEventsSkeleton, JobAlertsSkeleton, Spinner } from './Skeleton';
 
 const hint = hintText;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -44,6 +46,33 @@ function providerOf(address: string | null | undefined): Provider | null {
 }
 
 const exampleSender = <code>jobalerts-noreply@linkedin.com</code>;
+
+// What the worker reports when a mail is from no supported job site (workers/job-alerts/src/handler.ts).
+const UNKNOWN_SENDER = 'unknown alert sender';
+
+/** The job sites whose alerts are read, so nobody wonders why another site's alerts don't arrive. */
+const supportedSites = (
+  <div className="flex flex-col gap-1.5">
+    <span className={nafLabel}>Supported job sites</span>
+    <ul className={`${hint} list-disc pl-4 m-0 flex flex-col gap-0.5`}>
+      {JOB_ALERT_SOURCES.map((source) => (
+        <li key={source.label}>
+          <span className="text-[color:var(--ink-invert)]">{source.label}</span> ·{' '}
+          {source.domains.map((domain, i) => (
+            <span key={domain}>
+              {i > 0 && ', '}
+              <code>{domain}</code>
+            </span>
+          ))}
+        </li>
+      ))}
+    </ul>
+    <p className={hint}>
+      Alerts from other sites (e.g. XING, Monster or the Arbeitsagentur) can't be read yet: they show up below as
+      "Could not process · unknown alert sender" and add no leads.
+    </p>
+  </div>
+);
 
 /** The forwarding rule, per mailbox provider. */
 const providerSteps: Record<Provider, ReactNode[]> = {
@@ -87,6 +116,8 @@ function confirmationCode(event: InboundEvent): string | null {
 export function JobAlertsSection() {
   const [config, setConfig] = useState<JobAlertsConfig | null>(null);
   const [events, setEvents] = useState<InboundEvent[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [forwardingFrom, setForwardingFrom] = useState('');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +139,14 @@ export function JobAlertsSection() {
         setEvents(list);
         setError(null);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Loading the alert activity failed.'));
+      .catch((e) => setError(e instanceof Error ? e.message : 'Loading the alert activity failed.'))
+      .finally(() => setEventsLoaded(true));
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await loadEvents();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     fetchJobAlerts()
@@ -205,8 +243,8 @@ export function JobAlertsSection() {
     <>
       <span className={nafLabel}>Setup</span>
       <p className={hint}>
-        Your mailbox forwards your job-alert mails (LinkedIn, StepStone, Indeed, Glassdoor) to your personal address
-        here, and the jobs in them show up as leads.
+        Your mailbox forwards your job-alert mails from the supported job sites above to your personal address here,
+        and the jobs in them show up as leads.
       </p>
       <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`}>
         <li>Create your address above and save the address you forward from.</li>
@@ -242,6 +280,7 @@ export function JobAlertsSection() {
     <section className="max-w-[560px] flex flex-col gap-4">
       <span className={nafLabel}>Job alerts</span>
 
+      {!config && !error && <JobAlertsSkeleton />}
       {config && !config.available && <p className={hint}>Job alerts are not set up on this server.</p>}
 
       {config?.available && (
@@ -262,8 +301,11 @@ export function JobAlertsSection() {
             <p className={hint}>No address yet.</p>
           )}
           <button className={primaryButton} type="button" disabled={busy} onClick={() => void generate()}>
+            {busy && <Spinner className="mr-1.5" />}
             {config.address ? 'replace address' : 'create address'}
           </button>
+
+          {supportedSites}
 
           {config.address && (
             <>
@@ -287,7 +329,14 @@ export function JobAlertsSection() {
                 </p>
                 <div className="flex items-center gap-3">
                   <button className={primaryButton} type="submit" disabled={busy}>
-                    save
+                    {busy ? (
+                      <>
+                        <Spinner className="mr-1.5" />
+                        saving…
+                      </>
+                    ) : (
+                      'save'
+                    )}
                   </button>
                   {saved && <span className={hint}>Saved.</span>}
                 </div>
@@ -302,7 +351,8 @@ export function JobAlertsSection() {
             </>
           )}
 
-          {isSetUp && latestLeads ? (
+          {/* Overview or guide depends on the activity, so wait for it instead of flipping between them. */}
+          {config.address && !eventsLoaded ? null : isSetUp && latestLeads ? (
             <>
               <span className={nafLabel}>Overview</span>
               <div className="flex flex-col gap-1">
@@ -345,11 +395,14 @@ export function JobAlertsSection() {
             <>
               <div className="flex items-center justify-between gap-2">
                 <span className={nafLabel}>Recent activity</span>
-                <button className={primaryButton} type="button" onClick={() => void loadEvents()}>
-                  Refresh
+                <button className={primaryButton} type="button" disabled={refreshing} onClick={() => void refresh()}>
+                  {refreshing && <Spinner className="mr-1.5" />}
+                  {refreshing ? 'Refreshing…' : 'Refresh'}
                 </button>
               </div>
-              {events.length === 0 ? (
+              {!eventsLoaded ? (
+                <AlertEventsSkeleton />
+              ) : events.length === 0 ? (
                 <p className={hint}>Nothing received yet.</p>
               ) : (
                 <ul className="flex flex-col gap-2 list-none p-0 m-0">
@@ -363,6 +416,9 @@ export function JobAlertsSection() {
                       )}
                       {ev.sender && <div className={`${hint} break-all`}>{ev.sender}</div>}
                       {ev.detail && <div className={`${hint} whitespace-pre-wrap break-all`}>{ev.detail}</div>}
+                      {ev.kind === 'failed' && ev.detail === UNKNOWN_SENDER && (
+                        <div className={hint}>Not from a supported job site (see the list above).</div>
+                      )}
                       {ev.kind === 'confirmation' && <div className={hint}>{unverified}</div>}
                     </li>
                   ))}

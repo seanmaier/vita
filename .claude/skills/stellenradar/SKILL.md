@@ -24,9 +24,12 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
 
 ## Ablauf
 
-1. `node scripts/knowledge.ts pull`, dann in `private/knowledge/priorities.md` den
-   Abschnitt „Radar“ lesen: Suchen, „Schwelle für Push“, „Höchstens bewertet pro Lauf“.
+1. `node scripts/knowledge.ts get priorities > <priorities.md>` (Temp-Verzeichnis), dann
+   darin den Abschnitt „Radar“ lesen: Suchen, „Schwelle für Push“, „Höchstens bewertet pro Lauf“.
    Fehlt der Abschnitt, abbrechen und auf die Vorlage in `/stellencheck` verweisen.
+   Nur `priorities` lesen, nicht `pull`: Der Token des Radars hat den Scope
+   `job-leads:radar` und darf nur Leads anlegen, auflisten und bewerten sowie
+   `priorities` lesen. Alles andere lehnt der Server mit 403 ab.
 2. **Einsammeln.** Für jede Suche (`"<Begriff>" in <Ort>, <km> km`):
    ```bash
    node scripts/arbeitsagentur.ts --was "<Begriff>" --wo "<Ort>" --umkreis <km> --tage 1 --body > <datei.json>

@@ -2,7 +2,15 @@ import './test/env.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { db } from './db.ts';
-import { createApiToken, getApiToken, listApiTokens, parseUserTokenScope, tokenAllows } from './auth.ts';
+import {
+  createApiToken,
+  getApiToken,
+  isAdmin,
+  listApiTokens,
+  parseUserTokenScope,
+  setAdmin,
+  tokenAllows,
+} from './auth.ts';
 import { createTestUser } from './test/testApp.ts';
 
 test('an ingest token may only POST /api/v1/job-leads', () => {
@@ -19,6 +27,25 @@ test('a delivery token may only POST /api/v1/inbound-mail', () => {
   assert.equal(tokenAllows('inbound:deliver', 'GET', '/api/v1/job-leads'), false);
   assert.equal(tokenAllows('inbound:deliver', 'PUT', '/api/v1/job-alerts'), false);
   assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x'), false);
+});
+
+test('a radar token may only touch job leads and read the priorities', () => {
+  const allows = (method: string, path: string) => tokenAllows('job-leads:radar', method, path);
+  assert.equal(allows('POST', '/api/v1/job-leads'), true);
+  assert.equal(allows('GET', '/api/v1/job-leads'), true);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/42'), true);
+  assert.equal(allows('patch', '/api/v1/job-leads/7'), true);
+  assert.equal(allows('GET', '/api/v1/knowledge/priorities'), true);
+
+  assert.equal(allows('DELETE', '/api/v1/job-leads/42'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/42/x'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/abc'), false);
+  assert.equal(allows('GET', '/api/v1/job-leads/42'), false);
+  assert.equal(allows('PUT', '/api/v1/knowledge/priorities'), false);
+  assert.equal(allows('GET', '/api/v1/knowledge/about-me'), false);
+  assert.equal(allows('GET', '/api/v1/applications'), false);
+  assert.equal(allows('POST', '/api/v1/applications'), false);
 });
 
 test('a full token may call anything under /api/v1', () => {
@@ -68,11 +95,36 @@ test('a token with an unknown stored scope is rejected', () => {
   assert.equal(tokenAllows('admin' as never, 'GET', '/api/v1/x'), false);
 });
 
-test('parseUserTokenScope allows only user scopes', () => {
-  assert.deepEqual(parseUserTokenScope(undefined), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('full'), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('job-leads:ingest'), { ok: true, scope: 'job-leads:ingest' });
-  for (const bad of ['inbound:deliver', 'admin', '', null, 42]) {
-    assert.equal(parseUserTokenScope(bad).ok, false);
+test('parseUserTokenScope gives regular users only full and radar', () => {
+  assert.deepEqual(parseUserTokenScope(undefined, false), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('full', false), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('job-leads:radar', false), { ok: true, scope: 'job-leads:radar' });
+  for (const bad of ['job-leads:ingest', 'inbound:deliver', 'admin', '', null, 42]) {
+    assert.equal(parseUserTokenScope(bad, false).ok, false);
   }
+});
+
+test('parseUserTokenScope lets admins create the worker scopes too', () => {
+  for (const scope of ['full', 'job-leads:radar', 'job-leads:ingest', 'inbound:deliver']) {
+    assert.deepEqual(parseUserTokenScope(scope, true), { ok: true, scope });
+  }
+  for (const bad of ['admin', '', null, 42]) {
+    assert.equal(parseUserTokenScope(bad, true).ok, false);
+  }
+});
+
+test('isAdmin follows the role column, set only from the CLI', () => {
+  const user = createTestUser();
+  assert.equal(isAdmin(user.id), false);
+  assert.equal(setAdmin(user.username, true), true);
+  assert.equal(isAdmin(user.id), true);
+  assert.equal(setAdmin(user.username, false), true);
+  assert.equal(isAdmin(user.id), false);
+  assert.equal(setAdmin('no-such-user', true), false);
+  assert.equal(isAdmin(999_999), false);
+});
+
+test('the role column only accepts user and admin', () => {
+  const user = createTestUser();
+  assert.throws(() => db.prepare("UPDATE users SET role = 'root' WHERE id = ?").run(user.id));
 });

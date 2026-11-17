@@ -101,6 +101,12 @@ export function migrate(): void {
     // The criteria breakdown of a rating; leads rated before it stay without one.
     db.exec('ALTER TABLE job_leads ADD COLUMN rating TEXT');
   }
+  const userColumns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+  if (!userColumns.some((c) => c.name === 'role')) {
+    // Admins may create the worker token scopes. Everyone who predates roles is a
+    // regular user; admins are made only with the CLI (server/cli.ts admin).
+    db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
+  }
   migrateStatusHistories();
 }
 

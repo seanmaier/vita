@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken, type UserTokenScope } from '../utils/api';
+import { useOutletContext } from 'react-router-dom';
+import {
+  createApiToken,
+  fetchApiTokens,
+  revokeApiToken,
+  TOKEN_SCOPE_INFO,
+  tokenScopesFor,
+  type ApiToken,
+  type UserTokenScope,
+} from '../utils/api';
 import { hintText, nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
 import { TokenListSkeleton } from './Skeleton';
+import type { AccountOutletContext } from '../pages/account/AccountLayout';
 
 const hint = hintText;
 
@@ -15,6 +25,9 @@ function formatTimestamp(value: string | null): string {
 
 /** Lets a user create and revoke the API tokens scripts and assistants use to call /api/v1. */
 export function ApiTokensSection() {
+  // Admins also get the worker scopes; the server enforces the same rule.
+  const { admin } = useOutletContext<AccountOutletContext>();
+  const scopes = tokenScopesFor(admin);
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
   const [scope, setScope] = useState<UserTokenScope>('full');
@@ -86,8 +99,9 @@ export function ApiTokensSection() {
               <div className="min-w-0">
                 <div className="text-[13px] text-[color:var(--ink-invert)] truncate">
                   {t.name}
-                  {t.scope !== 'full' && <span className={`${hint} ml-2`}>{t.scope}</span>}
+                  <span className={`${hint} ml-2`}>{TOKEN_SCOPE_INFO[t.scope]?.label ?? t.scope}</span>
                 </div>
+                {TOKEN_SCOPE_INFO[t.scope] && <div className={hint}>{TOKEN_SCOPE_INFO[t.scope].description}</div>}
                 <div className={hint}>
                   created {formatTimestamp(t.created_at)} · last used {formatTimestamp(t.last_used_at)}
                 </div>
@@ -131,17 +145,21 @@ export function ApiTokensSection() {
           value={scope}
           onChange={(e) => {
             const next = e.target.value;
-            if (next === 'full' || next === 'job-leads:ingest') setScope(next);
+            const match = scopes.find((s) => s === next);
+            if (match) setScope(match);
           }}
         >
-          <option value="full">full</option>
-          <option value="job-leads:ingest">job-leads:ingest (leads only)</option>
+          {scopes.map((s) => (
+            <option key={s} value={s}>
+              {TOKEN_SCOPE_INFO[s].label}
+            </option>
+          ))}
         </select>
         <button className={`${primaryButton} shrink-0`} type="submit" disabled={busy}>
           {busy ? 'creating…' : 'create token'}
         </button>
       </form>
-      <p className={hint}>full: everything a script or assistant needs. job-leads:ingest: can only add job leads.</p>
+      <p className={hint}>{TOKEN_SCOPE_INFO[scope].description}</p>
 
       {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
     </section>

@@ -17,6 +17,7 @@ import {
   deleteSession,
   getApiToken,
   getSessionUser,
+  isAdmin,
   isLockedOut,
   listApiTokens,
   MAX_PASSWORD_LENGTH,
@@ -155,7 +156,8 @@ const requireUserOrToken = createMiddleware<V1Env>(async (c, next) => {
   return requireUser(c, next);
 });
 
-app.get('/api/me', requireUser, (c) => c.json(c.get('user')));
+// `admin` only decides which token scopes the account page offers; the server checks it again.
+app.get('/api/me', requireUser, (c) => c.json({ ...c.get('user'), admin: isAdmin(c.get('user').id) }));
 
 // A logged-in user changes their own password. The current one is required
 // so a session left open on another device can't be used to take over the
@@ -195,7 +197,7 @@ app.get('/api/tokens', requireUser, (c) => c.json(listApiTokens(c.get('user').id
 
 app.post('/api/tokens', requireUser, async (c) => {
   const body: { name?: unknown; scope?: unknown } = await c.req.json().catch(() => ({}));
-  const scope = parseUserTokenScope(body.scope);
+  const scope = parseUserTokenScope(body.scope, isAdmin(c.get('user').id));
   if (!scope.ok) return c.json({ error: scope.error }, 400);
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const result = createApiToken(c.get('user').id, name, scope.scope);

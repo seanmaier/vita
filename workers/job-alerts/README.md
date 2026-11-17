@@ -80,7 +80,7 @@ Subdomains lassen sich nur im Dashboard hinzufügen; die CLI kennt nur Zonen.
 
 ### 4. Token in der App erzeugen
 
-Im App-Container ausführen:
+Als Admin auf der Account-Seite unter **api tokens** einen Token mit dem Scope **mail delivery** anlegen. Admin wird ein Nutzer im App-Container mit `node server/cli.ts admin <user> on`. Alternativ im App-Container:
 
 ```sh
 node server/cli.ts token-add <admin> job-alerts-worker --scope inbound:deliver
@@ -147,10 +147,18 @@ node scripts/api.ts GET "job-leads?status=new"
 Bounces einordnen:
 
 - **`mx.cloudflare.net rejected your message`, kein Eintrag im Log:** Für die Adresse fehlt die Regel aus Schritt 6 (oder DNS ist noch nicht durch).
-- **Log `rejected … status=403`:** Der Envelope-Absender (ohne den Teil ab `+`) passt nicht zur eingetragenen Weiterleitungsadresse.
+- **Log `rejected … status=403`:** Das `reason="…"` dahinter nennt den Grund:
+  - `Sender not accepted.`: Der Envelope-Absender (ohne den Teil ab `+`) passt nicht zur eingetragenen Weiterleitungsadresse.
+  - `This endpoint is for the mail worker only.`: `APP_TOKEN` hat nicht den Scope `inbound:deliver`. Ein `full`-Token reicht nicht, den richtigen Token erzeugt Schritt 4.
+  - `This token may not call this endpoint.`: `APP_TOKEN` hat einen eingeschränkten Scope wie `job-leads:ingest`. Abhilfe ebenfalls Schritt 4.
+  - Kein `reason`: Die 403 kam nicht von der App, zum Beispiel von Cloudflare Access.
 - **Log `failed (spf)`:** Cloudflare hat den Absender nicht per SPF bestätigt. Die App speichert nur ein `failed`-Ereignis ohne Betreff und Absender, wenn die Adresse passt, sonst 403.
 - **Log `rejected … status=404`:** Die App kennt die Adresse nicht, oder `INBOUND_DOMAIN` passt nicht zur Subdomain.
 - **Log `unavailable …`:** Die App ist nicht erreichbar, oder `APP_URL`/`APP_TOKEN` fehlen.
+
+## Logs im Dashboard
+
+Workers Logs sind in `wrangler.jsonc` eingeschaltet (`observability`). Alle Log-Zeilen stehen damit im Cloudflare-Dashboard unter **Workers & Pages → vita-job-alerts → Logs**, auch rückwirkend und durchsuchbar. `wrangler tail` braucht es nur noch für die Live-Ansicht.
 
 ## Diagnose: Header protokollieren
 

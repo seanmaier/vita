@@ -191,3 +191,80 @@ export function TokenListSkeleton() {
     </Loading>
   );
 }
+
+/** Lead cards on the leads page. */
+export function LeadListSkeleton() {
+  return (
+    <Loading className="flex flex-col gap-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col gap-2.5 border border-[color:var(--rule)] rounded-[5px] px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-4 w-64 max-w-[70%]" />
+            <Skeleton className="h-5 w-12 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-40" />
+          <div className="flex gap-2">
+            {[0, 1, 2].map((j) => <Skeleton key={j} className="h-6 w-16" />)}
+          </div>
+        </div>
+      ))}
+    </Loading>
+  );
+}
+
+/** A Markdown knowledge document. */
+export function DocumentTextSkeleton() {
+  return (
+    <Loading className="flex flex-col gap-2.5">
+      <Skeleton className="h-4 w-48" />
+      {['w-full', 'w-11/12', 'w-4/5', 'w-full', 'w-3/5'].map((w, i) => (
+        <Skeleton key={i} className={`h-3 ${w}`} />
+      ))}
+    </Loading>
+  );
+}
+
+/** The job alert settings: address with copy button, forwarding field, setup text. */
+export function JobAlertsSkeleton() {
+  return (
+    <Loading className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-72 max-w-[75%]" />
+        <Skeleton className="h-7 w-14" />
+      </div>
+      <Skeleton className="h-7 w-36" />
+      <div className="flex flex-col gap-1.5">
+        <Skeleton className="h-2.5 w-40" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Skeleton className="h-2.5 w-full" />
+        <Skeleton className="h-2.5 w-4/5" />
+      </div>
+    </Loading>
+  );
+}
+
+/** Entries of the job alert activity list. */
+export function AlertEventsSkeleton() {
+  return (
+    <Loading className="flex flex-col gap-2">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col gap-2 border border-[color:var(--rule)] rounded-[5px] px-3 py-2.5">
+          <Skeleton className="h-2.5 w-44" />
+          <Skeleton className="h-3.5 w-64 max-w-full" />
+        </div>
+      ))}
+    </Loading>
+  );
+}
+
+/** A small spinner for buttons whose action is running. Static with reduced motion. */
+export function Spinner({ className = '' }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block w-3 h-3 rounded-full border-[1.5px] border-current border-r-transparent animate-spin motion-reduce:animate-none align-[-2px] ${className}`}
+    />
+  );
+}
