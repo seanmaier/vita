@@ -77,13 +77,37 @@ export function getSessionUser(token: string): User | null {
 // lets the server tell it apart from a session token at a glance.
 const API_TOKEN_PREFIX = 'jat_';
 
-export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'inbound:deliver'] as const;
+// full:             everything under /api/v1 (scripts, assistants).
+// job-leads:ingest: only adds job leads (the job-alerts worker).
+// job-leads:radar:  adds, lists and rates job leads and reads the priorities (the
+//                   unattended /stellenradar routine, which reads untrusted job ads).
+// inbound:deliver:  delivers forwarded mail to any user (the mail worker, CLI-only).
+export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar', 'inbound:deliver'] as const;
 export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
 
 // inbound:deliver can deliver mail to any user's address, so it stays CLI-only.
-export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest'] as const satisfies readonly TokenScope[];
+export const USER_TOKEN_SCOPES = [
+  'full',
+  'job-leads:ingest',
+  'job-leads:radar',
+] as const satisfies readonly TokenScope[];
+
+const JOB_LEAD_PATH = /^\/api\/v1\/job-leads\/\d+$/;
+
+function radarAllows(method: string, path: string): boolean {
+  switch (method) {
+    case 'GET':
+      return path === '/api/v1/job-leads' || path === '/api/v1/knowledge/priorities';
+    case 'POST':
+      return path === '/api/v1/job-leads';
+    case 'PATCH':
+      return JOB_LEAD_PATH.test(path);
+    default:
+      return false;
+  }
+}
 
 export function parseUserTokenScope(raw: unknown): { ok: true; scope: TokenScope } | { ok: false; error: string } {
   if (raw === undefined) return { ok: true, scope: 'full' };
@@ -100,6 +124,8 @@ export function tokenAllows(scope: TokenScope, method: string, path: string): bo
       return path.startsWith('/api/v1/');
     case 'job-leads:ingest':
       return method.toUpperCase() === 'POST' && path === '/api/v1/job-leads';
+    case 'job-leads:radar':
+      return radarAllows(method.toUpperCase(), path);
     case 'inbound:deliver':
       return method.toUpperCase() === 'POST' && path === '/api/v1/inbound-mail';
     default:

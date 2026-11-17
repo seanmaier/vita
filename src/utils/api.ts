@@ -44,7 +44,33 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw await errorFrom(res, 'Changing the password failed');
 }
 
-export type UserTokenScope = 'full' | 'job-leads:ingest';
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar'] as const;
+export type UserTokenScope = (typeof USER_TOKEN_SCOPES)[number];
+
+export const isUserTokenScope = (value: string): value is UserTokenScope =>
+  (USER_TOKEN_SCOPES as readonly string[]).includes(value);
+
+/** What a token of each scope may do, as shown on the account page. */
+export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: string }> = {
+  full: {
+    label: 'full access',
+    description: 'Reads and edits everything under /api/v1. For scripts and assistants you run yourself.',
+  },
+  'job-leads:ingest': {
+    label: 'add leads',
+    description: 'Can only add job leads. For a mail or alert worker that collects new jobs.',
+  },
+  'job-leads:radar': {
+    label: 'job radar',
+    description:
+      'Adds, lists and rates job leads and reads your priorities. Nothing else, so an unattended agent ' +
+      'reading untrusted job ads cannot touch your applications or knowledge.',
+  },
+  'inbound:deliver': {
+    label: 'mail delivery',
+    description: 'Delivers forwarded job alert mails. Created by the admin for the mail worker.',
+  },
+};
 
 export interface ApiToken {
   name: string;

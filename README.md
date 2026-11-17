@@ -122,6 +122,10 @@ Setup:
 
 1. In the app, open **account** → **API tokens** and create one, e.g. `claude`.
    It is shown only once; revoke it there when it's no longer needed.
+   Pick the narrowest scope: **full access** for assistants you run yourself,
+   **add leads** (`job-leads:ingest`) for a worker that only collects jobs,
+   **job radar** (`job-leads:radar`) for the scheduled `/stellenradar` agent:
+   it may add, list and rate job leads and read the `priorities` document, nothing else.
 2. `cp .env.assistant.example .env.assistant` and fill in the URL and token.
 3. Check it: `npm run api -- GET me`.
 

@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createApiToken, fetchApiTokens, revokeApiToken, type ApiToken, type UserTokenScope } from '../utils/api';
+import {
+  createApiToken,
+  fetchApiTokens,
+  isUserTokenScope,
+  revokeApiToken,
+  TOKEN_SCOPE_INFO,
+  USER_TOKEN_SCOPES,
+  type ApiToken,
+  type UserTokenScope,
+} from '../utils/api';
 import { hintText, nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
 import { TokenListSkeleton } from './Skeleton';
 
@@ -86,8 +95,9 @@ export function ApiTokensSection() {
               <div className="min-w-0">
                 <div className="text-[13px] text-[color:var(--ink-invert)] truncate">
                   {t.name}
-                  {t.scope !== 'full' && <span className={`${hint} ml-2`}>{t.scope}</span>}
+                  <span className={`${hint} ml-2`}>{TOKEN_SCOPE_INFO[t.scope]?.label ?? t.scope}</span>
                 </div>
+                {TOKEN_SCOPE_INFO[t.scope] && <div className={hint}>{TOKEN_SCOPE_INFO[t.scope].description}</div>}
                 <div className={hint}>
                   created {formatTimestamp(t.created_at)} · last used {formatTimestamp(t.last_used_at)}
                 </div>
@@ -131,17 +141,20 @@ export function ApiTokensSection() {
           value={scope}
           onChange={(e) => {
             const next = e.target.value;
-            if (next === 'full' || next === 'job-leads:ingest') setScope(next);
+            if (isUserTokenScope(next)) setScope(next);
           }}
         >
-          <option value="full">full</option>
-          <option value="job-leads:ingest">job-leads:ingest (leads only)</option>
+          {USER_TOKEN_SCOPES.map((s) => (
+            <option key={s} value={s}>
+              {TOKEN_SCOPE_INFO[s].label}
+            </option>
+          ))}
         </select>
         <button className={`${primaryButton} shrink-0`} type="submit" disabled={busy}>
           {busy ? 'creating…' : 'create token'}
         </button>
       </form>
-      <p className={hint}>full: everything a script or assistant needs. job-leads:ingest: can only add job leads.</p>
+      <p className={hint}>{TOKEN_SCOPE_INFO[scope].description}</p>
 
       {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
     </section>
