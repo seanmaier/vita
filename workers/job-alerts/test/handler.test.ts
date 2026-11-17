@@ -48,6 +48,18 @@ ${raw}`;
   };
 }
 
+async function captureLogs(run: () => Promise<unknown>): Promise<string[]> {
+  const logs: string[] = [];
+  const original = console.log;
+  console.log = (...args: unknown[]) => logs.push(args.join(' '));
+  try {
+    await run();
+  } finally {
+    console.log = original;
+  }
+  return logs;
+}
+
 function fakeFetch(...statuses: (number | Error)[]) {
   const calls: { url: string; init: RequestInit }[] = [];
   const impl = (async (url: string, init: RequestInit) => {
@@ -171,6 +183,25 @@ test('403 and 400 from the app reject the mail', async () => {
     assert.equal(await handleEmail(m.message, env, fakeFetch(status).impl, noSleep), 'rejected');
     assert.deepEqual(m.rejects, ['not accepted']);
   }
+});
+
+test("a rejection logs the app's error message, so the three 403 causes can be told apart", async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const impl = (async () =>
+    Response.json({ error: 'This endpoint is for the mail worker only.' }, { status: 403 })) as unknown as typeof fetch;
+  const logs = await captureLogs(() => handleEmail(m.message, env, impl, noSleep));
+  assert.ok(
+    logs.some((l) => l.includes('status=403') && l.includes('reason="This endpoint is for the mail worker only."')),
+    logs.join('\n'),
+  );
+});
+
+test('a rejection without a JSON error (e.g. an HTML page) logs no reason', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const impl = (async () => new Response('<html>Forbidden</html>', { status: 403 })) as unknown as typeof fetch;
+  const logs = await captureLogs(() => handleEmail(m.message, env, impl, noSleep));
+  const line = logs.find((l) => l.includes('status=403'));
+  assert.ok(line && !line.includes('reason='), logs.join('\n'));
 });
 
 test('two 502s lead to a temporary rejection after one retry', async () => {

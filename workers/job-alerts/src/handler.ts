@@ -34,6 +34,7 @@ const GMAIL_CONFIRMATION_SENDER = 'forwarding-noreply@google.com';
 const MAX_LEADS = 100;
 const MAX_SHORT_FIELD = 300;
 const MAX_DETAIL = 2000;
+const MAX_REASON = 200;
 const RETRY_DELAY_MS = 2000;
 const FETCH_TIMEOUT_MS = 10_000;
 const TEMPORARY_REJECT = 'Vita is unavailable right now; please forward this mail again later';
@@ -56,11 +57,25 @@ export function sanitize(leads: JobLeadInput[]): JobLeadInput[] {
   return clean;
 }
 
+/**
+ * The app's own error message (`{"error": "…"}`), e.g. to tell "Sender not accepted." from a token
+ * with the wrong scope. Anything else, such as an Access login page, yields nothing.
+ */
+async function appError(res: Response): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as { error?: unknown };
+    if (typeof body.error !== 'string') return undefined;
+    return body.error.replace(/\s+/g, ' ').replaceAll('"', "'").slice(0, MAX_REASON);
+  } catch {
+    return undefined;
+  }
+}
+
 async function postInbound(
   env: Env,
   payload: InboundPayload,
   fetchImpl: typeof fetch,
-): Promise<{ ok: true } | { ok: false; status: string; retryable: boolean }> {
+): Promise<{ ok: true } | { ok: false; status: string; retryable: boolean; reason?: string }> {
   // A missing secret is a setup error: keep the mail retryable until it is set.
   if (!env.APP_URL) return { ok: false, status: 'APP_URL not set', retryable: true };
   const headers: Record<string, string> = {
@@ -85,7 +100,7 @@ async function postInbound(
     if (res.status === 201) return { ok: true };
     // The app decided (unknown recipient, sender mismatch, bad body): retrying cannot change that.
     const decided = res.status === 400 || res.status === 403 || res.status === 404;
-    return { ok: false, status: String(res.status), retryable: !decided };
+    return { ok: false, status: String(res.status), retryable: !decided, reason: await appError(res) };
   } catch {
     return { ok: false, status: 'network', retryable: true };
   }
@@ -182,7 +197,8 @@ export async function handleEmail(
     }
     if (!result.retryable) {
       message.setReject('not accepted');
-      console.log(`job-alerts: rejected ${log} status=${result.status}`);
+      const reason = result.reason ? ` reason="${result.reason}"` : '';
+      console.log(`job-alerts: rejected ${log} status=${result.status}${reason}`);
       return 'rejected';
     }
     console.log(`job-alerts: unavailable ${log} status=${result.status}`);
