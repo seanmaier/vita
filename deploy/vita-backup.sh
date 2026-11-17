@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Backups of the Vita database, run on the Docker host.
-#   sh vita-backup.sh create            daily snapshot, keeps the last 7 days
+#   sh vita-backup.sh create            snapshot named vita-<date>-<HHMMSS>.db, keeps the last 7 days
 #   sh vita-backup.sh list
 #   sh vita-backup.sh restore <file>    stops the app, restores, starts it again
 #
