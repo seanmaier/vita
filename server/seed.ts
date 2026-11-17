@@ -6,7 +6,7 @@
 //
 //   user:     dev
 //   password: devpassword
-import type { ApplicationConfig, CoverLetter, SkillGroup } from '../src/types.ts';
+import type { ApplicationConfig, CoverLetter, FitCriterion, SkillGroup } from '../src/types.ts';
 import { hashPassword } from './auth.ts';
 import { db, transaction } from './db.ts';
 import { BROWSER_AUTHOR, type VersionContent } from './history.ts';
@@ -132,6 +132,44 @@ const withoutHistory: ApplicationConfig = {
   language: 'en',
 };
 
+// Job checks with their per-criterion breakdown (weights as in the priorities
+// template of /stellencheck), to try the breakdown on leads and fit badges.
+const rate = (...fulfilled: number[]): FitCriterion[] =>
+  [
+    ['Anstellung & Arbeitsmodell', 15],
+    ['Rollenfokus', 20],
+    ['Stack-Passung', 20],
+    ['Erfüllbarkeit / Seniorität', 15],
+    ['Themen & Domäne', 10],
+    ['Standort & Pendeln', 10],
+    ['Lernumfeld & Team', 5],
+    ['Gehalt', 5],
+  ].map(([name, weight], i) => ({ name: name as string, weight: weight as number, fulfilled: fulfilled[i] }));
+
+const evaluated: ApplicationConfig = {
+  id: 'hafenwerk-digital',
+  company: 'Hafenwerk Digital GmbH',
+  role: 'C# Backend Entwickler (m/w/d)',
+  status: 'evaluated',
+  language: 'de',
+  url: 'https://example.com/jobs/hafenwerk-csharp',
+  fit: {
+    score: 79,
+    recommendation: 'apply',
+    reason: 'Stack und Rolle passen genau, hybrid in Hamburg.',
+    evaluatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    criteria: rate(100, 75, 90, 75, 50, 100, 50, 50),
+  },
+};
+
+const leads: { externalId: string; title: string; company: string; score: number | null; verdict: string | null; criteria?: FitCriterion[]; exclusion?: string }[] = [
+  { externalId: 'seed-1', title: 'Backend Entwickler .NET (m/w/d)', company: 'Elbtech Solutions', score: 78, verdict: 'Passt gut: .NET-Backend, 2 Tage Büro in Hamburg.', criteria: rate(100, 75, 100, 75, 50, 75, 50, 50) },
+  { externalId: 'seed-2', title: 'Softwareentwickler Java/Kotlin', company: 'Alster Logistik AG', score: 52, verdict: 'Bewerben, wenn C#-Erfahrung für Kotlin zählt.', criteria: rate(100, 50, 25, 75, 50, 50, 50, 50) },
+  { externalId: 'seed-3', title: 'Freelance .NET Consultant', company: 'Projektwerk Nord', score: 18, verdict: 'Freelance ist ausgeschlossen.', criteria: rate(0, 75, 100, 50, 50, 50, 50, 50), exclusion: 'Freelance / keine Festanstellung' },
+  { externalId: 'seed-4', title: 'IT-Systemadministrator', company: 'Stadtwerke Beispiel', score: 35, verdict: 'Anzeige nicht lesbar; nur aus dem Titel geschätzt.' },
+  { externalId: 'seed-5', title: 'Junior Fullstack Developer', company: 'Kaiwerk Studio', score: null, verdict: null },
+];
+
 // ---- Write ------------------------------------------------------------------
 
 const passwordHash = await hashPassword(PASSWORD);
@@ -141,7 +179,17 @@ transaction(() => {
   const userId = Number(lastInsertRowid);
 
   const current = history[history.length - 1].content;
-  setJson(userId, KEYS.localApps, [{ ...base, status: 'drafting' }, withoutHistory]);
+  setJson(userId, KEYS.localApps, [{ ...base, status: 'drafting' }, withoutHistory, evaluated]);
+  setJson(userId, KEYS.statusHistory(evaluated.id), [{ to: 'evaluated', date: null, recordedAt: null }]);
+  const insertLead = db.prepare(
+    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url, status, score, verdict, rated_at, rating)
+     VALUES (?, 'arbeitsagentur', ?, ?, ?, 'Hamburg', ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const l of leads) {
+    const rating = l.criteria ? JSON.stringify({ criteria: l.criteria, ...(l.exclusion && { exclusion: l.exclusion }) }) : null;
+    const rated = l.score !== null;
+    insertLead.run(userId, l.externalId, l.title, l.company, `https://example.com/jobs/${l.externalId}`, rated ? 'rated' : 'new', l.score, l.verdict, rated ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null, rating);
+  }
   setJson(userId, KEYS.appConfig(APP_ID), current);
   setJson(userId, KEYS.statusHistory(APP_ID), [{ to: 'drafting', date: null, recordedAt: null }]);
   setValue(userId, 'tour-seen', '1');
@@ -157,3 +205,4 @@ transaction(() => {
 
 console.log(`Seed: created user "${USERNAME}" (password "${PASSWORD}") with sample applications.`);
 console.log(`      History demo: http://localhost:5173/application/${APP_ID}/edit → History`);
+console.log('      Criteria breakdown: http://localhost:5173/leads → Breakdown; fit badge tooltip on the dashboard');
