@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { fetchCurrentUser } from '../../utils/api';
 import { tabClass } from '../../styles/formStyles';
 
-export type AccountOutletContext = { username: string | null };
+export type AccountOutletContext = { username: string | null; admin: boolean };
 
 const SECTIONS = [
   { to: '/account', label: 'password', end: true },
@@ -14,9 +14,15 @@ const SECTIONS = [
 
 export function AccountLayout() {
   const [username, setUsername] = useState<string | null>(null);
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
-    fetchCurrentUser().then((u) => setUsername(u?.username ?? null)).catch(() => {});
+    fetchCurrentUser()
+      .then((u) => {
+        setUsername(u?.username ?? null);
+        setAdmin(u?.admin === true);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -35,6 +41,7 @@ export function AccountLayout() {
       {username && (
         <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] mb-6">
           Logged in as <span className="text-[color:var(--ink-invert)]">{username}</span>
+          {admin && <span className="text-[color:var(--ink-3)]"> · admin</span>}
         </p>
       )}
 
@@ -46,7 +53,7 @@ export function AccountLayout() {
         ))}
       </nav>
 
-      <Outlet context={{ username } satisfies AccountOutletContext} />
+      <Outlet context={{ username, admin } satisfies AccountOutletContext} />
     </div>
   );
 }

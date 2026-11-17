@@ -78,21 +78,36 @@ export function getSessionUser(token: string): User | null {
 const API_TOKEN_PREFIX = 'jat_';
 
 // full:             everything under /api/v1 (scripts, assistants).
-// job-leads:ingest: only adds job leads (the job-alerts worker).
+// job-leads:ingest: only adds job leads to the token owner (a script or worker; admins only).
 // job-leads:radar:  adds, lists and rates job leads and reads the priorities (the
 //                   unattended /stellenradar routine, which reads untrusted job ads).
-// inbound:deliver:  delivers forwarded mail to any user (the mail worker, CLI-only).
+// inbound:deliver:  delivers forwarded mail to any user (the mail worker; admins only).
 export const TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar', 'inbound:deliver'] as const;
 export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const isTokenScope = (value: string): value is TokenScope => (TOKEN_SCOPES as readonly string[]).includes(value);
 
-// inbound:deliver can deliver mail to any user's address, so it stays CLI-only.
-export const USER_TOKEN_SCOPES = [
-  'full',
+// Every user may create these on the account page.
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:radar'] as const satisfies readonly TokenScope[];
+// Only admins may: the worker scopes. inbound:deliver delivers mail to any
+// user's address. Existing tokens of these scopes keep working either way.
+export const ADMIN_TOKEN_SCOPES = [
+  ...USER_TOKEN_SCOPES,
   'job-leads:ingest',
-  'job-leads:radar',
+  'inbound:deliver',
 ] as const satisfies readonly TokenScope[];
+
+/** Whether the user has the admin role. Read fresh each time, so revoking it takes effect at once. */
+export function isAdmin(userId: number): boolean {
+  const row = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role: string } | undefined;
+  return row?.role === 'admin';
+}
+
+/** Grants or revokes the admin role; false if there is no such user. CLI only. */
+export function setAdmin(username: string, admin: boolean): boolean {
+  const { changes } = db.prepare('UPDATE users SET role = ? WHERE username = ?').run(admin ? 'admin' : 'user', username);
+  return Number(changes) > 0;
+}
 
 const JOB_LEAD_PATH = /^\/api\/v1\/job-leads\/\d+$/;
 
@@ -109,12 +124,15 @@ function radarAllows(method: string, path: string): boolean {
   }
 }
 
-export function parseUserTokenScope(raw: unknown): { ok: true; scope: TokenScope } | { ok: false; error: string } {
+/** The scope a user asked for on the account page, if their role allows it. */
+export function parseUserTokenScope(
+  raw: unknown,
+  admin: boolean,
+): { ok: true; scope: TokenScope } | { ok: false; error: string } {
+  const allowed: readonly string[] = admin ? ADMIN_TOKEN_SCOPES : USER_TOKEN_SCOPES;
   if (raw === undefined) return { ok: true, scope: 'full' };
-  if (typeof raw === 'string' && (USER_TOKEN_SCOPES as readonly string[]).includes(raw)) {
-    return { ok: true, scope: raw as TokenScope };
-  }
-  return { ok: false, error: `Scope must be one of: ${USER_TOKEN_SCOPES.join(', ')}.` };
+  if (typeof raw === 'string' && allowed.includes(raw)) return { ok: true, scope: raw as TokenScope };
+  return { ok: false, error: `Scope must be one of: ${allowed.join(', ')}.` };
 }
 
 /** Whether a token of this scope may call the given endpoint. Exact path match, on purpose. */

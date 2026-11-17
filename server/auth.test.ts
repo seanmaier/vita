@@ -2,7 +2,15 @@ import './test/env.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { db } from './db.ts';
-import { createApiToken, getApiToken, listApiTokens, parseUserTokenScope, tokenAllows } from './auth.ts';
+import {
+  createApiToken,
+  getApiToken,
+  isAdmin,
+  listApiTokens,
+  parseUserTokenScope,
+  setAdmin,
+  tokenAllows,
+} from './auth.ts';
 import { createTestUser } from './test/testApp.ts';
 
 test('an ingest token may only POST /api/v1/job-leads', () => {
@@ -87,12 +95,36 @@ test('a token with an unknown stored scope is rejected', () => {
   assert.equal(tokenAllows('admin' as never, 'GET', '/api/v1/x'), false);
 });
 
-test('parseUserTokenScope allows only user scopes', () => {
-  assert.deepEqual(parseUserTokenScope(undefined), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('full'), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('job-leads:ingest'), { ok: true, scope: 'job-leads:ingest' });
-  assert.deepEqual(parseUserTokenScope('job-leads:radar'), { ok: true, scope: 'job-leads:radar' });
-  for (const bad of ['inbound:deliver', 'admin', '', null, 42]) {
-    assert.equal(parseUserTokenScope(bad).ok, false);
+test('parseUserTokenScope gives regular users only full and radar', () => {
+  assert.deepEqual(parseUserTokenScope(undefined, false), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('full', false), { ok: true, scope: 'full' });
+  assert.deepEqual(parseUserTokenScope('job-leads:radar', false), { ok: true, scope: 'job-leads:radar' });
+  for (const bad of ['job-leads:ingest', 'inbound:deliver', 'admin', '', null, 42]) {
+    assert.equal(parseUserTokenScope(bad, false).ok, false);
   }
+});
+
+test('parseUserTokenScope lets admins create the worker scopes too', () => {
+  for (const scope of ['full', 'job-leads:radar', 'job-leads:ingest', 'inbound:deliver']) {
+    assert.deepEqual(parseUserTokenScope(scope, true), { ok: true, scope });
+  }
+  for (const bad of ['admin', '', null, 42]) {
+    assert.equal(parseUserTokenScope(bad, true).ok, false);
+  }
+});
+
+test('isAdmin follows the role column, set only from the CLI', () => {
+  const user = createTestUser();
+  assert.equal(isAdmin(user.id), false);
+  assert.equal(setAdmin(user.username, true), true);
+  assert.equal(isAdmin(user.id), true);
+  assert.equal(setAdmin(user.username, false), true);
+  assert.equal(isAdmin(user.id), false);
+  assert.equal(setAdmin('no-such-user', true), false);
+  assert.equal(isAdmin(999_999), false);
+});
+
+test('the role column only accepts user and admin', () => {
+  const user = createTestUser();
+  assert.throws(() => db.prepare("UPDATE users SET role = 'root' WHERE id = ?").run(user.id));
 });
