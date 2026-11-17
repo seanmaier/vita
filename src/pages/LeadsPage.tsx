@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLeads, updateLead } from '../utils/api';
 import type { JobLead, JobLeadStatus } from '../types';
+import { LeadListSkeleton } from '../components/Skeleton';
 
 type Filter = Extract<JobLeadStatus, 'rated' | 'new' | 'dismissed'>;
 
@@ -152,7 +153,7 @@ export function LeadsPage() {
       {loadError ? (
         <p className="text-[12px] text-[color:var(--status-rejected)]">{loadError}</p>
       ) : leads === null ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)]">loading…</p>
+        <LeadListSkeleton />
       ) : leads.length === 0 ? (
         <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)]">no job leads here.</p>
       ) : (
