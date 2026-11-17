@@ -21,6 +21,25 @@ test('a delivery token may only POST /api/v1/inbound-mail', () => {
   assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x'), false);
 });
 
+test('a radar token may only touch job leads and read the priorities', () => {
+  const allows = (method: string, path: string) => tokenAllows('job-leads:radar', method, path);
+  assert.equal(allows('POST', '/api/v1/job-leads'), true);
+  assert.equal(allows('GET', '/api/v1/job-leads'), true);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/42'), true);
+  assert.equal(allows('patch', '/api/v1/job-leads/7'), true);
+  assert.equal(allows('GET', '/api/v1/knowledge/priorities'), true);
+
+  assert.equal(allows('DELETE', '/api/v1/job-leads/42'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/42/x'), false);
+  assert.equal(allows('PATCH', '/api/v1/job-leads/abc'), false);
+  assert.equal(allows('GET', '/api/v1/job-leads/42'), false);
+  assert.equal(allows('PUT', '/api/v1/knowledge/priorities'), false);
+  assert.equal(allows('GET', '/api/v1/knowledge/about-me'), false);
+  assert.equal(allows('GET', '/api/v1/applications'), false);
+  assert.equal(allows('POST', '/api/v1/applications'), false);
+});
+
 test('a full token may call anything under /api/v1', () => {
   assert.equal(tokenAllows('full', 'GET', '/api/v1/knowledge/about-me'), true);
   assert.equal(tokenAllows('full', 'DELETE', '/api/v1/applications/1'), true);
@@ -72,6 +91,7 @@ test('parseUserTokenScope allows only user scopes', () => {
   assert.deepEqual(parseUserTokenScope(undefined), { ok: true, scope: 'full' });
   assert.deepEqual(parseUserTokenScope('full'), { ok: true, scope: 'full' });
   assert.deepEqual(parseUserTokenScope('job-leads:ingest'), { ok: true, scope: 'job-leads:ingest' });
+  assert.deepEqual(parseUserTokenScope('job-leads:radar'), { ok: true, scope: 'job-leads:radar' });
   for (const bad of ['inbound:deliver', 'admin', '', null, 42]) {
     assert.equal(parseUserTokenScope(bad).ok, false);
   }
