@@ -239,8 +239,13 @@ days are kept. `deploy/vita-backup.sh` runs on the Docker host:
 ```bash
 sh vita-backup.sh create              # snapshot now; also removes backups older than 7 days
 sh vita-backup.sh list
-sh vita-backup.sh restore vita-2026-11-14.db
+sh vita-backup.sh restore vita-2026-11-14-030000.db
 ```
+
+Each backup is named with its date and UTC time (`vita-<date>-<HHMMSS>.db`),
+so a backup taken by hand, e.g. right before a deploy, never replaces the
+nightly one. Backups from before this naming (`vita-<date>.db`) are still
+listed, restored and pruned.
 
 `create` takes a consistent snapshot while the app keeps running (SQLite
 `VACUUM INTO`, which includes writes still in `app.db-wal`). `restore` stops
@@ -268,7 +273,7 @@ The backups are still on the same disk as the database. To copy one off the
 host:
 
 ```bash
-docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14.db /out/
+docker run --rm -v vita-backups:/backups -v "$PWD":/out alpine cp /backups/vita-2026-11-14-030000.db /out/
 ```
 
 ## License
