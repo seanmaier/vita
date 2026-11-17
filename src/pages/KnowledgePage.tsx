@@ -6,6 +6,7 @@ import { hintText, nafLabel, primaryButton, tabClass } from '../styles/formStyle
 import { AutoTextarea } from '../components/AutoTextarea';
 import { MarkdownView } from '../components/MarkdownView';
 import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
+import { DocumentTextSkeleton } from '../components/Skeleton';
 
 const TABS: { doc: KnowledgeDoc; label: string }[] = [
   { doc: 'about-me', label: 'About me' },
@@ -165,7 +166,7 @@ export function KnowledgePage() {
       {loadError ? (
         <p className="text-[12px] text-[color:var(--status-rejected)]">{loadError}</p>
       ) : saved === null ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)]">loading…</p>
+        <DocumentTextSkeleton />
       ) : (
         <div className="flex flex-col gap-4">
           {editing ? (
