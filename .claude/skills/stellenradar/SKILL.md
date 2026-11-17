@@ -43,8 +43,11 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    bewerten (Regeln dort lesen, nicht von hier aus nachbauen). Ist die Anzeige nicht
    abrufbar (Login-Wand, 404): `score` nur aus Titel, Firma und Ort schätzen und das
    `verdict` mit „Anzeige nicht lesbar“ beginnen.
-5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "verdict": "<ein Satz mit dem wichtigsten Grund>" }`
+5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "verdict": "<ein Satz mit dem wichtigsten Grund>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`
    anlegen und `node scripts/api.ts PATCH job-leads/<id> <datei.json>` ausführen.
+   `criteria` wie bei `/stellencheck` (Namen und Gewichte wörtlich aus `priorities.md`).
+   `score` ist hier der Wert, der zählt, also nach einem Deckel; er darf unter der Summe der
+   Kriterien liegen, aber nicht darüber. Bei „Anzeige nicht lesbar“ kein `criteria` senden.
 6. **Push.** Liegen Leads mit `score` ≥ Schwelle vor: **eine** Nachricht.
    - Titel: `Stellenradar: <n> Treffer`
    - Text (Datei): pro Treffer eine Zeile `<score> % · <Firma> · <Rolle>`, höchstens 5,
