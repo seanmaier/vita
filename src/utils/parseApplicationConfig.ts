@@ -2,6 +2,7 @@ import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverL
 import { slugify } from './slug.ts';
 import { isAppLanguage, LANGUAGE_ERROR } from './language.ts';
 import { normalizeNotes } from './notes.ts';
+import { criteriaScore, validateCriteria, validateExclusion } from './fitCriteria.ts';
 
 const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'];
 const FONTS: AppFont[] = ['sans', 'serif', 'mono'];
@@ -64,6 +65,15 @@ function validateFit(value: unknown, errors: string[]): JobFit | undefined {
   if (!isString(value.evaluatedAt) || Number.isNaN(Date.parse(value.evaluatedAt))) {
     errors.push('"fit.evaluatedAt" must be an ISO timestamp.');
   }
+  const criteria = value.criteria === undefined ? undefined : validateCriteria(value.criteria, 'fit.criteria', errors);
+  if (criteria && isPercent(value.score) && Math.abs(value.score - criteriaScore(criteria)) > 1) {
+    errors.push(`"fit.score" must match the criteria breakdown (${criteriaScore(criteria)}).`);
+  }
+  let exclusion: string | undefined;
+  if (value.exclusion !== undefined) {
+    if (value.criteria === undefined) errors.push('"fit.exclusion" needs a "fit.criteria" breakdown.');
+    else exclusion = validateExclusion(value.exclusion, 'fit.exclusion', errors);
+  }
   if (errors.length > before) return undefined;
   return {
     score: value.score as number,
@@ -71,6 +81,8 @@ function validateFit(value: unknown, errors: string[]): JobFit | undefined {
     recommendation: value.recommendation as FitRecommendation,
     reason: (value.reason as string).trim(),
     evaluatedAt: value.evaluatedAt as string,
+    ...(criteria && { criteria }),
+    ...(exclusion && { exclusion }),
   };
 }
 

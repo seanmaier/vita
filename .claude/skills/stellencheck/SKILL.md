@@ -72,9 +72,15 @@ zuerst **Prioritäten erfassen**.
    Bewerbung ins Leere schicken.
 5. **In der App speichern** (ohne eigene Rückfrage; das Ergebnis ist gerade gezeigt worden).
    Das Feld `fit` ist
-   `{ "score": <0–100>, "cappedScore": <nur bei Deckel>, "recommendation": "apply" | "apply-if" | "unlikely" | "exclude", "reason": "<der Satz aus dem Ergebnis, bei apply-if mit Bedingung>", "evaluatedAt": "<ISO-Zeit>" }`
+   `{ "score": <0–100>, "cappedScore": <nur bei Deckel>, "recommendation": "apply" | "apply-if" | "unlikely" | "exclude", "reason": "<der Satz aus dem Ergebnis, bei apply-if mit Bedingung>", "evaluatedAt": "<ISO-Zeit>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`
    (`apply` = bewerben, `apply-if` = bewerben, wenn …, `unlikely` = eher nicht,
    `exclude` = Ausschlusskriterium).
+   - `criteria` ist die Kriterientabelle aus Schritt 3: Namen und Gewichte **wörtlich** aus
+     der Tabelle in `priorities.md`, `fulfilled` als ganze Zahl. Daraus lassen sich Scores
+     später mit anderen Gewichten neu berechnen.
+   - `score` ist die gerundete Summe (Gewicht × Erfüllt / 100); der Server lehnt Abweichungen
+     über 1 Punkt ab. Greift ein Ausschlusskriterium, bleibt `score` die Summe, `cappedScore`
+     ist der gedeckelte Wert (höchstens 20) und `exclusion` nennt das Kriterium.
    - Neue Stelle: `POST applications` mit `company`, `role`, `url`, `language` (Sprache der
      Anzeige), `"status": "evaluated"`, `fit`, `notes` (Kriterientabelle, Stärken, Risiken,
      offene Fragen als eine Notiz) und `changeMessage` („Stellencheck: NN %“).

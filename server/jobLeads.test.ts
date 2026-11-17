@@ -120,3 +120,71 @@ test('PATCH validates input and scopes to the owner', async () => {
   assert.equal((await patch(other, id, { score: 5 })).status, 404);
   assert.equal((await patch(app, 999999, { score: 5 })).status, 404);
 });
+
+const criteria = [
+  { name: 'Stack-Passung', weight: 60, fulfilled: 50 },
+  { name: 'Standort & Pendeln', weight: 40, fulfilled: 75 },
+];
+
+async function firstLeadId(app: App): Promise<number> {
+  await post(app, { leads: [lead(1)] });
+  const [{ id }] = (await (await app.request('/api/v1/job-leads')).json()) as { id: number }[];
+  return id;
+}
+
+test('PATCH keeps the criteria breakdown and exclusion of a rating', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  const res = await patch(app, id, { status: 'rated', score: 60, verdict: 'Passt', criteria, exclusion: 'Freelance' });
+  assert.equal(res.status, 200);
+  const updated = (await res.json()) as Record<string, unknown>;
+  assert.deepEqual(updated.criteria, criteria);
+  assert.equal(updated.exclusion, 'Freelance');
+  const [listed] = (await (await app.request('/api/v1/job-leads')).json()) as Record<string, unknown>[];
+  assert.deepEqual(listed.criteria, criteria);
+  assert.equal(listed.exclusion, 'Freelance');
+});
+
+test('PATCH accepts a lead score below its breakdown but not above it', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  assert.equal((await patch(app, id, { score: 62, criteria })).status, 400);
+  assert.equal((await patch(app, id, { score: 61, criteria })).status, 200);
+  assert.equal((await patch(app, id, { score: 20, criteria, exclusion: 'Freelance' })).status, 200);
+});
+
+test('PATCH rejects a breakdown without a score, a broken breakdown, or an exclusion alone', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  assert.equal((await patch(app, id, { criteria })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, exclusion: 'Freelance' })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, criteria, exclusion: '' })).status, 400);
+});
+
+test('clearing the score or the criteria removes the breakdown', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  await patch(app, id, { score: 60, criteria, exclusion: 'Freelance' });
+  const cleared = (await (await patch(app, id, { score: null })).json()) as Record<string, unknown>;
+  assert.ok(!('criteria' in cleared) && !('exclusion' in cleared));
+  await patch(app, id, { score: 60, criteria });
+  const dropped = (await (await patch(app, id, { score: 55, criteria: null })).json()) as Record<string, unknown>;
+  assert.equal(dropped.score, 55);
+  assert.ok(!('criteria' in dropped));
+});
+
+test('a lead rated without a breakdown has no criteria key', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  const rated = (await (await patch(app, id, { score: 70, verdict: 'ok' })).json()) as Record<string, unknown>;
+  assert.ok(!('criteria' in rated) && !('exclusion' in rated));
+});
+
+test('an exclusion without a criteria breakdown in the same request is a 400, also when null', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  assert.equal((await patch(app, id, { exclusion: null })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, exclusion: null })).status, 400);
+  assert.equal((await patch(app, id, { score: 60, criteria, exclusion: null })).status, 200);
+});

@@ -81,6 +81,20 @@ export interface JobFit {
   reason: string;
   /** ISO timestamp of the check. */
   evaluatedAt: string;
+  /** How each criterion from the priorities was rated; missing for checks made before it was stored. */
+  criteria?: FitCriterion[];
+  /** The exclusion criterion that applied, if any. */
+  exclusion?: string;
+}
+
+/** One criterion of a job check: its weight at the time and how far the job fulfils it. */
+export interface FitCriterion {
+  /** Verbatim from the criteria table in the priorities. */
+  name: string;
+  /** Integer 0–100; the weights of one check add up to 100. */
+  weight: number;
+  /** Integer 0–100, % fulfilled (50 when the posting doesn't say). */
+  fulfilled: number;
 }
 
 /** A status that is recorded in an application's history; "ghosted" is only ever derived (see src/domain/statusMachine.ts). */
@@ -177,6 +191,10 @@ export interface JobLead extends JobLeadInput {
   verdict: string | null;
   ratedAt: string | null;
   applicationId: string | null;
+  /** How the rating breaks down per criterion; missing for leads rated without it. */
+  criteria?: FitCriterion[];
+  /** The exclusion criterion that applied, if any. */
+  exclusion?: string;
 }
 
 export interface InboundEvent {

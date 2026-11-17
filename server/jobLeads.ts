@@ -27,6 +27,8 @@ interface LeadRow {
   verdict: string | null;
   rated_at: string | null;
   application_id: string | null;
+  /** JSON `{ criteria, exclusion? }`, the breakdown of the rating. */
+  rating: string | null;
 }
 
 function toLead(r: LeadRow): JobLead {
@@ -45,6 +47,7 @@ function toLead(r: LeadRow): JobLead {
   };
   if (r.company !== null) lead.company = r.company;
   if (r.location !== null) lead.location = r.location;
+  if (r.rating !== null) Object.assign(lead, JSON.parse(r.rating) as Pick<JobLead, 'criteria' | 'exclusion'>);
   return lead;
 }
 
@@ -121,7 +124,7 @@ jobLeads.patch('/:id', async (c) => {
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id) || !findLead(userId, id)) return c.json({ error: 'No such job lead.' }, 404);
 
-  const { status, score, verdict, applicationId } = result.value;
+  const { status, score, verdict, applicationId, criteria, exclusion } = result.value;
   const sets: string[] = [];
   const params: (string | number | null)[] = [];
   const set = (clause: string, value: string | number | null) => {
@@ -134,6 +137,9 @@ jobLeads.patch('/:id', async (c) => {
     sets.push(score === null ? 'rated_at = NULL' : "rated_at = datetime('now')");
   }
   if (verdict !== undefined) set('verdict = ?', verdict);
+  // A new score without its breakdown leaves the old one stale, so it goes too.
+  if (criteria) set('rating = ?', JSON.stringify({ criteria, ...(exclusion && { exclusion }) }));
+  else if (score !== undefined || criteria === null) sets.push('rating = NULL');
   if (applicationId !== undefined) set('application_id = ?', applicationId);
   db.prepare(`UPDATE job_leads SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...params, id, userId);
   return c.json(findLead(userId, id));
