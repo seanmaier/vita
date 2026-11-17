@@ -2,7 +2,8 @@ import PostalMime from 'postal-mime';
 import { extractConfirmation } from './confirmation.ts';
 import { headerDiagnostics } from './diagnostics.ts';
 import { headerValues, type ParsedMail } from './headers.ts';
-import { parseAlert, sourceForSender } from './parsers.ts';
+import { htmlToText } from './links.ts';
+import { forwardedSource, parseAlert, sourceForSender } from './parsers.ts';
 import { cloudflareSpfPass } from './spf.ts';
 import type { JobLeadInput } from './types.ts';
 
@@ -101,7 +102,10 @@ function formatSender(from: { name?: string; address?: string } | undefined): st
  * Decide what the app is told about this mail. The app checks that the envelope sender is the
  * user's forwarding address; this only passes content on once Cloudflare confirmed that sender by SPF.
  */
-function buildPayload(message: Message, parsed: ParsedMail | null): { payload: InboundPayload; log: string } {
+async function buildPayload(
+  message: Message,
+  parsed: ParsedMail | null,
+): Promise<{ payload: InboundPayload; log: string }> {
   const base = { recipient: message.to, envelopeFrom: message.from };
   if (!parsed) return { payload: { ...base, kind: 'failed', detail: 'unparseable' }, log: 'failed (unparseable)' };
 
@@ -123,12 +127,15 @@ function buildPayload(message: Message, parsed: ParsedMail | null): { payload: I
     return { payload: { ...common, kind: 'confirmation', detail }, log: 'confirmation' };
   }
 
-  const source = parsed.from?.address ? sourceForSender(parsed.from.address) : null;
+  // A mail forwarded by hand (e.g. from iCloud) is from the user; the platform is in the quoted header block.
+  const source =
+    (parsed.from?.address ? sourceForSender(parsed.from.address) : null) ??
+    forwardedSource(parsed.text ?? htmlToText(parsed.html ?? ''));
   if (!source) {
     return { payload: { ...common, kind: 'failed', detail: 'unknown alert sender' }, log: 'failed (unknown sender)' };
   }
 
-  const leads = sanitize(parseAlert(source, parsed.html ?? ''));
+  const leads = sanitize(await parseAlert(source, parsed.html ?? ''));
   if (leads.length === 0) {
     return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0` };
   }
@@ -163,7 +170,7 @@ export async function handleEmail(
       }
     }
 
-    const { payload, log } = buildPayload(message, parsed);
+    const { payload, log } = await buildPayload(message, parsed);
     let result = await postInbound(env, payload, fetchImpl);
     if (!result.ok && result.retryable) {
       await sleep(RETRY_DELAY_MS);
