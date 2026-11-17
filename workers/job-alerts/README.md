@@ -80,7 +80,7 @@ Subdomains lassen sich nur im Dashboard hinzufügen; die CLI kennt nur Zonen.
 
 ### 4. Token in der App erzeugen
 
-Im App-Container ausführen:
+Als Admin auf der Account-Seite unter **api tokens** einen Token mit dem Scope **mail delivery** anlegen. Admin wird ein Nutzer im App-Container mit `node server/cli.ts admin <user> on`. Alternativ im App-Container:
 
 ```sh
 node server/cli.ts token-add <admin> job-alerts-worker --scope inbound:deliver

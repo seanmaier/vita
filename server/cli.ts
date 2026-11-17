@@ -3,6 +3,7 @@
 //   node server/cli.ts passwd <username> [password]
 //   node server/cli.ts remove <username>
 //   node server/cli.ts list
+//   node server/cli.ts admin <username> on|off   (admins may create the worker token scopes in the app)
 //   node server/cli.ts token-add <username> <name> [--scope job-leads:ingest|job-leads:radar|inbound:deliver]    (prints the token once)
 //   node server/cli.ts token-list <username>
 //   node server/cli.ts token-revoke <username> <name>
@@ -14,13 +15,14 @@ import {
   listApiTokens,
   MIN_PASSWORD_LENGTH,
   revokeApiToken,
+  setAdmin,
   setPassword,
   TOKEN_SCOPES,
   type TokenScope,
 } from './auth.ts';
 import { db } from './db.ts';
 
-// The third argument is the password for add/passwd and the token name for token-*.
+// The third argument is the password for add/passwd, the token name for token-* and on|off for admin.
 const rawArgs = process.argv.slice(2);
 // `--scope <value>` may appear anywhere after the command.
 const scopeFlag = rawArgs.indexOf('--scope');
@@ -77,12 +79,21 @@ switch (command) {
     break;
   }
   case 'list': {
-    const rows = db.prepare('SELECT username, created_at FROM users ORDER BY username').all() as {
+    const rows = db.prepare('SELECT username, role, created_at FROM users ORDER BY username').all() as {
       username: string;
+      role: string;
       created_at: string;
     }[];
     if (!rows.length) console.log('No users yet.');
-    for (const r of rows) console.log(`${r.username}\t(created ${r.created_at})`);
+    for (const r of rows) {
+      console.log(`${r.username}${r.role === 'admin' ? '\t[admin]' : ''}\t(created ${r.created_at})`);
+    }
+    break;
+  }
+  case 'admin': {
+    if (!username || (givenPassword !== 'on' && givenPassword !== 'off')) fail('Usage: admin <username> on|off');
+    if (!setAdmin(username, givenPassword === 'on')) fail(`No user "${username}".`);
+    console.log(givenPassword === 'on' ? `"${username}" is now an admin.` : `"${username}" is no longer an admin.`);
     break;
   }
   case 'token-add': {
@@ -110,6 +121,7 @@ switch (command) {
   default:
     fail(
       'Commands: add <username> [password] | passwd <username> [password] | remove <username> | list\n' +
+        '          admin <username> on|off\n' +
         '          token-add <username> <name> [--scope ...] | token-list <username> | token-revoke <username> <name>',
     );
 }

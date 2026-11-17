@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
   createApiToken,
   fetchApiTokens,
-  isUserTokenScope,
   revokeApiToken,
   TOKEN_SCOPE_INFO,
-  USER_TOKEN_SCOPES,
+  tokenScopesFor,
   type ApiToken,
   type UserTokenScope,
 } from '../utils/api';
 import { hintText, nafInput, nafLabel, nafRemoveBtn, primaryButton } from '../styles/formStyles';
 import { TokenListSkeleton } from './Skeleton';
+import type { AccountOutletContext } from '../pages/account/AccountLayout';
 
 const hint = hintText;
 
@@ -24,6 +25,9 @@ function formatTimestamp(value: string | null): string {
 
 /** Lets a user create and revoke the API tokens scripts and assistants use to call /api/v1. */
 export function ApiTokensSection() {
+  // Admins also get the worker scopes; the server enforces the same rule.
+  const { admin } = useOutletContext<AccountOutletContext>();
+  const scopes = tokenScopesFor(admin);
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
   const [scope, setScope] = useState<UserTokenScope>('full');
@@ -141,10 +145,11 @@ export function ApiTokensSection() {
           value={scope}
           onChange={(e) => {
             const next = e.target.value;
-            if (isUserTokenScope(next)) setScope(next);
+            const match = scopes.find((s) => s === next);
+            if (match) setScope(match);
           }}
         >
-          {USER_TOKEN_SCOPES.map((s) => (
+          {scopes.map((s) => (
             <option key={s} value={s}>
               {TOKEN_SCOPE_INFO[s].label}
             </option>

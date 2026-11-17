@@ -98,6 +98,9 @@ account doesn't have yet; nothing that exists is overwritten.
   (`passwd` is for resetting a forgotten password; users change their own in the app)
 - `npm run users -- <token-add|token-revoke> <username> <name>` / `token-list <username>` —
   manage API tokens as admin (users do it themselves on the account page)
+- `npm run users -- admin <username> on|off` — grant or revoke the admin role. Admins can also create the
+  worker token scopes (`job-leads:ingest`, `inbound:deliver`) on the account page; everyone else gets
+  `full` and `job-leads:radar`
 - `npm run api -- <GET|POST|PUT|PATCH|DELETE> <path> [body.json]` — call `/api/v1`
 
 ## AI-assisted applications

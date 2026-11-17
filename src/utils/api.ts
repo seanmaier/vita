@@ -5,6 +5,8 @@ import type { AppVersion } from './versionDiff';
 export interface SessionUser {
   id: number;
   username: string;
+  /** Only from /api/me; decides which token scopes the account page offers. */
+  admin?: boolean;
 }
 
 /** The server's `{ error }` message for a failed response, or a generic one with the status. */
@@ -44,11 +46,14 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw await errorFrom(res, 'Changing the password failed');
 }
 
-export const USER_TOKEN_SCOPES = ['full', 'job-leads:ingest', 'job-leads:radar'] as const;
-export type UserTokenScope = (typeof USER_TOKEN_SCOPES)[number];
+// Mirrors server/auth.ts: the worker scopes are only offered to admins (the server checks again).
+export const USER_TOKEN_SCOPES = ['full', 'job-leads:radar'] as const;
+export const ADMIN_TOKEN_SCOPES = [...USER_TOKEN_SCOPES, 'job-leads:ingest', 'inbound:deliver'] as const;
+export type UserTokenScope = (typeof ADMIN_TOKEN_SCOPES)[number];
 
-export const isUserTokenScope = (value: string): value is UserTokenScope =>
-  (USER_TOKEN_SCOPES as readonly string[]).includes(value);
+/** The scopes the account page offers to this user. */
+export const tokenScopesFor = (admin: boolean): readonly UserTokenScope[] =>
+  admin ? ADMIN_TOKEN_SCOPES : USER_TOKEN_SCOPES;
 
 /** What a token of each scope may do, as shown on the account page. */
 export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: string }> = {
@@ -58,7 +63,9 @@ export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: stri
   },
   'job-leads:ingest': {
     label: 'add leads',
-    description: 'Can only add job leads. For a mail or alert worker that collects new jobs.',
+    description:
+      'Can only add job leads to your own list (POST /api/v1/job-leads). For a script or worker that ' +
+      'collects jobs; the job alert mails no longer need it.',
   },
   'job-leads:radar': {
     label: 'job radar',
@@ -68,7 +75,9 @@ export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: stri
   },
   'inbound:deliver': {
     label: 'mail delivery',
-    description: 'Delivers forwarded job alert mails. Created by the admin for the mail worker.',
+    description:
+      "For the mail worker (APP_TOKEN): delivers forwarded job alert mails to every user's alert address. " +
+      'Keep it only in the worker.',
   },
 };
 
