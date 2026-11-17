@@ -24,12 +24,13 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
 
 ## Ablauf
 
-1. `node scripts/knowledge.ts get priorities > <priorities.md>` (Temp-Verzeichnis), dann
-   darin den Abschnitt „Radar“ lesen: Suchen, „Schwelle für Push“, „Höchstens bewertet pro Lauf“.
-   Fehlt der Abschnitt, abbrechen und auf die Vorlage in `/stellencheck` verweisen.
-   Nur `priorities` lesen, nicht `pull`: Der Token des Radars hat den Scope
-   `job-leads:radar` und darf nur Leads anlegen, auflisten und bewerten sowie
-   `priorities` lesen. Alles andere lehnt der Server mit 403 ab.
+1. `node scripts/knowledge.ts get priorities > <priorities.md>` und
+   `node scripts/knowledge.ts get about-me > <about-me.md>` (Temp-Verzeichnis), dann in
+   `priorities.md` den Abschnitt „Radar“ lesen: Suchen, „Schwelle für Push“, „Höchstens
+   bewertet pro Lauf“. Fehlt der Abschnitt, abbrechen und auf die Vorlage in `/stellencheck`
+   verweisen. `get` statt `pull`: Der Token des Radars hat den Scope `job-leads:radar` und
+   darf nur Leads anlegen, auflisten und bewerten sowie `priorities` und `about-me` lesen.
+   Alles andere (u. a. `applications`) lehnt der Server mit 403 ab.
 2. **Einsammeln.** Für jede Suche (`"<Begriff>" in <Ort>, <km> km`):
    ```bash
    node scripts/arbeitsagentur.ts --was "<Begriff>" --wo "<Ort>" --umkreis <km> --tage 1 --body > <datei.json>
@@ -43,7 +44,10 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    der Liste; so bleibt kein Lead dauerhaft liegen.
 4. **Bewerten.** Jede Anzeige (`url`) lesen und nach den Regeln aus
    `.claude/skills/stellencheck/SKILL.md`, Abschnitt „Stelle bewerten“, Schritte 1–3,
-   bewerten (Regeln dort lesen, nicht von hier aus nachbauen). Ist die Anzeige nicht
+   bewerten (Regeln dort lesen, nicht von hier aus nachbauen), mit den Dateien aus Schritt 1
+   als `priorities.md` und `about-me.md`. Den Abgleich „Schon bekannt?“ mit
+   `GET applications` aus Schritt 1 dort **überspringen**: Der Radar-Token darf das nicht,
+   und Dubletten unter den Leads fängt der Server schon ab. Ist die Anzeige nicht
    abrufbar (Login-Wand, 404): `score` nur aus Titel, Firma und Ort schätzen und das
    `verdict` mit „Anzeige nicht lesbar“ beginnen.
 5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "verdict": "<ein Satz mit dem wichtigsten Grund>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`

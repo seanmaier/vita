@@ -128,7 +128,8 @@ Setup:
    Pick the narrowest scope: **full access** for assistants you run yourself,
    **add leads** (`job-leads:ingest`) for a worker that only collects jobs,
    **job radar** (`job-leads:radar`) for the scheduled `/stellenradar` agent:
-   it may add, list and rate job leads and read the `priorities` document, nothing else.
+   it may add, list and rate job leads and read the `priorities` and `about-me`
+   documents, nothing else.
 2. `cp .env.assistant.example .env.assistant` and fill in the URL and token.
 3. Check it: `npm run api -- GET me`.
 

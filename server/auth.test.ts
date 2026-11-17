@@ -29,13 +29,14 @@ test('a delivery token may only POST /api/v1/inbound-mail', () => {
   assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x'), false);
 });
 
-test('a radar token may only touch job leads and read the priorities', () => {
+test('a radar token may only touch job leads and read the knowledge it rates against', () => {
   const allows = (method: string, path: string) => tokenAllows('job-leads:radar', method, path);
   assert.equal(allows('POST', '/api/v1/job-leads'), true);
   assert.equal(allows('GET', '/api/v1/job-leads'), true);
   assert.equal(allows('PATCH', '/api/v1/job-leads/42'), true);
   assert.equal(allows('patch', '/api/v1/job-leads/7'), true);
   assert.equal(allows('GET', '/api/v1/knowledge/priorities'), true);
+  assert.equal(allows('GET', '/api/v1/knowledge/about-me'), true);
 
   assert.equal(allows('DELETE', '/api/v1/job-leads/42'), false);
   assert.equal(allows('PATCH', '/api/v1/job-leads'), false);
@@ -43,7 +44,8 @@ test('a radar token may only touch job leads and read the priorities', () => {
   assert.equal(allows('PATCH', '/api/v1/job-leads/abc'), false);
   assert.equal(allows('GET', '/api/v1/job-leads/42'), false);
   assert.equal(allows('PUT', '/api/v1/knowledge/priorities'), false);
-  assert.equal(allows('GET', '/api/v1/knowledge/about-me'), false);
+  assert.equal(allows('PUT', '/api/v1/knowledge/about-me'), false);
+  assert.equal(allows('GET', '/api/v1/knowledge'), false);
   assert.equal(allows('GET', '/api/v1/applications'), false);
   assert.equal(allows('POST', '/api/v1/applications'), false);
 });

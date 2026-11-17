@@ -70,8 +70,8 @@ export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: stri
   'job-leads:radar': {
     label: 'job radar',
     description:
-      'Adds, lists and rates job leads and reads your priorities. Nothing else, so an unattended agent ' +
-      'reading untrusted job ads cannot touch your applications or knowledge.',
+      'Adds, lists and rates job leads and reads your priorities and about-me. Nothing else, so an ' +
+      'unattended agent reading untrusted job ads cannot touch your applications or change your knowledge.',
   },
   'inbound:deliver': {
     label: 'mail delivery',
