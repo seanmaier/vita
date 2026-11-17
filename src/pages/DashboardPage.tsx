@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { storage } from '../utils/storage';
 import { applications as staticApps } from '../data/applications';
 import { getLocalApplications, trashLocalApplication } from '../utils/localApplications';
 import { countTrashed } from '../utils/trashCount';
 import { TRASH_RETENTION_DAYS } from '../utils/trash';
 import { getConfigOverride, setConfigOverride } from '../utils/appStorage';
-import { autoAppliedDateFor, autoInterviewDateFor, autoFinalDecisionDateFor } from '../utils/autoStatusDates';
-import { STATUS_LABELS, withAutoGhosting } from '../utils/status';
+import { STATUS_LABELS } from '../utils/status';
+import { changeStatus, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
+import { derivedDates } from '../domain/statusMachine';
 import { ApplicationCard } from '../components/dashboard/ApplicationCard';
-import type { DateFieldName } from '../components/dashboard/ApplicationCard';
 import { ImportApplicationModal } from '../components/ImportApplicationModal';
 import { BackupModal } from '../components/BackupModal';
 import { DashboardNav } from '../components/dashboard/DashboardNav';
@@ -18,15 +17,7 @@ import { matchesStat, type StatKey } from '../utils/applicationStats';
 import { useRatedLeadCount } from '../hooks/useRatedLeadCount';
 import { createNote } from '../utils/notes';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '../types';
-
-function readStatus(id: string, fallback: ApplicationStatus): ApplicationStatus {
-  return (storage.getItem(`status-${id}`) as ApplicationStatus | null) ?? fallback;
-}
-
-function writeStatus(id: string, status: ApplicationStatus) {
-  storage.setItem(`status-${id}`, status);
-}
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note, StatusTransition } from '../types';
 
 type SortField = 'company' | 'role' | 'language' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
 
@@ -44,28 +35,12 @@ export function DashboardPage() {
   const [localApps, setLocalApps] = useState(() => getLocalApplications());
   const allApps = [...staticApps, ...localApps];
 
-  const [statuses, setStatuses] = useState<Record<string, ApplicationStatus>>(() =>
-    Object.fromEntries(allApps.map((a) => {
-      const stored = readStatus(a.id, a.status);
-      const status = withAutoGhosting(stored, getConfigOverride(a.id)?.appliedDate ?? a.appliedDate);
-      // Persist an automatic move to "ghosted" right away (idempotent, so
-      // safe if React runs this initializer twice).
-      if (status !== stored) writeStatus(a.id, status);
-      return [a.id, status];
-    })),
+  // Status and the applied/interview/decision dates all follow each
+  // application's status history.
+  const [histories, setHistories] = useState<Record<string, StatusTransition[]>>(() =>
+    Object.fromEntries(allApps.map((a) => [a.id, historyOf(a)])),
   );
-
-  const [appliedDates, setAppliedDates] = useState<Record<string, string | undefined>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, getConfigOverride(a.id)?.appliedDate ?? a.appliedDate])),
-  );
-
-  const [interviewDates, setInterviewDates] = useState<Record<string, string | undefined>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, getConfigOverride(a.id)?.interviewDate ?? a.interviewDate])),
-  );
-
-  const [finalDecisionDates, setFinalDecisionDates] = useState<Record<string, string | undefined>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, getConfigOverride(a.id)?.finalDecisionDate ?? a.finalDecisionDate])),
-  );
+  const historyFor = (app: ApplicationConfig) => histories[app.id] ?? historyOf(app);
 
   const [notes, setNotes] = useState<Record<string, Note[] | undefined>>(() =>
     Object.fromEntries(allApps.map((a) => [a.id, getConfigOverride(a.id)?.notes ?? a.notes])),
@@ -92,53 +67,11 @@ export function DashboardPage() {
     setStatFilter((prev) => (prev === key || key === 'total' ? null : key));
   };
 
-  const applyAutoDates = (app: ApplicationConfig, prevStatus: ApplicationStatus, nextStatus: ApplicationStatus) => {
-    const autoApplied = autoAppliedDateFor(prevStatus, nextStatus, appliedDates[app.id] ?? app.appliedDate, app.language);
-    const autoInterview = autoInterviewDateFor(prevStatus, nextStatus, interviewDates[app.id] ?? app.interviewDate, app.language);
-    const autoFinalDecision = autoFinalDecisionDateFor(prevStatus, nextStatus, finalDecisionDates[app.id] ?? app.finalDecisionDate, app.language);
-    if (!autoApplied && !autoInterview && !autoFinalDecision) return;
-
-    const { status: _s, ...rest } = app;
-    const base = getConfigOverride(app.id) ?? rest;
-    setConfigOverride(app.id, {
-      ...base,
-      ...(autoApplied && { appliedDate: autoApplied }),
-      ...(autoInterview && { interviewDate: autoInterview }),
-      ...(autoFinalDecision && { finalDecisionDate: autoFinalDecision }),
-    });
-    if (autoApplied) setAppliedDates((prev) => ({ ...prev, [app.id]: autoApplied }));
-    if (autoInterview) setInterviewDates((prev) => ({ ...prev, [app.id]: autoInterview }));
-    if (autoFinalDecision) setFinalDecisionDates((prev) => ({ ...prev, [app.id]: autoFinalDecision }));
-  };
-
-  const handleStatusChange = (id: string, status: ApplicationStatus) => {
-    const app = allApps.find((a) => a.id === id);
-    if (app) applyAutoDates(app, statuses[id] ?? app.status, status);
-    writeStatus(id, status);
-    setStatuses((prev) => ({ ...prev, [id]: status }));
-  };
-
-  const handleFieldChange = (id: string, field: DateFieldName, value: string) => {
-    const app = allApps.find((a) => a.id === id);
-    if (!app) return;
-    const { status: _s, ...rest } = app;
-    const base = getConfigOverride(id) ?? rest;
-    const trimmed = value.trim() || undefined;
-
-    switch (field) {
-      case 'appliedDate':
-        setConfigOverride(id, { ...base, appliedDate: trimmed });
-        setAppliedDates((prev) => ({ ...prev, [id]: trimmed }));
-        break;
-      case 'interviewDate':
-        setConfigOverride(id, { ...base, interviewDate: trimmed });
-        setInterviewDates((prev) => ({ ...prev, [id]: trimmed }));
-        break;
-      case 'finalDecisionDate':
-        setConfigOverride(id, { ...base, finalDecisionDate: trimmed });
-        setFinalDecisionDates((prev) => ({ ...prev, [id]: trimmed }));
-        break;
-    }
+  const handleStatusChange = (app: ApplicationConfig, action: StatusAction) => {
+    changeStatus(app.id, historyFor(app), action).then(
+      (history) => setHistories((prev) => ({ ...prev, [app.id]: history })),
+      (e) => alert(e instanceof Error ? e.message : String(e)),
+    );
   };
 
   const handleNotesAdd = (id: string, text: string) => {
@@ -171,12 +104,11 @@ export function DashboardPage() {
     setTrashSize(countTrashed());
   };
 
-  const statsApps = allApps.map((app) => ({
-    ...app,
-    status: statuses[app.id] ?? app.status,
-    appliedDate: appliedDates[app.id] ?? app.appliedDate,
-    interviewDate: interviewDates[app.id] ?? app.interviewDate,
-  }));
+  const statsApps = allApps.map((app) => {
+    const history = historyFor(app);
+    const { appliedDate: _a, interviewDate: _i, finalDecisionDate: _f, ...rest } = app;
+    return { ...rest, status: statusOf(history), ...derivedDates(history, languageFor(app)) };
+  });
 
   const hasActiveFilter = !!(search || statusFilter || languageFilter || statFilter);
   const clearFilters = () => {
@@ -201,7 +133,7 @@ export function DashboardPage() {
     .filter((app) => {
       const q = search.trim().toLowerCase();
       if (q && !app.company.toLowerCase().includes(q) && !app.role.toLowerCase().includes(q)) return false;
-      if (statusFilter && (statuses[app.id] ?? app.status) !== statusFilter) return false;
+      if (statusFilter && app.status !== statusFilter) return false;
       if (languageFilter && languageFor(app) !== languageFilter) return false;
       if (!matchesStat(app, statFilter)) return false;
       return true;
@@ -209,12 +141,11 @@ export function DashboardPage() {
     .sort((a, b) => {
       if (!sortField) return 0;
       const value = (app: typeof a) => {
-        if (sortField === 'status') return statuses[app.id] ?? app.status;
         if (sortField === 'language') return languageFor(app);
-        // Dates are stored formatted per language, so compare them as ISO dates.
-        if (sortField === 'appliedDate') return numericDateToIso(appliedDates[app.id] ?? app.appliedDate ?? '');
-        if (sortField === 'interviewDate') return numericDateToIso(interviewDates[app.id] ?? app.interviewDate ?? '');
-        if (sortField === 'finalDecisionDate') return numericDateToIso(finalDecisionDates[app.id] ?? app.finalDecisionDate ?? '');
+        // Dates are formatted per language, so compare them as ISO dates.
+        if (sortField === 'appliedDate' || sortField === 'interviewDate' || sortField === 'finalDecisionDate') {
+          return numericDateToIso(app[sortField] ?? '');
+        }
         return app[sortField] ?? '';
       };
       const cmp = value(a).localeCompare(value(b));
@@ -360,13 +291,13 @@ export function DashboardPage() {
                 key={app.id}
                 application={app}
                 language={languageFor(app)}
-                status={statuses[app.id] ?? app.status}
-                appliedDate={appliedDates[app.id] ?? app.appliedDate}
-                interviewDate={interviewDates[app.id] ?? app.interviewDate}
-                finalDecisionDate={finalDecisionDates[app.id] ?? app.finalDecisionDate}
+                status={app.status}
+                canUndo={historyFor(app).length > 1}
+                appliedDate={app.appliedDate}
+                interviewDate={app.interviewDate}
+                finalDecisionDate={app.finalDecisionDate}
                 notes={notes[app.id]}
-                onStatusChange={(s) => handleStatusChange(app.id, s)}
-                onFieldChange={(field, value) => handleFieldChange(app.id, field, value)}
+                onStatusChange={(action) => handleStatusChange(app, action)}
                 onNotesAdd={(text) => handleNotesAdd(app.id, text)}
                 onNotesDelete={(noteId) => handleNotesDelete(app.id, noteId)}
                 onDelete={isLocal ? () => handleDelete(app) : undefined}

@@ -1,43 +1,42 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_LABELS, STATUS_COLORS } from '../../utils/status';
-import { EditableCell } from './EditableCell';
+import { StatusOptions } from '../StatusOptions';
+import type { StatusAction } from '../../utils/statusTransitions';
 import { NotesDialog } from '../NotesDialog';
 import { LANGUAGE_LABELS } from '../../utils/language';
 import { summarizeNotes } from '../../utils/notes';
 import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '../../types';
 
-export type DateFieldName = 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
-
 const dateCellClass = '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] w-[88px] shrink-0 text-right truncate ml-2';
-const dateInputClass = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-1 py-0.5 w-[88px] shrink-0 text-right ml-2 text-[color:var(--ink-invert)] [color-scheme:dark]';
 
 const langBadgeClass = '[font-family:var(--font-mono)] uppercase tracking-[0.06em] leading-none shrink-0 text-[color:var(--ink-2)] border border-[color:var(--rule)] rounded px-1 py-[3px]';
 
 // Card layout (below lg): dates sit in a labelled 3-column grid instead of
-// fixed-width table cells.
+// fixed-width table cells. They follow the status history; to change one,
+// edit its step on the application's timeline.
 const cardLabelClass = '[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-[color:var(--ink-3)]';
 const cardDateClass = '[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] block truncate py-1';
-const cardDateInputClass = '[font-family:var(--font-mono)] text-[12px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-1 py-1 w-full text-[color:var(--ink-invert)] [color-scheme:dark]';
 
 interface Props {
   application: ApplicationConfig;
   /** The effective language, including edits saved on top of the application. */
   language: AppLanguage;
   status: ApplicationStatus;
+  /** Whether the status history has a step to undo. */
+  canUndo: boolean;
   appliedDate?: string;
   interviewDate?: string;
   finalDecisionDate?: string;
   notes?: Note[];
-  onStatusChange: (status: ApplicationStatus) => void;
-  onFieldChange: (field: DateFieldName, value: string) => void;
+  onStatusChange: (action: StatusAction) => void;
   onNotesAdd: (text: string) => void;
   onNotesDelete: (id: string) => void;
   onDelete?: () => void;
 }
 
 export function ApplicationCard({
-  application, language, status, appliedDate, interviewDate, finalDecisionDate, notes, onStatusChange, onFieldChange,
+  application, language, status, canUndo, appliedDate, interviewDate, finalDecisionDate, notes, onStatusChange,
   onNotesAdd, onNotesDelete, onDelete,
 }: Props) {
   const navigate = useNavigate();
@@ -51,14 +50,14 @@ export function ApplicationCard({
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     e.stopPropagation();
-    onStatusChange(e.target.value as ApplicationStatus);
+    onStatusChange(e.target.value as StatusAction);
     setEditingStatus(false);
   };
 
   const handleStatusBlur = () => setEditingStatus(false);
 
   const open = () => navigate(`/application/${application.id}`);
-  const dateFields: { field: DateFieldName; label: string; value?: string }[] = [
+  const dateFields: { field: string; label: string; value?: string }[] = [
     { field: 'appliedDate', label: 'applied', value: appliedDate },
     { field: 'interviewDate', label: 'interview', value: interviewDate },
     { field: 'finalDecisionDate', label: 'decision', value: finalDecisionDate },
@@ -112,28 +111,18 @@ export function ApplicationCard({
         className="self-start [font-family:var(--font-mono)] text-[12px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-2 py-1.5 cursor-pointer"
         value={status}
         style={{ color: STATUS_COLORS[status] }}
-        onChange={(e) => onStatusChange(e.target.value as ApplicationStatus)}
+        onChange={(e) => onStatusChange(e.target.value as StatusAction)}
         onClick={(e) => e.stopPropagation()}
         aria-label="Status"
       >
-        {Object.entries(STATUS_LABELS).map(([v, l]) => (
-          <option key={v} value={v} className="text-[color:var(--ink-invert)] bg-[color:var(--surface)]">{l}</option>
-        ))}
+        <StatusOptions status={status} canUndo={canUndo} />
       </select>
 
       <div className="grid grid-cols-3 gap-2">
         {dateFields.map(({ field, label, value }) => (
           <div key={field} className="min-w-0">
             <div className={cardLabelClass}>{label}</div>
-            <EditableCell
-              value={value ?? ''}
-              onCommit={(v) => onFieldChange(field, v)}
-              className={cardDateClass}
-              editClassName={cardDateInputClass}
-              isDate
-              language={language}
-              title={`Tap to edit ${label} date`}
-            />
+            <span className={cardDateClass}>{value || '—'}</span>
           </div>
         ))}
       </div>
@@ -197,9 +186,7 @@ export function ApplicationCard({
             onBlur={handleStatusBlur}
             onClick={(e) => e.stopPropagation()}
           >
-            {Object.entries(STATUS_LABELS).map(([v, l]) => (
-              <option key={v} value={v} className="text-[color:var(--ink-invert)] bg-[color:var(--surface)]">{l}</option>
-            ))}
+            <StatusOptions status={status} canUndo={canUndo} />
           </select>
         ) : (
           <span
@@ -213,38 +200,12 @@ export function ApplicationCard({
         )}
       </div>
 
-      {/* Applied date */}
-      <EditableCell
-        value={appliedDate ?? ''}
-        onCommit={(v) => onFieldChange('appliedDate', v)}
-        className={dateCellClass}
-        editClassName={dateInputClass}
-        isDate
-        language={language}
-        title="Click to edit applied date"
-      />
-
-      {/* Interview date */}
-      <EditableCell
-        value={interviewDate ?? ''}
-        onCommit={(v) => onFieldChange('interviewDate', v)}
-        className={dateCellClass}
-        editClassName={dateInputClass}
-        isDate
-        language={language}
-        title="Click to edit interview date"
-      />
-
-      {/* Final decision date */}
-      <EditableCell
-        value={finalDecisionDate ?? ''}
-        onCommit={(v) => onFieldChange('finalDecisionDate', v)}
-        className={dateCellClass}
-        editClassName={dateInputClass}
-        isDate
-        language={language}
-        title="Click to edit final decision date"
-      />
+      {/* Dates, from the status history */}
+      {dateFields.map(({ field, label, value }) => (
+        <span key={field} className={dateCellClass} title={`${label} date — change it on the application's timeline`}>
+          {value || '—'}
+        </span>
+      ))}
 
       {/* Notes — the cell only previews; adding/viewing happens in a dialog */}
       <span

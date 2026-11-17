@@ -52,6 +52,7 @@ export function deleteLocalApplicationPermanently(id: string): void {
   writeList(getAllLocalApplications().filter((a) => a.id !== id));
   clearConfigOverride(id);
   storage.removeItem(`status-${id}`);
+  storage.removeItem(`status-history-${id}`);
 }
 
 export function isLocalApplication(id: string): boolean {

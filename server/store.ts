@@ -3,12 +3,14 @@ import type { KnowledgeDoc } from './knowledge.ts';
 
 // Typed access to the per-user kv rows the frontend writes. Keys and value
 // formats must stay in sync with src/utils/{localApplications,appStorage,
-// baseProfiles}.ts and src/hooks/useApplicationStatus.ts.
+// baseProfiles}.ts and src/utils/statusTransitions.ts.
 export const KEYS = {
   localApps: 'local-apps',
   baseProfiles: 'base-profiles',
   appConfig: (id: string) => `app-config-${id}`,
+  /** Legacy single status; read only when no history exists (see server/statusHistory.ts). */
   status: (id: string) => `status-${id}`,
+  statusHistory: (id: string) => `status-history-${id}`,
   knowledge: (doc: KnowledgeDoc) => `knowledge-${doc}`,
 };
 

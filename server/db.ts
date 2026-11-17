@@ -1,6 +1,8 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { seedHistory } from '../src/domain/statusMachine.ts';
+import type { ApplicationConfig, ApplicationStatus } from '../src/types.ts';
 
 const DB_PATH = process.env.DB_PATH ?? path.resolve('data', 'app.db');
 
@@ -93,6 +95,49 @@ export function migrate(): void {
     // What the token may call; tokens that predate scopes keep full access.
     db.exec("ALTER TABLE api_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'full'");
   }
+  migrateStatusHistories();
+}
+
+function parseJsonValue<T>(raw: string | undefined): T | null {
+  if (raw === undefined) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gives every application the server knows a status history (kv
+ * `status-history-<id>`), seeded from its old `status-<id>` value and date
+ * fields; a stored "ghosted" becomes "sent", since ghosted is now derived.
+ * Applications that already have a history are left alone. The old values
+ * stay in place, so the previous version still works after a rollback.
+ */
+function migrateStatusHistories(): void {
+  const rows = db.prepare('SELECT user_id, key, value FROM kv').all() as { user_id: number; key: string; value: string }[];
+  const byUser = new Map<number, Map<string, string>>();
+  for (const row of rows) {
+    if (!byUser.has(row.user_id)) byUser.set(row.user_id, new Map());
+    byUser.get(row.user_id)!.set(row.key, row.value);
+  }
+  const insert = db.prepare('INSERT OR IGNORE INTO kv (user_id, key, value) VALUES (?, ?, ?)');
+  transaction(() => {
+    for (const [userId, kv] of byUser) {
+      const list = parseJsonValue<ApplicationConfig[]>(kv.get('local-apps')) ?? [];
+      const ids = new Set([
+        ...list.map((a) => a.id),
+        ...[...kv.keys()].filter((k) => k.startsWith('status-') && !k.startsWith('status-history-')).map((k) => k.slice('status-'.length)),
+      ]);
+      for (const id of ids) {
+        if (kv.has(`status-history-${id}`)) continue;
+        const base = list.find((a) => a.id === id);
+        const status = (kv.get(`status-${id}`) as ApplicationStatus | undefined) ?? base?.status ?? 'drafting';
+        const dates = parseJsonValue<Partial<ApplicationConfig>>(kv.get(`app-config-${id}`)) ?? base ?? {};
+        insert.run(userId, `status-history-${id}`, JSON.stringify(seedHistory(status, dates)));
+      }
+    }
+  });
 }
 
 migrate();

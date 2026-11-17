@@ -28,7 +28,7 @@ import { JsonConfigPanel } from '../components/JsonConfigPanel';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
 import { MoveButtons } from '../components/MoveButtons';
 import { move } from '../utils/move';
-import { formatDateLong, formatDateNumeric, numericDateToIso, parseToIsoDate } from '../utils/date';
+import { formatDateLong, parseToIsoDate } from '../utils/date';
 import { DEFAULT_CLOSINGS } from '../utils/coverLetterClosing';
 import {
   nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,
@@ -63,9 +63,6 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
   const [company, setCompany] = useState(app.company);
   const [role, setRole] = useState(app.role);
   const [url, setUrl] = useState(app.url ?? '');
-  const [appliedDateISO, setAppliedDateISO] = useState(() => numericDateToIso(app.appliedDate ?? ''));
-  const [interviewDateISO, setInterviewDateISO] = useState(() => numericDateToIso(app.interviewDate ?? ''));
-  const [finalDecisionDateISO, setFinalDecisionDateISO] = useState(() => numericDateToIso(app.finalDecisionDate ?? ''));
   const [language, setLanguage] = useState<AppLanguage>(app.language ?? 'en');
   const [font, setFont] = useState<AppFont>(app.font ?? 'sans');
   const [baseProfiles] = useState(() => getBaseProfiles());
@@ -120,9 +117,12 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
     font,
     ...(baseProfileId && { baseProfileId }),
     ...(url && { url }),
-    ...(appliedDateISO && { appliedDate: formatDateNumeric(appliedDateISO, language) }),
-    ...(interviewDateISO && { interviewDate: formatDateNumeric(interviewDateISO, language) }),
-    ...(finalDecisionDateISO && { finalDecisionDate: formatDateNumeric(finalDecisionDateISO, language) }),
+    // The dates follow the status history (changed on the application's
+    // timeline). Old values are carried along untouched: they are what an
+    // application without a recorded history yet reads its dates from.
+    ...(app.appliedDate && { appliedDate: app.appliedDate }),
+    ...(app.interviewDate && { interviewDate: app.interviewDate }),
+    ...(app.finalDecisionDate && { finalDecisionDate: app.finalDecisionDate }),
     ...(app.notes && { notes: app.notes }),
     ...(hasSummaryOverride && { summaryOverride }),
     featuredProjectIds: featuredIds,
@@ -317,43 +317,6 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
                   <option key={f} value={f}>{FONT_LABELS[f]}</option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          <div className={nafSection}>
-            <span className={nafLabel}>
-              Applied date <span className={nafOptional}>(optional)</span>
-            </span>
-            <input
-              type="date"
-              className={nafInput}
-              value={appliedDateISO}
-              onChange={(e) => setAppliedDateISO(e.target.value)}
-            />
-          </div>
-
-          <div className={nafRow}>
-            <div className={nafSection}>
-              <span className={nafLabel}>
-                Interview date <span className={nafOptional}>(optional)</span>
-              </span>
-              <input
-                type="date"
-                className={nafInput}
-                value={interviewDateISO}
-                onChange={(e) => setInterviewDateISO(e.target.value)}
-              />
-            </div>
-            <div className={nafSection}>
-              <span className={nafLabel}>
-                Final decision date <span className={nafOptional}>(optional)</span>
-              </span>
-              <input
-                type="date"
-                className={nafInput}
-                value={finalDecisionDateISO}
-                onChange={(e) => setFinalDecisionDateISO(e.target.value)}
-              />
             </div>
           </div>
 

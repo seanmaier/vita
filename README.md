@@ -82,7 +82,8 @@ and it never runs with `NODE_ENV=production`.
 
 All edits (applications, statuses, notes, base profiles) are stored per user
 on the server. To move data over from the old browser-only version, export a
-backup there and restore it after logging in.
+backup there and import it after logging in. Importing only adds what the
+account doesn't have yet; nothing that exists is overwritten.
 
 ## Scripts
 
@@ -132,9 +133,12 @@ Tokens work only here, not on login, password, token or raw-data routes.
 | Method | Path | |
 |--------|------|-|
 | GET | `/api/v1/me` | the token's user |
-| GET | `/api/v1/applications`, `/api/v1/applications/:id` | applications as the app shows them (saved edits and status merged in); the list takes `?language=en|de|sv`, leaves out trashed ones, and `?trash=true` lists only those |
+| GET | `/api/v1/applications`, `/api/v1/applications/:id` | applications as the app shows them (saved edits merged in; `status` and the applied/interview/decision dates derived from `statusHistory`); the list takes `?language=en|de|sv`, leaves out trashed ones, and `?trash=true` lists only those |
 | POST | `/api/v1/applications` | create; always starts as `drafting` |
-| PATCH | `/api/v1/applications/:id` | update given fields, `null` removes one (not while trashed) |
+| PATCH | `/api/v1/applications/:id` | update given fields, `null` removes one (not while trashed); status and dates aren't fields here |
+| POST | `/api/v1/applications/:id/transitions` | move the status one step: `{ to, date?, expected? }`; `date` (YYYY-MM-DD) defaults to today, `expected` guards against a stale view; 409 lists the allowed steps |
+| DELETE | `/api/v1/applications/:id/transitions/last` | undo the last status step (not the initial draft) |
+| PATCH | `/api/v1/applications/:id/transitions/:index` | correct when step `index` happened: `{ date }` |
 | GET | `/api/v1/applications/:id/versions` | version history, newest first: `id`, `createdAt`, `author`, `message`, `content` |
 | POST | `/api/v1/applications/:id/versions/:versionId/restore` | make an older version current (recorded as a new version) |
 | GET | `/api/v1/base-profiles`, `/api/v1/base-profiles/:id` | base profiles; the list leaves out trashed ones, `?trash=true` lists only those (with `purgesAt`) |

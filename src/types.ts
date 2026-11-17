@@ -59,7 +59,21 @@ export type ApplicationStatus =
   | 'offer'
   | 'rejected'
   | 'ghosted'
-  | 'withdrawn';
+  | 'withdrawn'
+  | 'accepted'
+  | 'declined';
+
+/** A status that is recorded in an application's history; "ghosted" is only ever derived (see src/domain/statusMachine.ts). */
+export type StoredStatus = Exclude<ApplicationStatus, 'ghosted'>;
+
+/** One step in an application's status history (kv key `status-history-<id>`), oldest first. */
+export interface StatusTransition {
+  to: StoredStatus;
+  /** When it happened, "YYYY-MM-DD"; may be backdated. Null only for steps migrated from data without that date. */
+  date: string | null;
+  /** When it was entered (ISO timestamp); null for migrated steps. */
+  recordedAt: string | null;
+}
 
 export interface CoverLetter {
   recipientOrg: string;

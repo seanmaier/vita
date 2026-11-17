@@ -143,7 +143,7 @@ transaction(() => {
   const current = history[history.length - 1].content;
   setJson(userId, KEYS.localApps, [{ ...base, status: 'drafting' }, withoutHistory]);
   setJson(userId, KEYS.appConfig(APP_ID), current);
-  setValue(userId, KEYS.status(APP_ID), 'drafting');
+  setJson(userId, KEYS.statusHistory(APP_ID), [{ to: 'drafting', date: null, recordedAt: null }]);
   setValue(userId, 'tour-seen', '1');
 
   const insert = db.prepare(

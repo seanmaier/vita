@@ -26,5 +26,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests of shared modules run under Node and are checked with the server config.
+  "exclude": ["src/**/*.test.ts"]
 }

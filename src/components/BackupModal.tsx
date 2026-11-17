@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { exportAllData, downloadBackup, parseBackup, applyBackup } from '../utils/dataBackup';
-import { flush } from '../utils/storage';
+import { exportAllData, downloadBackup, parseBackup, importBackup } from '../utils/dataBackup';
 import type { DataBackup } from '../utils/dataBackup';
 
 interface Props {
@@ -43,23 +42,26 @@ export function BackupModal({ onClose }: Props) {
     reader.readAsText(file);
   };
 
-  const handleRestore = () => {
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = async () => {
     if (!pendingBackup) return;
-    const appCount = pendingBackup.localApps.length;
-    const overrideCount = Object.keys(pendingBackup.configOverrides).length;
-    const profileCount = pendingBackup.baseProfiles?.length;
-    const profileSummary = profileCount === undefined
-      ? 'your current base profiles are kept, since this backup predates them'
-      : `${profileCount} base profile${profileCount === 1 ? '' : 's'}`;
-    const confirmed = confirm(
-      `This replaces ALL applications, statuses, dates, notes, base profiles, and profile customizations currently stored in your account ` +
-      `with the backup (${appCount} local application${appCount === 1 ? '' : 's'}, ${overrideCount} saved edit${overrideCount === 1 ? '' : 's'}, ${profileSummary}). ` +
-      `This cannot be undone. Continue?`,
-    );
-    if (!confirmed) return;
-    applyBackup(pendingBackup);
-    // Reload only once the server has the restored data, or it would come back stale.
-    flush().then(() => window.location.reload(), (e) => alert(`Restoring failed: ${e instanceof Error ? e.message : e}`));
+    setImporting(true);
+    try {
+      const { added, skipped, addedProfiles } = await importBackup(pendingBackup);
+      const list = (ids: string[]) => (ids.length ? `: ${ids.join(', ')}` : '');
+      alert(
+        `Added ${added.length} application${added.length === 1 ? '' : 's'}${list(added)}.
+` +
+        `Skipped ${skipped.length} that already exist${list(skipped)}.
+` +
+        `Added ${addedProfiles.length} base profile${addedProfiles.length === 1 ? '' : 's'}${list(addedProfiles)}.`,
+      );
+      window.location.reload();
+    } catch (e) {
+      setError(`Import failed: ${e instanceof Error ? e.message : e}`);
+      setImporting(false);
+    }
   };
 
   return (
@@ -86,7 +88,7 @@ export function BackupModal({ onClose }: Props) {
               Export
             </span>
             <p className="text-[12.5px] text-[color:var(--ink-2)] leading-[1.5] m-0">
-              Downloads every application, its status/dates/notes, your base profiles, and any profile customizations stored in your account as one JSON file — for moving data between accounts or as a backup.
+              Downloads every application, its status history and notes, your base profiles, and any profile customizations stored in your account as one JSON file — for moving data between accounts or as a backup.
             </p>
             <button
               className="self-start [font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
@@ -103,7 +105,7 @@ export function BackupModal({ onClose }: Props) {
               Import
             </span>
             <p className="text-[12.5px] text-[color:var(--ink-2)] leading-[1.5] m-0">
-              Restores from a backup file exported above. This replaces everything currently stored in your account.
+              Adds what's missing from a backup file exported above: applications and base profiles your account doesn't have yet. Nothing that already exists is changed; those are skipped.
             </p>
             <input
               ref={fileInputRef}
@@ -123,10 +125,10 @@ export function BackupModal({ onClose }: Props) {
             )}
             <button
               className="self-start [font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--accent)] border border-[color:var(--accent)] rounded px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-[color:var(--accent)] hover:text-[color:var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[color:var(--accent)]"
-              disabled={!pendingBackup}
-              onClick={handleRestore}
+              disabled={!pendingBackup || importing}
+              onClick={handleImport}
             >
-              Restore from backup
+              {importing ? 'Importing…' : 'Add from backup'}
             </button>
           </div>
         </div>

@@ -1,23 +1,19 @@
-import { useEffect, useState } from 'react';
-import { storage } from '../utils/storage';
-import { withAutoGhosting } from '../utils/status';
-import type { ApplicationStatus } from '../types';
+import { useState } from 'react';
+import { changeStatus, changeStepDate, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
+import type { ApplicationConfig } from '../types';
 
-export function useApplicationStatus(appId: string, initial: ApplicationStatus, appliedDate?: string) {
-  const key = `status-${appId}`;
-  const [status, setStatusState] = useState<ApplicationStatus>(() =>
-    withAutoGhosting((storage.getItem(key) as ApplicationStatus | null) ?? initial, appliedDate),
-  );
+const showError = (e: unknown) => alert(e instanceof Error ? e.message : String(e));
 
-  // Persist an automatic move to "ghosted", so it doesn't only exist on screen.
-  useEffect(() => {
-    if (storage.getItem(key) !== status && status === 'ghosted') storage.setItem(key, status);
-  }, [key, status]);
+/** An application's status history, its current status, and the ways to change them (refusals are shown to the user). */
+export function useApplicationStatus(app: ApplicationConfig) {
+  const [history, setHistory] = useState(() => historyOf(app));
 
-  const setStatus = (s: ApplicationStatus) => {
-    storage.setItem(key, s);
-    setStatusState(s);
+  const act = (action: StatusAction) => {
+    changeStatus(app.id, history, action).then(setHistory, showError);
+  };
+  const changeDate = (index: number, date: string) => {
+    changeStepDate(app.id, history, index, date).then(setHistory, showError);
   };
 
-  return [status, setStatus] as const;
+  return { history, status: statusOf(history), act, changeDate };
 }

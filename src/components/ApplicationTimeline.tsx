@@ -1,20 +1,25 @@
-import { STATUS_COLORS, GHOSTED_AFTER_DAYS, ghostedOn } from '../utils/status';
-import { formatDateNumeric, formatDateTime, numericDateToIso, todayIso, toIsoDate } from '../utils/date';
+import { useState } from 'react';
+import { STATUS_COLORS, STATUS_LABELS } from '../utils/status';
+import { GHOSTED_AFTER_DAYS, ghostedOn } from '../domain/statusMachine';
+import { formatDateNumeric, formatDateTime, todayIso, toIsoDate } from '../utils/date';
 import { linkify } from '../utils/linkify';
-import type { ApplicationConfig, ApplicationStatus, AppLanguage } from '../types';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, StatusTransition } from '../types';
 
 interface Props {
   app: ApplicationConfig;
+  history: StatusTransition[];
   status: ApplicationStatus;
   language: AppLanguage;
   onDeleteNote: (id: string) => void;
+  /** Changes when step `index` of the status history happened. */
+  onChangeDate: (index: number, date: string) => void;
 }
 
 interface TimelineEvent {
   key: string;
   /**
-   * Sorts the timeline: "YYYY-MM-DD" for status dates, "YYYY-MM-DDTHH:MM:SS"
-   * (local time) for notes, so on the same day the status date comes first.
+   * Sorts the timeline: "YYYY-MM-DD" for status steps, "YYYY-MM-DDTHH:MM:SS"
+   * (local time) for notes, so on the same day the status step comes first.
    * '' when unknown — such events go to the top.
    */
   sortKey: string;
@@ -23,18 +28,9 @@ interface TimelineEvent {
   color: string;
   text?: string;
   noteId?: string;
-}
-
-const DECISION_LABELS: Partial<Record<ApplicationStatus, string>> = {
-  offer: 'Offer',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-};
-
-function statusEvent(key: string, label: string, color: string, value: string | undefined, language: AppLanguage): TimelineEvent[] {
-  if (!value) return [];
-  const iso = numericDateToIso(value);
-  return [{ key, sortKey: iso, dateLabel: iso ? formatDateNumeric(iso, language) : value, label, color }];
+  /** The status step this event shows, whose date can be changed. */
+  stepIndex?: number;
+  stepDate?: string | null;
 }
 
 function noteSortKey(createdAt: string | undefined): string {
@@ -44,24 +40,33 @@ function noteSortKey(createdAt: string | undefined): string {
   return `${toIsoDate(date)}T${date.toTimeString().slice(0, 8)}`;
 }
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /**
  * The application's history in chronological order: its notes together with
- * the status dates (applied, interview, decision) and, for a ghosted
- * application, the day it went without a response for too long. The
- * earliest note is labelled as the initial one.
+ * every recorded status step after the first draft and, for a ghosted
+ * application, the day it went without a response for too long. The earliest
+ * note is labelled as the initial one.
  */
-function buildTimeline(app: ApplicationConfig, status: ApplicationStatus, language: AppLanguage): TimelineEvent[] {
-  const decisionLabel = DECISION_LABELS[status];
+function buildTimeline(app: ApplicationConfig, history: StatusTransition[], status: ApplicationStatus, language: AppLanguage): TimelineEvent[] {
+  // A step without a known date (from data before the history existed) sorts
+  // with the step before it, so the steps keep their order.
+  let previousKey = '';
+  const steps = history.map((step, index) => {
+    previousKey = step.date ?? previousKey;
+    return {
+      key: `step-${index}`,
+      sortKey: previousKey,
+      dateLabel: step.date ? formatDateNumeric(step.date, language) : 'date unknown',
+      label: capitalize(STATUS_LABELS[step.to]),
+      color: STATUS_COLORS[step.to],
+      stepIndex: index,
+      stepDate: step.date,
+    };
+  }).slice(1);
+
   const events: TimelineEvent[] = [
-    ...statusEvent('applied', 'Applied', STATUS_COLORS.sent, app.appliedDate, language),
-    ...statusEvent('interview', 'Interview', STATUS_COLORS.interview, app.interviewDate, language),
-    ...statusEvent(
-      'decision',
-      decisionLabel ?? 'Final decision',
-      decisionLabel ? STATUS_COLORS[status] : 'var(--ink-2)',
-      app.finalDecisionDate,
-      language,
-    ),
+    ...steps,
     ...(app.notes ?? []).map((note) => ({
       key: note.id,
       sortKey: noteSortKey(note.createdAt),
@@ -72,14 +77,13 @@ function buildTimeline(app: ApplicationConfig, status: ApplicationStatus, langua
       noteId: note.id,
     })),
   ];
-  if (status === 'ghosted') {
-    // Set by hand before the deadline, the deadline would lie in the future.
-    const due = ghostedOn(app.appliedDate);
-    const date = due && due < todayIso() ? due : todayIso();
+  const sentOn = history.at(-1)?.date;
+  if (status === 'ghosted' && sentOn) {
+    const due = ghostedOn(sentOn);
     events.push({
       key: 'ghosted',
-      sortKey: due ? date : '￿', // without an applied date: last
-      dateLabel: due ? formatDateNumeric(date, language) : '',
+      sortKey: due < todayIso() ? due : todayIso(),
+      dateLabel: formatDateNumeric(due, language),
       label: 'Ghosted',
       color: STATUS_COLORS.ghosted,
       text: `No response ${GHOSTED_AFTER_DAYS}+ days after applying.`,
@@ -91,10 +95,37 @@ function buildTimeline(app: ApplicationConfig, status: ApplicationStatus, langua
   return events;
 }
 
+const actionClass =
+  '[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)] bg-transparent border-none cursor-pointer opacity-0 group-hover/event:opacity-100 focus:opacity-100 transition-opacity';
+
+/** A step's date with an inline date picker to correct it. */
+function StepDate({ event, onChange }: { event: TimelineEvent; onChange: (date: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <input
+        type="date"
+        autoFocus
+        defaultValue={event.stepDate ?? ''}
+        className="[font-family:var(--font-mono)] text-[10px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-1 text-[color:var(--ink-invert)] [color-scheme:dark]"
+        onChange={(e) => e.target.value && onChange(e.target.value)}
+        onBlur={() => setEditing(false)}
+        onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
+        aria-label={`Date of ${event.label}`}
+      />
+    );
+  }
+  return (
+    <button type="button" className={actionClass} onClick={() => setEditing(true)} aria-label={`Change the date of ${event.label}`}>
+      ✎ date
+    </button>
+  );
+}
+
 // The notes panel of the application page: a log of what happened, from the
-// first note through applying and interviews to the decision.
-export function ApplicationTimeline({ app, status, language, onDeleteNote }: Props) {
-  const events = buildTimeline(app, status, language);
+// first note through every status step to the decision.
+export function ApplicationTimeline({ app, history, status, language, onDeleteNote, onChangeDate }: Props) {
+  const events = buildTimeline(app, history, status, language);
 
   if (events.length === 0) {
     return <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] italic m-0">No notes yet.</p>;
@@ -115,10 +146,13 @@ export function ApplicationTimeline({ app, status, language, onDeleteNote }: Pro
               </span>
               <span className="[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)]">{event.dateLabel}</span>
             </div>
+            {event.stepIndex !== undefined && (
+              <StepDate event={event} onChange={(date) => onChangeDate(event.stepIndex!, date)} />
+            )}
             {event.noteId && (
               <button
                 type="button"
-                className="[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)] bg-transparent border-none cursor-pointer opacity-0 group-hover/event:opacity-100 focus:opacity-100 hover:text-[color:var(--status-rejected)] transition-opacity"
+                className={`${actionClass} hover:text-[color:var(--status-rejected)]`}
                 onClick={() => onDeleteNote(event.noteId!)}
                 aria-label="Delete note"
               >
