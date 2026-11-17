@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { criteriaScore, validateCriteria, validateExclusion } from './fitCriteria.ts';
+import { breakdownText, criteriaScore, criterionPoints, validateCriteria, validateExclusion } from './fitCriteria.ts';
 
 const criteria = [
   { name: 'A', weight: 60, fulfilled: 50 },
@@ -61,4 +61,14 @@ test('an exclusion is a non-empty string of at most 500 characters', () => {
     assert.equal(result, undefined);
     assert.ok(errors[0].startsWith('"fit.exclusion"'));
   }
+});
+
+test('a criterion earns its weight times its fulfilment, rounded', () => {
+  assert.equal(criterionPoints({ name: 'A', weight: 15, fulfilled: 50 }), 8);
+  assert.equal(criterionPoints({ name: 'A', weight: 20, fulfilled: 75 }), 15);
+});
+
+test('the breakdown text lists each criterion and the exclusion', () => {
+  assert.equal(breakdownText(criteria), 'A: 50 % × 60 = 30\nB: 75 % × 40 = 30');
+  assert.equal(breakdownText(criteria, 'Freelance'), 'A: 50 % × 60 = 30\nB: 75 % × 40 = 30\nExcluded: Freelance');
 });

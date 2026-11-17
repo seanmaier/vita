@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLeads, updateLead } from '../utils/api';
 import type { JobLead, JobLeadStatus } from '../types';
+import { CriteriaBreakdown } from '../components/CriteriaBreakdown';
 
 type Filter = Extract<JobLeadStatus, 'rated' | 'new' | 'dismissed'>;
 
@@ -56,6 +57,7 @@ function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' 
         )}
       </div>
       {lead.verdict && <p className="text-[12.5px] leading-[1.55] text-[color:var(--ink-2)] m-0">{lead.verdict}</p>}
+      <CriteriaBreakdown criteria={lead.criteria} exclusion={lead.exclusion} />
       <div className="flex flex-wrap items-center gap-2">
         <a
           className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--accent)] no-underline hover:underline mr-2"

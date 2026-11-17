@@ -48,3 +48,15 @@ export function validateExclusion(value: unknown, field: string, errors: string[
   }
   return text;
 }
+
+/** The points one criterion adds to the score: weight × fulfilled / 100, rounded. */
+export function criterionPoints(c: FitCriterion): number {
+  return Math.round((c.weight * c.fulfilled) / 100);
+}
+
+/** The breakdown as plain lines, e.g. for a tooltip. */
+export function breakdownText(criteria: FitCriterion[], exclusion?: string): string {
+  const lines = criteria.map((c) => `${c.name}: ${c.fulfilled} % × ${c.weight} = ${criterionPoints(c)}`);
+  if (exclusion) lines.push(`Excluded: ${exclusion}`);
+  return lines.join('\n');
+}
