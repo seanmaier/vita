@@ -1,4 +1,4 @@
-import type { AppLanguage } from '../types.ts';
+import type { AppLanguage } from '#shared/types.ts';
 
 export const LANGUAGES: AppLanguage[] = ['en', 'de', 'sv'];
 

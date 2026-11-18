@@ -1,6 +1,6 @@
 // Pure validation for job leads, shared by the POST and PATCH routes.
-import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '../src/types.ts';
-import { criteriaScore, validateCriteria, validateExclusion } from '../src/utils/fitCriteria.ts';
+import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '#shared/types.ts';
+import { criteriaScore, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
 import { isPlainObject, type Body, type Validated } from './http.ts';
 
 export const LEAD_SOURCES: readonly JobLeadSource[] = ['linkedin', 'stepstone', 'indeed', 'glassdoor', 'instaffo', 'arbeitsagentur', 'other'];

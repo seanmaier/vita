@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { AppFont, AppLanguage, ApplicationConfig, BaseProfile } from '../types';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../utils/language';
+import type { AppFont, AppLanguage, ApplicationConfig, BaseProfile } from '#shared/types.ts';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 import { ALL_FONTS, FONT_LABELS } from '../utils/fonts';
 import { getProfile } from '../data/profiles';
 import { getBaseProfiles } from '../utils/baseProfiles';
@@ -14,7 +14,7 @@ import { ImportApplicationModal } from '../components/ImportApplicationModal';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
 import { MoveButtons } from '../components/MoveButtons';
 import { move } from '../utils/move';
-import { formatDateLong } from '../utils/date';
+import { formatDateLong } from '#shared/utils/date.ts';
 import {
   nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,
   nafCheckboxLabel, nafCheckboxInput, nafParagraphRow, nafRemoveBtn, nafAddBtn,

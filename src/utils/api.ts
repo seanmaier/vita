@@ -1,5 +1,5 @@
 import { flush, hydrate, localWriteCount } from './storage';
-import type { InboundEvent, JobAlertsConfig, JobLead, JobLeadStatus } from '../types';
+import type { InboundEvent, JobAlertsConfig, JobLead, JobLeadStatus } from '#shared/types.ts';
 import type { AppVersion } from './versionDiff';
 
 export interface SessionUser {

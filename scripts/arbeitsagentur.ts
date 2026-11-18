@@ -4,7 +4,7 @@
 // The API is unofficial (documented at jobsuche.api.bund.dev). Only the first page
 // (100 hits) is read; the server only refreshes leads it already knows when they are submitted.
 import { pathToFileURL } from 'node:url';
-import type { JobLeadInput } from '../src/types.ts';
+import type { JobLeadInput } from '#shared/types.ts';
 
 const BASE = 'https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs';
 const API_KEY = 'jobboerse-jobsuche'; // secret-scan:allow (public Bundesagentur key, same for everyone)

@@ -6,7 +6,7 @@
 //
 //   user:     dev
 //   password: devpassword
-import type { ApplicationConfig, CoverLetter, FitCriterion, SkillGroup } from '../src/types.ts';
+import type { ApplicationConfig, CoverLetter, FitCriterion, SkillGroup } from '#shared/types.ts';
 import { hashPassword } from './auth.ts';
 import { db, transaction } from './db.ts';
 import { BROWSER_AUTHOR, type VersionContent } from './history.ts';

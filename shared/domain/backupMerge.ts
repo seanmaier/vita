@@ -2,8 +2,8 @@
 // doesn't have yet is added, nothing it has is overwritten. Pure functions
 // over the account's raw kv entries, so the server (POST /api/import) and the
 // demo (which never talks to the server) merge the same way.
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, Profile, StatusTransition } from '../types.ts';
-import { seedHistory, validateHistory } from './statusMachine.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, Profile, StatusTransition } from '#shared/types.ts';
+import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 

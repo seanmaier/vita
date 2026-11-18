@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { ApplicationConfig } from '../types';
-import { parseApplicationConfig } from '../utils/parseApplicationConfig';
+import type { ApplicationConfig } from '#shared/types.ts';
+import { parseApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
 
 interface Props {
   text: string;

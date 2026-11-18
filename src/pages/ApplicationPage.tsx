@@ -17,7 +17,7 @@ import { FONT_LABELS, ALL_FONTS } from '../utils/fonts';
 import { generateTextExport } from '../utils/textExport';
 import { NotesDialog } from '../components/NotesDialog';
 import { ApplicationTimeline } from '../components/ApplicationTimeline';
-import { createNote } from '../utils/notes';
+import { createNote } from '#shared/utils/notes.ts';
 import { buildPdfFilename, type PrintTarget } from '../utils/pdfFilename';
 import {
   sanitizeFolderName, renderPageCanvases, buildPdfBlob, writeApplicationPdfs, downloadPdfBlob,
@@ -25,8 +25,8 @@ import {
 import {
   isFileSystemAccessSupported, getSavedExportFolder, chooseExportFolder, ensureExportFolderPermission,
 } from '../utils/exportFolder';
-import { LANGUAGE_LABELS, languageOf } from '../utils/language';
-import type { ApplicationConfig, AppFont, CoverLetter } from '../types';
+import { LANGUAGE_LABELS, languageOf } from '#shared/utils/language.ts';
+import type { ApplicationConfig, AppFont, CoverLetter } from '#shared/types.ts';
 
 
 export function ApplicationPage() {

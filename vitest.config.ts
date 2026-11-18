@@ -23,7 +23,7 @@ export default defineConfig({
         test: {
           name: 'shared',
           environment: 'node',
-          include: ['scripts/**/*.test.ts', 'src/**/*.test.ts'],
+          include: ['scripts/**/*.test.ts', 'shared/**/*.test.ts', 'src/**/*.test.ts'],
         },
       },
       {
@@ -38,7 +38,7 @@ export default defineConfig({
       },
     ],
     coverage: {
-      include: ['server/**', 'src/**', 'scripts/**'],
+      include: ['server/**', 'shared/**', 'src/**', 'scripts/**'],
       exclude: ['**/*.test.*', '**/test/**'],
     },
   },

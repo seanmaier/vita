@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate, useBlocker } from 'react-router-dom';
 import { applications } from '../data/applications';
 import { getAllLocalApplications } from '../utils/localApplications';
 import { TrashedNotice } from '../components/TrashedNotice';
-import type { ApplicationConfig, AppFont, AppLanguage, CoverLetter, SkillGroup } from '../types';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../utils/language';
+import type { ApplicationConfig, AppFont, AppLanguage, CoverLetter, SkillGroup } from '#shared/types.ts';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 import { ALL_FONTS, FONT_LABELS } from '../utils/fonts';
 import { getProfile } from '../data/profiles';
 import { getBaseProfiles } from '../utils/baseProfiles';
@@ -28,7 +28,7 @@ import { JsonConfigPanel } from '../components/JsonConfigPanel';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
 import { MoveButtons } from '../components/MoveButtons';
 import { move } from '../utils/move';
-import { formatDateLong, parseToIsoDate } from '../utils/date';
+import { formatDateLong, parseToIsoDate } from '#shared/utils/date.ts';
 import { DEFAULT_CLOSINGS } from '../utils/coverLetterClosing';
 import {
   nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,

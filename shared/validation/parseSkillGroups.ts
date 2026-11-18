@@ -1,4 +1,4 @@
-import type { SkillGroup } from '../types.ts';
+import type { SkillGroup } from '#shared/types.ts';
 
 export type SkillGroupsParseResult =
   | { ok: true; skillGroups: SkillGroup[] }

@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { ApplicationConfig, Profile } from '../../types';
+import type { ApplicationConfig, Profile } from '#shared/types.ts';
 import { FONT_STACKS } from '../../utils/fonts';
 import { featuredProjects } from '../../utils/featuredProjects';
 import { joinLines } from '../../utils/lines';

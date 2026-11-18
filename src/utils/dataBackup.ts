@@ -1,13 +1,13 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, StatusTransition } from '../types';
-import { BACKUP_KEYS, mergeBackup, type DataBackup } from '../domain/backupMerge';
-import { seedHistory, validateHistory } from '../domain/statusMachine';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, StatusTransition } from '#shared/types.ts';
+import { BACKUP_KEYS, mergeBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
+import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 import { isDemo } from '../demo/demoMode';
 import { errorFrom } from './api';
 import { storage, flush } from './storage';
 import { getAllBaseProfiles } from './baseProfiles';
 
-export type { DataBackup } from '../domain/backupMerge';
-export { parseBackup, type ParseBackupResult } from '../domain/backupMerge';
+export type { DataBackup } from '#shared/domain/backupMerge.ts';
+export { parseBackup, type ParseBackupResult } from '#shared/domain/backupMerge.ts';
 
 function parse<T>(raw: string | null): T | null {
   if (raw === null) return null;

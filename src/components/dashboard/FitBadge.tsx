@@ -1,5 +1,5 @@
-import type { FitRecommendation, JobFit } from '../../types';
-import { breakdownText } from '../../utils/fitCriteria';
+import type { FitRecommendation, JobFit } from '#shared/types.ts';
+import { breakdownText } from '#shared/utils/fitCriteria.ts';
 
 const COLORS: Record<FitRecommendation, string> = {
   apply: 'var(--status-offer)',

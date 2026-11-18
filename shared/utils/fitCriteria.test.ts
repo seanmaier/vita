@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { breakdownText, criteriaScore, criterionPoints, validateCriteria, validateExclusion } from './fitCriteria.ts';
+import { breakdownText, criteriaScore, criterionPoints, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
 
 const criteria = [
   { name: 'A', weight: 60, fulfilled: 50 },

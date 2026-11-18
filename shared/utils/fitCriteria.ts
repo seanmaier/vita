@@ -1,6 +1,6 @@
 // The per-criterion breakdown of a job check (see /stellencheck), shared by
 // the application `fit` and the job leads so both validate it the same way.
-import type { FitCriterion } from '../types.ts';
+import type { FitCriterion } from '#shared/types.ts';
 
 const MAX_CRITERIA = 20;
 const MAX_EXCLUSION = 500;
