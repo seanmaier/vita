@@ -2,60 +2,60 @@
 // used by both NewApplicationPage and EditApplicationPage.
 export const nafSection = 'flex flex-col gap-1.5';
 export const nafRow = 'grid grid-cols-1 sm:grid-cols-2 gap-4';
-export const nafLabel = '[font-family:var(--font-mono)] text-[9.5px] tracking-[0.14em] uppercase text-[color:var(--accent)]';
+export const nafLabel = 'font-mono text-[9.5px] tracking-[0.14em] uppercase text-accent';
 // Explanatory small text. Uses --ink-2 because --ink-3 is too faint for text people need to read (about 2:1 contrast).
-export const hintText = '[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-2)] leading-[1.6]';
-export const nafOptional = 'text-[color:var(--ink-3)] normal-case tracking-normal text-[9px]';
-export const nafInput = '[font-family:var(--font-sans)] text-[13px] bg-[color:var(--surface)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] py-2 px-[11px] text-[color:var(--ink-invert)] [color-scheme:dark] transition-[border-color] duration-150 w-full focus:outline-none focus:border-[color:var(--accent)]';
-export const nafTextarea = '[font-family:var(--font-sans)] text-[12.5px] bg-[color:var(--surface)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] py-2 px-[11px] text-[color:var(--ink-invert)] w-full leading-[1.55] transition-[border-color] duration-150 focus:outline-none focus:border-[color:var(--accent)]';
+export const hintText = 'font-mono text-[10.5px] text-ink-2 leading-[1.6]';
+export const nafOptional = 'text-ink-3 normal-case tracking-normal text-[9px]';
+export const nafInput = 'font-sans text-[13px] bg-surface border-[1.5px] border-rule rounded-[5px] py-2 px-[11px] text-ink-invert [color-scheme:dark] transition-[border-color] duration-150 w-full focus:outline-none focus:border-accent';
+export const nafTextarea = 'font-sans text-[12.5px] bg-surface border-[1.5px] border-rule rounded-[5px] py-2 px-[11px] text-ink-invert w-full leading-[1.55] transition-[border-color] duration-150 focus:outline-none focus:border-accent';
 // Primary action button on standalone forms such as the account page.
-export const primaryButton = 'self-start [font-family:var(--font-mono)] text-[12px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-2 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-60 disabled:cursor-default';
+export const primaryButton = 'self-start font-mono text-[12px] bg-accent text-ink font-semibold border-none rounded px-4 py-2 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-60 disabled:cursor-default';
 export const nafCheckboxes = 'flex flex-col gap-1.5';
-export const nafCheckboxLabel = 'flex items-center gap-2 text-[12.5px] text-[color:var(--ink-2)] cursor-pointer';
-export const nafCheckboxInput = 'accent-[var(--accent)] w-3.5 h-3.5 cursor-pointer';
+export const nafCheckboxLabel = 'flex items-center gap-2 text-[12.5px] text-ink-2 cursor-pointer';
+export const nafCheckboxInput = 'accent-accent w-3.5 h-3.5 cursor-pointer';
 export const nafParagraphRow = 'flex gap-2 items-start mb-2';
-export const nafRemoveBtn = 'text-[12px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-3)] rounded px-2 py-[5px] cursor-pointer mt-0.5 shrink-0 hover:border-[color:var(--status-rejected)] hover:text-[color:var(--status-rejected)]';
-export const nafMoveBtn = 'text-[12px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-3)] rounded px-2 py-[5px] cursor-pointer mt-0.5 shrink-0 leading-none hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] disabled:opacity-30 disabled:cursor-default disabled:hover:border-[color:var(--rule)] disabled:hover:text-[color:var(--ink-3)]';
-export const nafAddBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent border border-dashed border-[color:var(--rule)] text-[color:var(--ink-3)] rounded-[5px] py-[7px] px-3.5 cursor-pointer text-left transition-[border-color,color] duration-150 hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]';
+export const nafRemoveBtn = 'text-[12px] bg-transparent border border-rule text-ink-3 rounded px-2 py-[5px] cursor-pointer mt-0.5 shrink-0 hover:border-status-rejected hover:text-status-rejected';
+export const nafMoveBtn = 'text-[12px] bg-transparent border border-rule text-ink-3 rounded px-2 py-[5px] cursor-pointer mt-0.5 shrink-0 leading-none hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-default disabled:hover:border-rule disabled:hover:text-ink-3';
+export const nafAddBtn = 'font-mono text-[11px] bg-transparent border border-dashed border-rule text-ink-3 rounded-[5px] py-[7px] px-3.5 cursor-pointer text-left transition-[border-color,color] duration-150 hover:border-accent hover:text-accent';
 
 // Below lg the two panels stack into one, switched by MobilePanelSwitch;
 // headers wrap onto a second line instead of overflowing.
-export const newAppPage = 'h-dvh bg-[color:var(--bg)] flex flex-col';
-export const newAppHeader = 'bg-[color:var(--ink)] flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-6 py-2 min-h-[52px] shrink-0';
-export const newAppBack = '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]';
-export const newAppTitle = 'text-[13px] font-semibold text-[color:var(--ink-invert)]';
+export const newAppPage = 'h-dvh bg-bg flex flex-col';
+export const newAppHeader = 'bg-ink flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-6 py-2 min-h-[52px] shrink-0';
+export const newAppBack = 'font-mono text-[11px] text-ink-3 no-underline hover:text-ink-invert';
+export const newAppTitle = 'text-[13px] font-semibold text-ink-invert';
 export const newAppBody = 'flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[420px_1fr]';
-export const newAppForm = 'h-full py-6 px-4 sm:py-8 sm:px-7 overflow-y-auto bg-[color:var(--bg)] flex flex-col gap-5 lg:border-r-[1.5px] border-[color:var(--rule)]';
+export const newAppForm = 'h-full py-6 px-4 sm:py-8 sm:px-7 overflow-y-auto bg-bg flex flex-col gap-5 lg:border-r-[1.5px] border-rule';
 
 export const newAppPreview = 'h-full flex flex-col bg-[#1a2236] overflow-hidden';
 export const napHeader = 'flex flex-wrap justify-between items-center gap-2 py-2.5 px-4 sm:px-5 border-b border-white/8 shrink-0';
-export const napFilename = '[font-family:var(--font-mono)] text-[11px] text-[#8896AB] min-w-0 truncate';
-export const napCopyBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-3.5 py-[5px] cursor-pointer transition-[filter] duration-150 hover:brightness-110';
-export const napCopyBtnCopied = '[font-family:var(--font-mono)] text-[11px] bg-[#059669] text-[color:var(--ink)] font-semibold border-none rounded px-3.5 py-[5px] cursor-pointer hover:bg-[#059669]';
-export const napCode = '[font-family:var(--font-mono)] text-[12px] leading-[1.65] text-[#c9d1e0] p-5 overflow-y-auto flex-1 whitespace-pre';
-export const napHint = '[font-family:var(--font-mono)] text-[10.5px] text-[#4A5568] py-3 px-5 border-t border-white/6 leading-[1.6] shrink-0';
+export const napFilename = 'font-mono text-[11px] text-[#8896AB] min-w-0 truncate';
+export const napCopyBtn = 'font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-3.5 py-[5px] cursor-pointer transition-[filter] duration-150 hover:brightness-110';
+export const napCopyBtnCopied = 'font-mono text-[11px] bg-[#059669] text-ink font-semibold border-none rounded px-3.5 py-[5px] cursor-pointer hover:bg-[#059669]';
+export const napCode = 'font-mono text-[12px] leading-[1.65] text-[#c9d1e0] p-5 overflow-y-auto flex-1 whitespace-pre';
+export const napHint = 'font-mono text-[10.5px] text-[#4A5568] py-3 px-5 border-t border-white/6 leading-[1.6] shrink-0';
 export const napHintCode = 'text-[#8896AB]';
-export const napLiveLabel = '[font-family:var(--font-mono)] text-[10px] text-[#4A5568] tracking-[0.06em]';
+export const napLiveLabel = 'font-mono text-[10px] text-[#4A5568] tracking-[0.06em]';
 
-export const editAppHeader = 'bg-[color:var(--ink)] flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] gap-x-4 gap-y-2 shrink-0';
-export const editAppCompany = 'text-[color:var(--accent)] font-semibold';
+export const editAppHeader = 'bg-ink flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] gap-x-4 gap-y-2 shrink-0';
+export const editAppCompany = 'text-accent font-semibold';
 export const editAppHeaderActions = 'flex flex-wrap items-center gap-2 shrink-0 max-sm:w-full';
-export const editResetBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-3)] border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)]';
-export const editHistoryBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-2)] border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]';
-export const editMessageInput = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--surface)] text-[color:var(--ink-invert)] border border-[color:var(--rule)] rounded px-2.5 py-[5px] w-[230px] max-sm:w-full max-sm:order-last placeholder:text-[color:var(--ink-3)] focus:outline-none focus:border-[color:var(--accent)]';
-export const editSaveBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer tracking-[0.03em] transition-[filter] duration-150 hover:brightness-110';
+export const editResetBtn = 'font-mono text-[11px] bg-transparent text-ink-3 border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-status-rejected hover:border-status-rejected';
+export const editHistoryBtn = 'font-mono text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3 py-[5px] cursor-pointer tracking-[0.03em] hover:text-accent hover:border-accent';
+export const editMessageInput = 'font-mono text-[11px] bg-surface text-ink-invert border border-rule rounded px-2.5 py-[5px] w-[230px] max-sm:w-full max-sm:order-last placeholder:text-ink-3 focus:outline-none focus:border-accent';
+export const editSaveBtn = 'font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer tracking-[0.03em] transition-[filter] duration-150 hover:brightness-110';
 
 // Six-dot grip for drag-reordering. Only shown on fine pointers (mouse/trackpad),
 // where native drag-and-drop works reliably; touch devices keep the ↑/↓ buttons.
-export const nafDragHandle = 'hidden pointer-fine:flex items-center justify-center shrink-0 w-5 h-[34px] text-[color:var(--ink-3)] cursor-grab active:cursor-grabbing rounded hover:text-[color:var(--accent)]';
+export const nafDragHandle = 'hidden pointer-fine:flex items-center justify-center shrink-0 w-5 h-[34px] text-ink-3 cursor-grab active:cursor-grabbing rounded hover:text-accent';
 export const dropBefore = 'shadow-[0_-2px_0_0_var(--accent)]';
 export const dropAfter = 'shadow-[0_2px_0_0_var(--accent)]';
 
 // Tab-style control with an accent bottom border when active; used by the
 // account section nav and the knowledge document tabs.
 export const tabClass = (active: boolean) =>
-  `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
+  `font-mono text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
     active
-      ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
-      : 'border-transparent text-[color:var(--ink-2)] hover:text-[color:var(--ink-invert)]'
+      ? 'border-accent text-accent'
+      : 'border-transparent text-ink-2 hover:text-ink-invert'
   }`;

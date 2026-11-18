@@ -32,9 +32,9 @@ const ARROW_EDGE: Record<ArrowSide, string> = {
 const DIM = 'absolute bg-[rgba(10,14,22,0.75)]';
 
 const secondaryButton =
-  '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-2)] border border-white/12 rounded px-3.5 py-[7px] cursor-pointer hover:text-[color:var(--ink-invert)] disabled:invisible';
+  'font-mono text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3.5 py-[7px] cursor-pointer hover:text-ink-invert disabled:invisible';
 const primaryButton =
-  '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-[7px] cursor-pointer hover:brightness-110';
+  'font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-[7px] cursor-pointer hover:brightness-110';
 
 function sameBox(a: Box | null, b: Box | null): boolean {
   if (!a || !b) return a === b;
@@ -135,7 +135,7 @@ export function Tour({ steps, onClose, navigate }: Props) {
       {spot && (
         <div
           aria-hidden="true"
-          className="absolute rounded-md border-2 border-[color:var(--accent)] pointer-events-none transition-all duration-300 ease-out shadow-[0_0_0_4px_rgba(121,192,255,0.25)]"
+          className="absolute rounded-md border-2 border-accent pointer-events-none transition-all duration-300 ease-out shadow-[0_0_0_4px_rgba(121,192,255,0.25)]"
           style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }}
         />
       )}
@@ -147,28 +147,28 @@ export function Tour({ steps, onClose, navigate }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="demo-tour-title"
-        className="absolute bg-[#1a2236] border border-[color:var(--rule)] rounded-lg p-5 sm:p-6 flex flex-col gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-[top,left] duration-300 ease-out"
+        className="absolute bg-[#1a2236] border border-rule rounded-lg p-5 sm:p-6 flex flex-col gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-[top,left] duration-300 ease-out"
         style={{ top: layout.top, left: layout.left, width: popoverWidth }}
       >
         {layout.arrow && (
           <span
             aria-hidden="true"
-            className={`absolute w-3.5 h-3.5 rotate-45 bg-[#1a2236] border-[color:var(--rule)] ${ARROW_EDGE[layout.arrow.side]}`}
+            className={`absolute w-3.5 h-3.5 rotate-45 bg-[#1a2236] border-rule ${ARROW_EDGE[layout.arrow.side]}`}
             style={layout.arrow.side === 'top' || layout.arrow.side === 'bottom' ? { left: layout.arrow.offset } : { top: layout.arrow.offset }}
           />
         )}
 
         <button
-          className="absolute top-2.5 right-3 bg-transparent border-none text-[color:var(--ink-3)] text-[18px] leading-none cursor-pointer p-1 hover:text-[color:var(--ink-invert)]"
+          className="absolute top-2.5 right-3 bg-transparent border-none text-ink-3 text-[18px] leading-none cursor-pointer p-1 hover:text-ink-invert"
           onClick={onClose}
           aria-label={t.close}
         >
           ×
         </button>
 
-        <div className="flex items-center gap-3 [font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.08em]">
-          <span className="bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold rounded px-2 py-0.5">{isDemo ? t.badge.demo : t.badge.app}</span>
-          <span className="text-[color:var(--ink-2)]">{t.stepOf(index + 1, steps.length)}</span>
+        <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.08em]">
+          <span className="bg-accent text-ink font-semibold rounded px-2 py-0.5">{isDemo ? t.badge.demo : t.badge.app}</span>
+          <span className="text-ink-2">{t.stepOf(index + 1, steps.length)}</span>
         </div>
 
         {/* Progress: one segment per step, clickable to jump. */}
@@ -179,7 +179,7 @@ export function Tour({ steps, onClose, navigate }: Props) {
               aria-label={t.steps[s.text].title}
               aria-current={i === index ? 'step' : undefined}
               className={`h-1 flex-1 rounded-full border-none p-0 cursor-pointer transition-colors duration-200 ${
-                i <= index ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--rule)]'
+                i <= index ? 'bg-accent' : 'bg-rule'
               }`}
               onClick={() => setIndex(i)}
             />
@@ -187,10 +187,10 @@ export function Tour({ steps, onClose, navigate }: Props) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h2 id="demo-tour-title" className="m-0 [font-family:var(--font-mono)] text-[15px] font-semibold text-[color:var(--ink-invert)]">
+          <h2 id="demo-tour-title" className="m-0 font-mono text-[15px] font-semibold text-ink-invert">
             {step.title}
           </h2>
-          <p className="m-0 text-[13.5px] leading-[1.6] text-[color:var(--ink-2)]">{step.body}</p>
+          <p className="m-0 text-[13.5px] leading-[1.6] text-ink-2">{step.body}</p>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">

@@ -2,7 +2,7 @@ import { allowedNext } from '../domain/statusMachine';
 import { STATUS_LABELS } from '../utils/status';
 import type { ApplicationStatus } from '../types';
 
-const optionClass = 'text-[color:var(--ink-invert)] bg-[color:var(--surface)]';
+const optionClass = 'text-ink-invert bg-surface';
 
 /**
  * The <option>s of a status picker: the current status, the statuses it may

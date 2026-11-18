@@ -6,9 +6,9 @@ import { Link } from 'react-router-dom';
  */
 export function TrashedNotice({ name }: { name: string }) {
   return (
-    <div className="py-20 px-10 [font-family:var(--font-mono)] text-[color:var(--ink-2)] flex flex-col gap-4">
+    <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
       <p>"{name}" is in the trash. Restore it there to open it again.</p>
-      <Link className="text-[color:var(--accent)]" to="/trash">→ Go to trash</Link>
+      <Link className="text-accent" to="/trash">→ Go to trash</Link>
     </div>
   );
 }

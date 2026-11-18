@@ -2,9 +2,9 @@
 
 /** The badge for who made a version: the app user, the baseline, or the API token's name. */
 export function authorLabel(author: string): { text: string; className: string } {
-  if (author === 'browser') return { text: 'you', className: 'text-[color:var(--ink-2)] border-white/15' };
-  if (author === 'baseline') return { text: 'before history', className: 'text-[color:var(--ink-3)] border-white/10' };
-  return { text: author, className: 'text-[color:var(--status-interview)] border-[color:var(--status-interview)]' };
+  if (author === 'browser') return { text: 'you', className: 'text-ink-2 border-white/15' };
+  if (author === 'baseline') return { text: 'before history', className: 'text-ink-3 border-white/10' };
+  return { text: author, className: 'text-status-interview border-status-interview' };
 }
 
 export const formatTime = (iso: string) =>
