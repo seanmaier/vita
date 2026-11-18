@@ -7,6 +7,7 @@
 //   node server/cli.ts token-add <username> <name> [--scope job-leads:ingest|job-leads:radar|inbound:deliver]    (prints the token once)
 //   node server/cli.ts token-list <username>
 //   node server/cli.ts token-revoke <username> <name>
+//   node server/cli.ts token-rotate <username> <name>   (prints the new token once; the old one stops working)
 import { randomBytes } from 'node:crypto';
 import {
   createApiToken,
@@ -15,6 +16,7 @@ import {
   listApiTokens,
   MIN_PASSWORD_LENGTH,
   revokeApiToken,
+  rotateApiToken,
   setAdmin,
   setPassword,
   TOKEN_SCOPES,
@@ -118,10 +120,20 @@ switch (command) {
     console.log(`Revoked API token "${tokenName}" for "${username}".`);
     break;
   }
+  case 'token-rotate': {
+    if (!username || !tokenName) fail('Usage: token-rotate <username> <name>');
+    const result = rotateApiToken(userIdOrFail(username), tokenName);
+    if (!result.ok) fail(`"${username}" has no token named "${tokenName}".`);
+    console.log(
+      `Rotated API token "${tokenName}" for "${username}". The new token is shown only this once:\n${result.token}`,
+    );
+    break;
+  }
   default:
     fail(
       'Commands: add <username> [password] | passwd <username> [password] | remove <username> | list\n' +
         '          admin <username> on|off\n' +
-        '          token-add <username> <name> [--scope ...] | token-list <username> | token-revoke <username> <name>',
+        '          token-add <username> <name> [--scope ...] | token-list <username> | token-revoke <username> <name>\n' +
+        '          token-rotate <username> <name>',
     );
 }

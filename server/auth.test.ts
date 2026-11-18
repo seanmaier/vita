@@ -8,6 +8,7 @@ import {
   isAdmin,
   listApiTokens,
   parseUserTokenScope,
+  rotateApiToken,
   setAdmin,
   tokenAllows,
 } from './auth.ts';
@@ -129,4 +130,39 @@ test('isAdmin follows the role column, set only from the CLI', () => {
 test('the role column only accepts user and admin', () => {
   const user = createTestUser();
   assert.throws(() => db.prepare("UPDATE users SET role = 'root' WHERE id = ?").run(user.id));
+});
+
+test('rotating a token replaces its secret but keeps name and scope', () => {
+  const user = createTestUser();
+  const created = createApiToken(user.id, 'worker', 'inbound:deliver');
+  assert.ok(created.ok);
+  getApiToken(created.token);
+  const rotated = rotateApiToken(user.id, 'worker');
+  assert.ok(rotated.ok);
+  assert.notEqual(rotated.token, created.token);
+  assert.ok(rotated.token.startsWith('jat_'));
+  assert.equal(getApiToken(created.token), null);
+  assert.equal(getApiToken(rotated.token)?.scope, 'inbound:deliver');
+  const tokens = listApiTokens(user.id);
+  assert.equal(tokens.length, 1);
+  assert.equal(tokens[0].name, 'worker');
+});
+
+test('rotating resets last use', () => {
+  const user = createTestUser();
+  const created = createApiToken(user.id, 'used');
+  assert.ok(created.ok);
+  getApiToken(created.token);
+  assert.ok(rotateApiToken(user.id, 'used').ok);
+  assert.equal(listApiTokens(user.id)[0].last_used_at, null);
+});
+
+test('rotating an unknown or foreign token fails and changes nothing', () => {
+  const owner = createTestUser();
+  const other = createTestUser();
+  const created = createApiToken(owner.id, 'mine');
+  assert.ok(created.ok);
+  assert.deepEqual(rotateApiToken(other.id, 'mine'), { ok: false, status: 404, error: 'No such token.' });
+  assert.deepEqual(rotateApiToken(owner.id, 'missing'), { ok: false, status: 404, error: 'No such token.' });
+  assert.equal(getApiToken(created.token)?.user.id, owner.id);
 });

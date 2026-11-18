@@ -170,6 +170,8 @@ export type CreateApiTokenResult =
   | { ok: true; token: string }
   | { ok: false; error: string; status: 400 | 409 };
 
+const newApiToken = () => API_TOKEN_PREFIX + randomBytes(32).toString('base64url');
+
 /**
  * Creates a named API token for a user and returns it; it can't be retrieved
  * again later. Shared by the CLI and the account page, so both apply the
@@ -191,7 +193,7 @@ export function createApiToken(userId: number, rawName: string, scope: TokenScop
   const taken = db.prepare('SELECT 1 FROM api_tokens WHERE user_id = ? AND name = ?').get(userId, name);
   if (taken) return { ok: false, status: 409, error: `A token named "${name}" already exists.` };
 
-  const token = API_TOKEN_PREFIX + randomBytes(32).toString('base64url');
+  const token = newApiToken();
   db.prepare('INSERT INTO api_tokens (user_id, name, token_hash, scope) VALUES (?, ?, ?, ?)')
     .run(userId, name, hashToken(token), scope);
   return { ok: true, token };
@@ -220,6 +222,21 @@ export function listApiTokens(userId: number): ApiTokenInfo[] {
 /** Returns whether a token with that name existed. */
 export function revokeApiToken(userId: number, name: string): boolean {
   return db.prepare('DELETE FROM api_tokens WHERE user_id = ? AND name = ?').run(userId, name).changes > 0;
+}
+
+export type RotateApiTokenResult = { ok: true; token: string } | { ok: false; error: string; status: 404 };
+
+/**
+ * Gives an existing token a new secret and returns it. Name and scope stay,
+ * the old secret stops working at once; last use is reset so the owner can
+ * see whether the new one has been picked up.
+ */
+export function rotateApiToken(userId: number, name: string): RotateApiTokenResult {
+  const token = newApiToken();
+  const { changes } = db
+    .prepare('UPDATE api_tokens SET token_hash = ?, last_used_at = NULL WHERE user_id = ? AND name = ?')
+    .run(hashToken(token), userId, name);
+  return changes > 0 ? { ok: true, token } : { ok: false, status: 404, error: 'No such token.' };
 }
 
 export function deleteSession(token: string): void {

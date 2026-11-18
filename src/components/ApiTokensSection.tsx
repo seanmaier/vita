@@ -5,6 +5,7 @@ import {
   createApiToken,
   fetchApiTokens,
   revokeApiToken,
+  rotateApiToken,
   TOKEN_SCOPE_INFO,
   tokenScopesFor,
   type ApiToken,
@@ -23,7 +24,7 @@ function formatTimestamp(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-/** Lets a user create and revoke the API tokens scripts and assistants use to call /api/v1. */
+/** Lets a user create, rotate and revoke the API tokens scripts and assistants use to call /api/v1. */
 export function ApiTokensSection() {
   // Admins also get the worker scopes; the server enforces the same rule.
   const { admin } = useOutletContext<AccountOutletContext>();
@@ -31,7 +32,7 @@ export function ApiTokensSection() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [name, setName] = useState('');
   const [scope, setScope] = useState<UserTokenScope>('full');
-  const [created, setCreated] = useState<{ name: string; token: string } | null>(null);
+  const [created, setCreated] = useState<{ name: string; token: string; rotated?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,6 +75,21 @@ export function ApiTokensSection() {
     }
   };
 
+  const rotate = async (tokenName: string) => {
+    if (!confirm(`Rotate the token "${tokenName}"? The current value stops working immediately; you'll get a new one to copy.`)) {
+      return;
+    }
+    setError(null);
+    setCopied(false);
+    try {
+      const token = await rotateApiToken(tokenName);
+      setCreated({ name: tokenName, token, rotated: true });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rotating the token failed.');
+    }
+  };
+
   const copy = async () => {
     if (!created) return;
     await navigator.clipboard.writeText(created.token);
@@ -106,9 +122,14 @@ export function ApiTokensSection() {
                   created {formatTimestamp(t.created_at)} · last used {formatTimestamp(t.last_used_at)}
                 </div>
               </div>
-              <button className={nafRemoveBtn} type="button" onClick={() => void revoke(t.name)}>
-                revoke
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button className={nafRemoveBtn} type="button" onClick={() => void rotate(t.name)}>
+                  rotate
+                </button>
+                <button className={nafRemoveBtn} type="button" onClick={() => void revoke(t.name)}>
+                  revoke
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -118,7 +139,7 @@ export function ApiTokensSection() {
       {created && (
         <div className="flex flex-col gap-2 border-[1.5px] border-[color:var(--accent)] rounded-[5px] p-3">
           <span className="text-[12px] text-[color:var(--ink-invert)]">
-            Token "{created.name}" created. Copy it now: it won't be shown again.
+            Token "{created.name}" {created.rotated ? 'rotated' : 'created'}. Copy it now: it won't be shown again.
           </span>
           <code className="[font-family:var(--font-mono)] text-[11.5px] break-all text-[color:var(--ink-2)] select-all">
             {created.token}
