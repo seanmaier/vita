@@ -2,7 +2,7 @@ import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, Status
 import { BACKUP_KEYS, mergeBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
 import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 import { isDemo } from '../demo/demoMode';
-import { errorFrom } from './api';
+import { client, errorFrom } from './apiClient';
 import { storage, flush } from './storage';
 import { getAllBaseProfiles } from './baseProfiles';
 
@@ -89,11 +89,7 @@ export async function importBackup(backup: DataBackup): Promise<ImportSummary> {
   }
   // Pending edits first, so the server merges against the current state.
   await flush();
-  const res = await fetch('/api/import', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(backup),
-  });
+  const res = await client.api.import.$post({ json: backup });
   if (!res.ok) throw await errorFrom(res, 'Import failed');
   return res.json();
 }

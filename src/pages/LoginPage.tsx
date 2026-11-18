@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { login } from '../utils/api';
-import type { SessionUser } from '../utils/api';
 import { nafInput, nafLabel, nafSection } from '../styles/formStyles';
 import { AppLogo } from '../components/AppLogo';
 
-export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => void }) {
+export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +15,8 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => v
     setBusy(true);
     setError(null);
     try {
-      onLoggedIn(await login(username, password));
+      await login(username, password);
+      onLoggedIn();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed.');
       setBusy(false);
