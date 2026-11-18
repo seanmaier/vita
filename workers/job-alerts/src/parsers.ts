@@ -22,8 +22,9 @@ export function sourceForSender(address: string): JobLeadSource | null {
   return null;
 }
 
-const FORWARDED_FROM = /\b(?:From|Von|De)\s*:[^\S\n]*([^\n]*)/gi;
-const ADDRESS = /[^\s<>"'()[\]]+@[^\s<>"'()[\]]+/;
+// The first address after each label, within the same line. Forwarders such as iCloud may put the
+// whole quoted header block on one line, so a label must not swallow the rest of the line.
+const FORWARDED_FROM = /\b(?:From|Von|De)\s*:[^\n@]{0,100}?([^\s<>"'()[\]]+@[^\s<>"'()[\]]+)/gi;
 
 /**
  * For a mail the user forwarded by hand, the platform from the forwarded header
@@ -32,9 +33,8 @@ const ADDRESS = /[^\s<>"'()[\]]+@[^\s<>"'()[\]]+/;
  * check still decides whether the mail is accepted.
  */
 export function forwardedSource(text: string): JobLeadSource | null {
-  for (const [, line] of text.matchAll(FORWARDED_FROM)) {
-    const address = ADDRESS.exec(line)?.[0];
-    const source = address ? sourceForSender(address) : null;
+  for (const [, address] of text.matchAll(FORWARDED_FROM)) {
+    const source = sourceForSender(address);
     if (source) return source;
   }
   return null;

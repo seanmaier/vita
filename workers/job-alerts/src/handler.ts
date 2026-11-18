@@ -1,11 +1,12 @@
 import PostalMime from 'postal-mime';
+import { attachedAlert, PARSE_OPTIONS } from './attached.ts';
 import { extractConfirmation } from './confirmation.ts';
 import { headerDiagnostics } from './diagnostics.ts';
 import { headerValues, type ParsedMail } from './headers.ts';
 import { htmlToText } from './links.ts';
 import { forwardedSource, parseAlert, sourceForSender } from './parsers.ts';
 import { cloudflareSpfPass } from './spf.ts';
-import type { JobLeadInput } from './types.ts';
+import type { JobLeadInput, JobLeadSource } from './types.ts';
 
 export interface Env {
   APP_URL: string;
@@ -142,6 +143,18 @@ async function buildPayload(
     return { payload: { ...common, kind: 'confirmation', detail }, log: 'confirmation' };
   }
 
+  // Forwarded as attachment: the untouched original is the alert, and it names the mail in the app.
+  const attached = await attachedAlert(parsed);
+  if (attached) {
+    const { mail, source } = attached;
+    const named = {
+      ...base,
+      subject: truncate(mail.subject, MAX_SHORT_FIELD),
+      sender: truncate(formatSender(mail.from), MAX_SHORT_FIELD),
+    };
+    return leadsPayload(named, source, mail, ' via=attachment');
+  }
+
   // A mail forwarded by hand (e.g. from iCloud) is from the user; the platform is in the quoted header block.
   const source =
     (parsed.from?.address ? sourceForSender(parsed.from.address) : null) ??
@@ -149,12 +162,20 @@ async function buildPayload(
   if (!source) {
     return { payload: { ...common, kind: 'failed', detail: 'unknown alert sender' }, log: 'failed (unknown sender)' };
   }
+  return leadsPayload(common, source, parsed, '');
+}
 
-  const leads = sanitize(await parseAlert(source, parsed.html ?? '', parsed.text ?? ''));
+async function leadsPayload(
+  common: Omit<InboundPayload, 'kind'>,
+  source: JobLeadSource,
+  mail: ParsedMail,
+  via: string,
+): Promise<{ payload: InboundPayload; log: string }> {
+  const leads = sanitize(await parseAlert(source, mail.html ?? '', mail.text ?? ''));
   if (leads.length === 0) {
-    return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0` };
+    return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0${via}` };
   }
-  return { payload: { ...common, kind: 'leads', leads }, log: `leads source=${source} leads=${leads.length}` };
+  return { payload: { ...common, kind: 'leads', leads }, log: `leads source=${source} leads=${leads.length}${via}` };
 }
 
 export async function handleEmail(
@@ -172,7 +193,7 @@ export async function handleEmail(
     const buffer = await new Response(message.raw).arrayBuffer();
     let parsed: ParsedMail | null = null;
     try {
-      parsed = await PostalMime.parse(buffer);
+      parsed = await PostalMime.parse(buffer, PARSE_OPTIONS);
     } catch {
       parsed = null;
     }

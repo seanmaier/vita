@@ -89,8 +89,9 @@ const providerSteps: Record<Provider, ReactNode[]> = {
       In Outlook, open Settings → Mail → Rules and add a rule: "From" contains e.g. {exampleSender}.
     </>,
     <>
-      As action choose <strong>"Redirect to"</strong> this address: it passes the alert on unchanged, which works
-      best.
+      As action choose <strong>"Forward as attachment"</strong> to this address: only then does the original alert
+      arrive unchanged. "Redirect to" and "Forward to" rebuild the mail and lose links some sites (e.g. Instaffo)
+      keep only in its plain-text part.
     </>,
   ],
   icloud: [

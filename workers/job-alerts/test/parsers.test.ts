@@ -243,4 +243,10 @@ test('forwardedSource finds the platform in a hand-forwarded header block', () =
   assert.equal(forwardedSource('---------- Forwarded message ---------\nVon: LinkedIn <jobs-noreply@linkedin.com>'), 'linkedin');
   assert.equal(forwardedSource('From: Friend <a@example.org>\nI like linkedin.com'), null);
   assert.equal(forwardedSource('From: x@evil-linkedin.com'), null);
+  // Everything on one line: each label counts with the address right after it.
+  assert.equal(
+    forwardedSource('Begin forwarded message: From: Me <me@icloud.com> Subject: WG: Job Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Di'),
+    'indeed',
+  );
+  assert.equal(forwardedSource('From: Me <me@icloud.com> I like linkedin.com and x@evil.example'), null);
 });
