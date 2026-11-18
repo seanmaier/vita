@@ -96,7 +96,7 @@ account doesn't have yet; nothing that exists is overwritten.
 - `npm run seed [-- --reset]` — create (or rebuild) the `dev` test user with sample data
 - `npm run users -- <add|passwd|remove|list> [username] [password]` — manage users
   (`passwd` is for resetting a forgotten password; users change their own in the app)
-- `npm run users -- <token-add|token-revoke> <username> <name>` / `token-list <username>` —
+- `npm run users -- <token-add|token-rotate|token-revoke> <username> <name>` / `token-list <username>` —
   manage API tokens as admin (users do it themselves on the account page)
 - `npm run users -- admin <username> on|off` — grant or revoke the admin role. Admins can also create the
   worker token scopes (`job-leads:ingest`, `inbound:deliver`) on the account page; everyone else gets
@@ -125,6 +125,8 @@ Setup:
 
 1. In the app, open **account** → **API tokens** and create one, e.g. `claude`.
    It is shown only once; revoke it there when it's no longer needed.
+   **rotate** gives it a new value with the same name and scope; the old value
+   stops working at once.
    Pick the narrowest scope: **full access** for assistants you run yourself,
    **add leads** (`job-leads:ingest`) for a worker that only collects jobs,
    **job radar** (`job-leads:radar`) for the scheduled `/stellenradar` agent:

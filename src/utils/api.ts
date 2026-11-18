@@ -111,6 +111,14 @@ export async function revokeApiToken(name: string): Promise<void> {
   if (!res.ok) throw await errorFrom(res, 'Revoking the token failed');
 }
 
+/** Gives a token a new secret, keeping its name and scope; the old secret stops working at once. */
+export async function rotateApiToken(name: string): Promise<string> {
+  const res = await fetch(`/api/tokens/${encodeURIComponent(name)}/rotate`, { method: 'POST' });
+  if (!res.ok) throw await errorFrom(res, 'Rotating the token failed');
+  const body: { token: string } = await res.json();
+  return body.token;
+}
+
 export async function fetchUserData(): Promise<Record<string, string>> {
   const res = await fetch('/api/data');
   if (!res.ok) throw new Error(`Loading data failed (HTTP ${res.status}).`);
