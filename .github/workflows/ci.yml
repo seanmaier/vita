@@ -24,6 +24,11 @@ jobs:
       - name: Test
         run: npm test
 
+      # The email worker is its own package; its tests ran nowhere before.
+      - name: Test email worker
+        working-directory: workers/job-alerts
+        run: npm ci && npm test && npm run typecheck
+
       - name: Build application
         run: npm run build
 
