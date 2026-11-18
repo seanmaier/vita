@@ -13,6 +13,8 @@
     "users": "node server/cli.ts",
     "api": "node scripts/api.ts",
     "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node --test \"server/**/*.test.ts\" \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
     "preview": "vite preview"
   },
@@ -37,6 +39,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "concurrently": "^10.0.7",
     "oxlint": "^1.71.0",
+    "prettier": "3.10.1",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"

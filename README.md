@@ -90,6 +90,7 @@ account doesn't have yet; nothing that exists is overwritten.
 - `npm run dev` — start the local dev server
 - `npm run build` — type-check and build for production
 - `npm run lint` — run Oxlint
+- `npm run format` — format the code with Prettier (`npm run format:check` only reports, as CI does)
 - `npm run preview` — preview the production build locally
 - `npm run dev:server` — run the API with auto-reload
 - `npm run dev:all` — seed the test user, then run the API and the dev server together
