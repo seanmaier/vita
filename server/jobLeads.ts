@@ -56,21 +56,47 @@ function findLead(userId: number, id: number): JobLead | null {
   return row ? toLead(row) : null;
 }
 
-/** Stores leads for a user in one transaction; entries already known are counted as duplicates. */
-export function insertLeads(userId: number, leads: JobLeadInput[]): { created: number; duplicates: number } {
-  const insert = db.prepare(
+export interface InsertCounts {
+  created: number;
+  /** Leads that were already known (updated or not). */
+  duplicates: number;
+  /** Known leads whose title, url, company or location changed. */
+  updated: number;
+}
+
+/**
+ * Stores leads for a user in one transaction. A known lead takes the new title and url, and the
+ * new company and location where given, so a re-sent alert repairs what an older parser stored.
+ * Status, score and rating stay as they are.
+ */
+export function insertLeads(userId: number, leads: JobLeadInput[]): InsertCounts {
+  const exists = db.prepare('SELECT 1 FROM job_leads WHERE user_id = ? AND source = ? AND external_id = ?');
+  const upsert = db.prepare(
     `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url)
-     VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, source, external_id) DO NOTHING`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (user_id, source, external_id) DO UPDATE SET
+       title = excluded.title,
+       company = COALESCE(excluded.company, company),
+       location = COALESCE(excluded.location, location),
+       url = excluded.url
+     WHERE title IS NOT excluded.title
+        OR url IS NOT excluded.url
+        OR (excluded.company IS NOT NULL AND company IS NOT excluded.company)
+        OR (excluded.location IS NOT NULL AND location IS NOT excluded.location)`,
   );
-  const created = transaction(() => {
-    let n = 0;
+  return transaction(() => {
+    const counts: InsertCounts = { created: 0, duplicates: 0, updated: 0 };
     for (const l of leads) {
-      const r = insert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
-      n += Number(r.changes);
+      const known = exists.get(userId, l.source, l.externalId) !== undefined;
+      const r = upsert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
+      if (!known) counts.created += 1;
+      else {
+        counts.duplicates += 1;
+        counts.updated += Number(r.changes);
+      }
     }
-    return n;
+    return counts;
   });
-  return { created, duplicates: leads.length - created };
 }
 
 jobLeads.post('/', async (c) => {

@@ -92,6 +92,7 @@ inboundMail.post('/', async (c) => {
   if (leadErrors.length) return invalid(c, leadErrors);
 
   const counts = insertLeads(target.userId, parsed);
-  record('leads', `${counts.created} neu, ${counts.duplicates} doppelt`);
+  const updated = counts.updated ? `, davon ${counts.updated} aktualisiert` : '';
+  record('leads', `${counts.created} neu, ${counts.duplicates} doppelt${updated}`);
   return c.json(counts, 201);
 });

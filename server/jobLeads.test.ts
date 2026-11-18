@@ -17,21 +17,63 @@ const post = (app: App, body: unknown) =>
 const patch = (app: App, id: number, body: unknown) =>
   app.request(`/api/v1/job-leads/${id}`, { method: 'PATCH', headers: json, body: JSON.stringify(body) });
 
-test('posting leads creates them, and a repeat is all duplicates', async () => {
+test('posting leads creates them, and an identical repeat is all duplicates without updates', async () => {
   const app = testApp(createTestUser());
   const res = await post(app, { leads: [lead(1), lead(2)] });
   assert.equal(res.status, 201);
-  assert.deepEqual(await res.json(), { created: 2, duplicates: 0 });
+  assert.deepEqual(await res.json(), { created: 2, duplicates: 0, updated: 0 });
   const again = await post(app, { leads: [lead(1), lead(2)] });
   assert.equal(again.status, 201);
-  assert.deepEqual(await again.json(), { created: 0, duplicates: 2 });
+  assert.deepEqual(await again.json(), { created: 0, duplicates: 2, updated: 0 });
 });
 
-test('the same externalId with another url is a duplicate', async () => {
+const listLeads = async (app: App) =>
+  (await (await app.request('/api/v1/job-leads')).json()) as Record<string, unknown>[];
+
+test('a known lead takes the new title, url, company and location', async () => {
   const app = testApp(createTestUser());
-  await post(app, { leads: [lead(1)] });
-  const res = await post(app, { leads: [lead(1, { url: 'https://example.com/other' })] });
-  assert.deepEqual(await res.json(), { created: 0, duplicates: 1 });
+  await post(app, { leads: [lead(1, { title: 'HanseCom 2.6 ★ Dev Hamburg 11T' }), lead(2)] });
+  const res = await post(app, {
+    leads: [lead(1, { title: 'Dev', company: 'HanseCom', location: 'Hamburg', url: 'https://example.com/other' }), lead(2)],
+  });
+  assert.deepEqual(await res.json(), { created: 0, duplicates: 2, updated: 1 });
+  const [, first] = await listLeads(app);
+  assert.equal(first.title, 'Dev');
+  assert.equal(first.company, 'HanseCom');
+  assert.equal(first.location, 'Hamburg');
+  assert.equal(first.url, 'https://example.com/other');
+});
+
+test('an update keeps company and location the new data lacks, and never touches the rating', async () => {
+  const app = testApp(createTestUser());
+  await post(app, { leads: [lead(1, { company: 'Firma', location: 'Köln' })] });
+  const [{ id }] = await listLeads(app);
+  await patch(app, id as number, { status: 'rated', score: 80, verdict: 'passt' });
+  const res = await post(app, { leads: [lead(1, { title: 'Job 1 (m/w/d)' })] });
+  assert.deepEqual(await res.json(), { created: 0, duplicates: 1, updated: 1 });
+  const [stored] = await listLeads(app);
+  assert.equal(stored.title, 'Job 1 (m/w/d)');
+  assert.equal(stored.company, 'Firma');
+  assert.equal(stored.location, 'Köln');
+  assert.equal(stored.status, 'rated');
+  assert.equal(stored.score, 80);
+  assert.equal(stored.verdict, 'passt');
+});
+
+test('a repeat without new company or location is no update', async () => {
+  const app = testApp(createTestUser());
+  await post(app, { leads: [lead(1, { company: 'Firma' })] });
+  const res = await post(app, { leads: [lead(1)] });
+  assert.deepEqual(await res.json(), { created: 0, duplicates: 1, updated: 0 });
+});
+
+test('another user with the same externalId is not affected by an update', async () => {
+  const owner = testApp(createTestUser());
+  const other = testApp(createTestUser());
+  await post(owner, { leads: [lead(1)] });
+  await post(other, { leads: [lead(1)] });
+  await post(other, { leads: [lead(1, { title: 'Changed' })] });
+  assert.equal((await listLeads(owner))[0].title, 'Job 1');
 });
 
 test('non-https urls are rejected with an indexed detail', async () => {
