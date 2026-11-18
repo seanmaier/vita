@@ -1,53 +1,40 @@
+import { z } from 'zod';
 import type { SkillGroup } from '#shared/types.ts';
+import { nonBlank, parseJsonText } from './issues.ts';
 
 export type SkillGroupsParseResult =
   | { ok: true; skillGroups: SkillGroup[] }
   | { ok: false; errors: string[] };
 
-function isString(v: unknown): v is string {
-  return typeof v === 'string';
-}
+const skillGroup = z
+  .object(
+    {
+      label: nonBlank('"label" is required and must be a non-empty string.'),
+      skills: z.custom<string[]>((v) => Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string'), {
+        error: '"skills" must be a non-empty array of strings.',
+      }),
+      variant: z.enum(['default', 'learning'], { error: '"variant" must be "default" or "learning".' }).optional(),
+    },
+    { error: 'expected an object with "label" and "skills".' },
+  )
+  // "default" is what an unset variant means, so only "learning" is kept.
+  .transform(({ label, skills, variant }): SkillGroup => ({ label, skills, ...(variant === 'learning' && { variant }) }));
+
+const skillGroupsSchema = z.array(skillGroup, { error: 'Expected a JSON array of skill groups.' });
 
 /** Validates a parsed JSON value against SkillGroup[], collecting every error found. */
 export function validateSkillGroups(input: unknown): SkillGroupsParseResult {
-  if (!Array.isArray(input)) {
-    return { ok: false, errors: ['Expected a JSON array of skill groups.'] };
-  }
-
-  const errors: string[] = [];
-  input.forEach((item, i) => {
-    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
-      errors.push(`Item ${i}: expected an object with "label" and "skills".`);
-      return;
-    }
-    const obj = item as Record<string, unknown>;
-    if (!isString(obj.label) || !obj.label.trim()) errors.push(`Item ${i}: "label" is required and must be a non-empty string.`);
-    if (!Array.isArray(obj.skills) || obj.skills.length === 0 || !obj.skills.every(isString)) {
-      errors.push(`Item ${i}: "skills" must be a non-empty array of strings.`);
-    }
-    if (obj.variant !== undefined && obj.variant !== 'default' && obj.variant !== 'learning') {
-      errors.push(`Item ${i}: "variant" must be "default" or "learning".`);
-    }
-  });
-
-  if (errors.length > 0) return { ok: false, errors };
-
-  const skillGroups: SkillGroup[] = (input as Record<string, unknown>[]).map((obj) => ({
-    label: obj.label as string,
-    skills: obj.skills as string[],
-    ...(obj.variant === 'learning' && { variant: 'learning' as const }),
-  }));
-
-  return { ok: true, skillGroups };
+  const result = skillGroupsSchema.safeParse(input);
+  if (result.success) return { ok: true, skillGroups: result.data };
+  // This import dialog names items by number ("Item 2: …") rather than by path.
+  return {
+    ok: false,
+    errors: result.error.issues.map((issue) => (issue.path.length ? `Item ${String(issue.path[0])}: ${issue.message}` : issue.message)),
+  };
 }
 
 /** Parses and validates a raw JSON string in one step. */
 export function parseSkillGroups(raw: string): SkillGroupsParseResult {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return { ok: false, errors: [`Invalid JSON: ${(e as SyntaxError).message}`] };
-  }
-  return validateSkillGroups(parsed);
+  const json = parseJsonText(raw);
+  return json.ok ? validateSkillGroups(json.value) : json;
 }
