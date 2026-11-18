@@ -65,11 +65,21 @@ test('leads from the matching gmail land at the recipient user only', async () =
     leads: [lead(1), lead(2)],
   });
   assert.equal(res.status, 201);
-  assert.deepEqual(await res.json(), { created: 2, duplicates: 0 });
+  assert.deepEqual(await res.json(), { created: 2, duplicates: 0, updated: 0 });
   assert.equal((await leadsOf(owner.app)).length, 2);
   assert.equal((await leadsOf(other.app)).length, 0);
   assert.equal((await eventsOf(owner.app))[0].kind, 'leads');
   assert.equal((await eventsOf(owner.app))[0].detail, '2 neu, 0 doppelt');
+});
+
+test('a re-forwarded alert repairs the leads it already created', async () => {
+  const owner = await setup('owner.name@gmail.com');
+  const send = (leads: unknown[]) =>
+    deliver({ recipient: owner.address, envelopeFrom: 'owner.name@gmail.com', kind: 'leads', leads });
+  await send([lead(1), lead(2)]);
+  const res = await send([{ ...lead(1), title: 'Fixed title', company: 'Firma' }, lead(2), lead(3)]);
+  assert.deepEqual(await res.json(), { created: 1, duplicates: 2, updated: 1 });
+  assert.equal((await eventsOf(owner.app))[0].detail, '1 neu, 2 doppelt, davon 1 aktualisiert');
 });
 
 test('leads from a foreign sender are refused and store nothing', async () => {

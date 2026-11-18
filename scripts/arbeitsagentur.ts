@@ -2,7 +2,7 @@
 // ready for `node scripts/api.ts POST job-leads <file>` (add --body to print the { "leads": [...] } request body instead).
 //   node scripts/arbeitsagentur.ts --was "Backend Entwickler" --wo Hamburg --umkreis 30 --tage 1
 // The API is unofficial (documented at jobsuche.api.bund.dev). Only the first page
-// (100 hits) is read; the server drops duplicates when the leads are submitted.
+// (100 hits) is read; the server only refreshes leads it already knows when they are submitted.
 import { pathToFileURL } from 'node:url';
 import type { JobLeadInput } from '../src/types.ts';
 

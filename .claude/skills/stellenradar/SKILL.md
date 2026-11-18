@@ -36,7 +36,8 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    node scripts/arbeitsagentur.ts --was "<Begriff>" --wo "<Ort>" --umkreis <km> --tage 1 --body > <datei.json>
    node scripts/api.ts POST job-leads <datei.json>
    ```
-   Die Antwort nennt `created` und `duplicates`; Dubletten fängt der Server ab. Bei Fehler
+   Die Antwort nennt `created`, `duplicates` und `updated`; bekannte Leads legt der Server
+   nicht neu an, sondern frischt nur Titel, URL, Firma und Ort auf. Bei Fehler
    einer Suche mit den übrigen weitermachen und den Fehler am Ende nennen.
 3. **Offene Leads holen:** `node scripts/api.ts GET "job-leads?status=new&limit=200"`
    (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url`).
