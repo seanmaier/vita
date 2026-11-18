@@ -13,4 +13,5 @@ export const JOB_ALERT_SOURCES: JobAlertSource[] = [
   { label: 'StepStone', domains: ['stepstone.de'] },
   { label: 'Indeed', domains: ['indeed.com', 'indeed.de'] },
   { label: 'Glassdoor', domains: ['glassdoor.com', 'glassdoor.de'] },
+  { label: 'Instaffo', domains: ['instaffo.com'] },
 ];

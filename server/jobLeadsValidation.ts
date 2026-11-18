@@ -3,7 +3,7 @@ import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '.
 import { criteriaScore, validateCriteria, validateExclusion } from '../src/utils/fitCriteria.ts';
 import { isPlainObject, type Body, type Validated } from './http.ts';
 
-export const LEAD_SOURCES: readonly JobLeadSource[] = ['linkedin', 'stepstone', 'indeed', 'glassdoor', 'arbeitsagentur', 'other'];
+export const LEAD_SOURCES: readonly JobLeadSource[] = ['linkedin', 'stepstone', 'indeed', 'glassdoor', 'instaffo', 'arbeitsagentur', 'other'];
 export const LEAD_STATUSES: readonly JobLeadStatus[] = ['new', 'rated', 'dismissed', 'applied'];
 
 const LEAD_FIELDS = ['source', 'externalId', 'title', 'company', 'location', 'url'];

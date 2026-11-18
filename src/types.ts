@@ -171,7 +171,7 @@ export interface ApplicationConfig {
   deletedAt?: string;
 }
 
-export type JobLeadSource = 'linkedin' | 'stepstone' | 'indeed' | 'glassdoor' | 'arbeitsagentur' | 'other';
+export type JobLeadSource = 'linkedin' | 'stepstone' | 'indeed' | 'glassdoor' | 'instaffo' | 'arbeitsagentur' | 'other';
 export type JobLeadStatus = 'new' | 'rated' | 'dismissed' | 'applied';
 
 export interface JobLeadInput {
