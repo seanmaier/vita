@@ -354,6 +354,83 @@ test('a mail forwarded by hand from iCloud is parsed by the platform in the quot
   ]);
 });
 
+test('a forward whose text part is one long line (iCloud after Outlook) still finds the platform', async () => {
+  // Real shape: iCloud rewrites the text part into one line, own address first, the platform later.
+  const text =
+    'Begin forwarded message: From: Me <me@outlook.example> Subject: WG: Neue Jobs Date: 18 Nov 2026 at 22:59 ' +
+    'To: "me@icloud.example" <me@icloud.example> Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Dienstag ' +
+    'An: me@outlook.example Betreff: Neue Jobs 1 Backend Jobs in Hamburg Backend Dev Firma - Hamburg';
+  const html =
+    '<div>From: Me &lt;me@outlook.example&gt;</div><div>Von: Indeed &lt;donotreply@jobalert.indeed.com&gt;</div>' +
+    '<a href="https://de.indeed.com/rc/clk/dl?jk=abcdefabcdef0123&amp;from=ja">Backend Dev</a>';
+  const multipart = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', text, '--b1', 'Content-Type: text/html; charset=utf-8', '', html, '--b1--'].join('\r\n');
+  const m = fakeMessage('me@icloud.example', rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'));
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  assert.equal(bodyOf(f).kind, 'leads');
+  assert.equal(bodyOf(f).leads[0].externalId, 'abcdefabcdef0123');
+});
+
+/** A mail as Outlook sends it with "forward as attachment": a note from the user plus the original as .eml. */
+function forwardedAsAttachment(original: string, disposition = 'attachment; filename="Neue Jobs.eml"'): string {
+  return rawMail(
+    'Me <me@outlook.example>',
+    [
+      '--outer',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'Siehe Anlage',
+      '--outer',
+      'Content-Type: message/rfc822',
+      `Content-Disposition: ${disposition}`,
+      '',
+      original,
+      '--outer--',
+    ].join('\r\n'),
+    'multipart/mixed; boundary="outer"',
+  ).replace('Subject: Neue Jobs', 'Subject: WG: Neue Jobs');
+}
+
+const instaffoOriginal = () => {
+  const part = (name: string) => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
+  const body = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', part('instaffo-top-match.txt'), '--b1', 'Content-Type: text/html; charset=utf-8', '', part('instaffo-top-match.html'), '--b1--'].join('\r\n');
+  return rawMail('Instaffo <notifications@app.instaffo.com>', body, 'multipart/alternative; boundary="b1"').replace('Subject: Neue Jobs', 'Subject: Neuer Top-Match');
+};
+
+test('a mail forwarded as attachment is read from the attached original, text part included', async () => {
+  for (const disposition of ['attachment; filename="Neue Jobs.eml"', 'inline']) {
+    const m = fakeMessage('me@outlook.example', forwardedAsAttachment(instaffoOriginal(), disposition));
+    const f = fakeFetch(201);
+    assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+    const body = bodyOf(f);
+    assert.equal(body.kind, 'leads', disposition);
+    assert.equal(body.envelopeFrom, 'me@outlook.example');
+    assert.equal(body.subject, 'Neuer Top-Match');
+    assert.equal(body.sender, 'Instaffo <notifications@app.instaffo.com>');
+    assert.deepEqual(
+      body.leads.map((l: { externalId: string }) => l.externalId),
+      ['0adc31c6-604b-41c1-9ae0-caa338763987'],
+    );
+  }
+});
+
+test('an attached mail from an unknown sender is ignored, and the outer mail decides', async () => {
+  const stranger = rawMail('Shop <news@shop.example>', '<a href="https://www.linkedin.com/jobs/view/42/">Dev</a>');
+  const m = fakeMessage('me@outlook.example', forwardedAsAttachment(stranger));
+  const f = fakeFetch(201);
+  await handleEmail(m.message, env, f.impl, noSleep);
+  assert.equal(bodyOf(f).kind, 'failed');
+  assert.equal(bodyOf(f).detail, 'unknown alert sender');
+});
+
+test('an attached alert is not read when the outer mail fails SPF', async () => {
+  const m = fakeMessage('me@outlook.example', forwardedAsAttachment(instaffoOriginal()), { spf: false });
+  const f = fakeFetch(201);
+  await handleEmail(m.message, env, f.impl, noSleep);
+  assert.equal(bodyOf(f).kind, 'failed');
+  assert.equal(bodyOf(f).detail, 'sender not verified (SPF)');
+});
+
 test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async (t) => {
   const logs: string[] = [];
   t.mock.method(console, 'log', (line: string) => logs.push(line));
