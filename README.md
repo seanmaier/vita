@@ -90,6 +90,8 @@ account doesn't have yet; nothing that exists is overwritten.
 - `npm run dev` — start the local dev server
 - `npm run build` — type-check and build for production
 - `npm run lint` — run Oxlint
+- `npm test` — run all tests once with Vitest (`npm run test:watch` re-runs them on every change,
+  `npm run test:coverage` adds a coverage report); the email worker has its own `npm test` in `workers/job-alerts`
 - `npm run preview` — preview the production build locally
 - `npm run dev:server` — run the API with auto-reload
 - `npm run dev:all` — seed the test user, then run the API and the dev server together

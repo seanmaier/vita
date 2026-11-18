@@ -1,6 +1,4 @@
-import './test/env.ts';
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 import { createTestUser, testApp } from './test/testApp.ts';
 
 type App = ReturnType<typeof testApp>;
@@ -14,18 +12,18 @@ const create = (app: App, body: unknown) => app.request('/api/v1/applications', 
 test('a checked job is created as evaluated with its fit', async () => {
   const app = testApp(createTestUser());
   const res = await create(app, { company: 'Acme', role: 'Dev', status: 'evaluated', fit, url: 'https://example.org/job/1' });
-  assert.equal(res.status, 201);
+  expect(res.status).toBe(201);
   const body = (await res.json()) as Json;
-  assert.equal(body.status, 'evaluated');
-  assert.deepEqual(body.fit, fit);
-  assert.deepEqual(body.statusHistory.map((t: Json) => t.to), ['evaluated']);
+  expect(body.status).toBe('evaluated');
+  expect(body.fit).toEqual(fit);
+  expect(body.statusHistory.map((t: Json) => t.to)).toEqual(['evaluated']);
 });
 
 test('only drafting or evaluated can be the starting status', async () => {
   const app = testApp(createTestUser());
   const res = await create(app, { company: 'Acme', role: 'Dev', status: 'sent' });
-  assert.equal(res.status, 400);
-  assert.equal(((await (await create(app, { company: 'Beta', role: 'Dev' })).json()) as Json).status, 'drafting');
+  expect(res.status).toBe(400);
+  expect(((await (await create(app, { company: 'Beta', role: 'Dev' })).json()) as Json).status).toBe('drafting');
 });
 
 test('an evaluated job is skipped or turned into a draft', async () => {
@@ -33,11 +31,11 @@ test('an evaluated job is skipped or turned into a draft', async () => {
   await create(app, { id: 'skip-me', company: 'Skip', role: 'Dev', status: 'evaluated', fit });
   await create(app, { id: 'apply-me', company: 'Apply', role: 'Dev', status: 'evaluated', fit });
   const skip = await app.request('/api/v1/applications/skip-me/transitions', json('POST', { to: 'skipped' }));
-  assert.equal(((await skip.json()) as Json).status, 'skipped');
+  expect(((await skip.json()) as Json).status).toBe('skipped');
   const draft = await app.request('/api/v1/applications/apply-me/transitions', json('POST', { to: 'drafting' }));
-  assert.equal(((await draft.json()) as Json).status, 'drafting');
+  expect(((await draft.json()) as Json).status).toBe('drafting');
   const wrong = await app.request('/api/v1/applications/skip-me/transitions', json('POST', { to: 'drafting' }));
-  assert.equal(wrong.status, 409);
+  expect(wrong.status).toBe(409);
 });
 
 test('a re-check updates the fit with PATCH', async () => {
@@ -45,8 +43,8 @@ test('a re-check updates the fit with PATCH', async () => {
   await create(app, { id: 'acme', company: 'Acme', role: 'Dev', status: 'evaluated', fit });
   const updated = { ...fit, score: 65, recommendation: 'apply-if', reason: 'Only if hybrid.' };
   const res = await app.request('/api/v1/applications/acme', json('PATCH', { fit: updated }));
-  assert.equal(res.status, 200);
-  assert.deepEqual(((await res.json()) as Json).fit, updated);
+  expect(res.status).toBe(200);
+  expect(((await res.json()) as Json).fit).toEqual(updated);
   const bad = await app.request('/api/v1/applications/acme', json('PATCH', { fit: { ...fit, score: 140 } }));
-  assert.equal(bad.status, 400);
+  expect(bad.status).toBe(400);
 });

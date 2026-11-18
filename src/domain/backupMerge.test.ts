@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { assert, expect, test } from 'vitest';
 import type { ApplicationConfig, BaseProfile } from '../types.ts';
 import { mergeBackup, parseBackup, type DataBackup } from './backupMerge.ts';
 
@@ -27,15 +26,15 @@ test('new applications are added with their history, existing ones are skipped u
     statusHistories: { new: history as DataBackup['statusHistories'][string], kept: history as DataBackup['statusHistories'][string] },
     configOverrides: { new: { id: 'new', company: 'New', role: 'Dev' }, kept: { id: 'kept', company: 'X', role: 'Y' } },
   }));
-  assert.ok(result.ok);
-  assert.deepEqual(result.added, ['new']);
-  assert.deepEqual(result.skipped.sort(), ['hist', 'kept', 'only', 'over']);
+  assert(result.ok);
+  expect(result.added).toEqual(['new']);
+  expect(result.skipped.sort()).toEqual(['hist', 'kept', 'only', 'over']);
   const list = JSON.parse(result.set['local-apps']) as ApplicationConfig[];
-  assert.deepEqual(list.map((a) => [a.id, a.role]), [['kept', 'Current'], ['new', 'Dev']]);
-  assert.deepEqual(JSON.parse(result.set['status-history-new']), history);
-  assert.ok(result.set['app-config-new']);
-  assert.equal(result.set['app-config-kept'], undefined);
-  assert.equal(result.set['status-history-kept'], undefined);
+  expect(list.map((a) => [a.id, a.role])).toEqual([['kept', 'Current'], ['new', 'Dev']]);
+  expect(JSON.parse(result.set['status-history-new'])).toEqual(history);
+  expect(result.set['app-config-new']).toBeTruthy();
+  expect(result.set['app-config-kept']).toBe(undefined);
+  expect(result.set['status-history-kept']).toBe(undefined);
 });
 
 test('a version-2 backup gets its histories seeded from status and dates', () => {
@@ -43,11 +42,11 @@ test('a version-2 backup gets its histories seeded from status and dates', () =>
     version: 2, exportedAt: 'x', localApps: [app('a', { appliedDate: '01.10.2026' })], statuses: { a: 'rejected' },
     configOverrides: {}, profileOverrides: {},
   }));
-  assert.ok(parsed.ok);
+  assert(parsed.ok);
   const result = mergeBackup({}, parsed.backup);
-  assert.ok(result.ok);
+  assert(result.ok);
   const history = JSON.parse(result.set['status-history-a']) as { to: string; date: string | null }[];
-  assert.deepEqual(history.map((t) => [t.to, t.date]), [['drafting', null], ['sent', '2026-10-01'], ['rejected', null]]);
+  expect(history.map((t) => [t.to, t.date])).toEqual([['drafting', null], ['sent', '2026-10-01'], ['rejected', null]]);
 });
 
 test('an impossible history fails the whole import', () => {
@@ -55,32 +54,32 @@ test('an impossible history fails the whole import', () => {
     localApps: [app('a')],
     statusHistories: { a: [{ to: 'drafting', date: null, recordedAt: null }, { to: 'accepted', date: null, recordedAt: null }] },
   }));
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.error, /"a"/);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.error).toMatch(/"a"/);
 });
 
 test('base profiles are added when new; the list is created when there is none', () => {
   const merged = mergeBackup({ 'base-profiles': JSON.stringify([profile('mine')]) }, backup({ baseProfiles: [profile('mine'), profile('other')] }));
-  assert.ok(merged.ok);
-  assert.deepEqual(merged.addedProfiles, ['other']);
-  assert.deepEqual((JSON.parse(merged.set['base-profiles']) as BaseProfile[]).map((p) => p.id), ['mine', 'other']);
+  assert(merged.ok);
+  expect(merged.addedProfiles).toEqual(['other']);
+  expect((JSON.parse(merged.set['base-profiles']) as BaseProfile[]).map((p) => p.id)).toEqual(['mine', 'other']);
 
   const fresh = mergeBackup({}, backup({ baseProfiles: [profile('a')] }));
-  assert.ok(fresh.ok);
-  assert.deepEqual(fresh.addedProfiles, ['a']);
+  assert(fresh.ok);
+  expect(fresh.addedProfiles).toEqual(['a']);
 });
 
 test('legacy profile overrides are only filled in where none exist', () => {
   const result = mergeBackup({ 'profile-override-en': '{"mine":true}' }, backup({
     profileOverrides: { en: { theirs: true } as never, de: { theirs: true } as never },
   }));
-  assert.ok(result.ok);
-  assert.equal(result.set['profile-override-en'], undefined);
-  assert.ok(result.set['profile-override-de']);
+  assert(result.ok);
+  expect(result.set['profile-override-en']).toBe(undefined);
+  expect(result.set['profile-override-de']).toBeTruthy();
 });
 
 test('parsing rejects files that are not backups', () => {
-  assert.equal(parseBackup('nope').ok, false);
-  assert.equal(parseBackup('{}').ok, false);
-  assert.equal(parseBackup(JSON.stringify({ localApps: [], configOverrides: {}, profileOverrides: {} })).ok, false);
+  expect(parseBackup('nope').ok).toBe(false);
+  expect(parseBackup('{}').ok).toBe(false);
+  expect(parseBackup(JSON.stringify({ localApps: [], configOverrides: {}, profileOverrides: {} })).ok).toBe(false);
 });

@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 import { cloudflareSpfPass } from '../src/spf.ts';
 
 // Shapes taken from real Cloudflare headers (addresses anonymized).
@@ -18,69 +17,69 @@ const OUTLOOK =
   'smtp.remote-ip="2a01::3"';
 
 test('iCloud forward with SPF pass for the envelope passes', () => {
-  assert.equal(cloudflareSpfPass([ICLOUD, 'arc.icloud.com; arc=pass'], 'name@icloud.com'), true);
+  expect(cloudflareSpfPass([ICLOUD, 'arc.icloud.com; arc=pass'], 'name@icloud.com')).toBe(true);
 });
 
 test('Outlook redirect passes on SPF even though DKIM broke', () => {
-  assert.equal(cloudflareSpfPass([OUTLOOK], OUTLOOK_ENVELOPE), true);
+  expect(cloudflareSpfPass([OUTLOOK], OUTLOOK_ENVELOPE)).toBe(true);
 });
 
 test('helo pass only', () => {
   const h = 'mx.cloudflare.net; spf=pass smtp.helo=mail.example.org; spf=fail smtp.mailfrom=a@example.org';
-  assert.equal(cloudflareSpfPass([h], 'a@example.org'), false);
+  expect(cloudflareSpfPass([h], 'a@example.org')).toBe(false);
 });
 
 test('mailfrom differs', () => {
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=other@example.org'], 'a@example.org'), false);
+  expect(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=other@example.org'], 'a@example.org')).toBe(false);
 });
 
 test('case-insensitive', () => {
   const h = 'mx.cloudflare.net; spf=pass smtp.mailfrom=forwarding-noreply@google.com';
-  assert.equal(cloudflareSpfPass([h], 'Forwarding-NoReply@Google.com'), true);
+  expect(cloudflareSpfPass([h], 'Forwarding-NoReply@Google.com')).toBe(true);
 });
 
 test('quoted mailfrom', () => {
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom="a@example.org"'], 'a@example.org'), true);
+  expect(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom="a@example.org"'], 'a@example.org')).toBe(true);
 });
 
 test('forged lower header', () => {
   const headers = ['mx.cloudflare.net; spf=fail smtp.mailfrom=a@example.org', 'mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'];
-  assert.equal(cloudflareSpfPass(headers, 'a@example.org'), false);
+  expect(cloudflareSpfPass(headers, 'a@example.org')).toBe(false);
 });
 
 test('top header from someone else', () => {
-  assert.equal(cloudflareSpfPass(['mx.microsoft.com 1; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org'), false);
+  expect(cloudflareSpfPass(['mx.microsoft.com 1; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org')).toBe(false);
 });
 
 test('authserv-id prefix trick', () => {
   const h = 'mx.cloudflare.net.evil.example; spf=pass smtp.mailfrom=a@example.org';
-  assert.equal(cloudflareSpfPass([h], 'a@example.org'), false);
+  expect(cloudflareSpfPass([h], 'a@example.org')).toBe(false);
 });
 
 test('no header', () => {
-  assert.equal(cloudflareSpfPass([], 'a@example.org'), false);
+  expect(cloudflareSpfPass([], 'a@example.org')).toBe(false);
 });
 
 test('a comment cannot smuggle in a pass', () => {
   const h = 'mx.cloudflare.net; spf=fail (looks like; spf=pass smtp.mailfrom=a@example.org) smtp.mailfrom=a@example.org';
-  assert.equal(cloudflareSpfPass([h], 'a@example.org'), false);
+  expect(cloudflareSpfPass([h], 'a@example.org')).toBe(false);
 });
 
 test('a pass smuggled in through a broken comment does not count', () => {
   const h =
     'mx.cloudflare.net; spf=none (mx.cloudflare.net: no SPF record found for postmaster@x);spf=pass ' +
     'smtp.mailfrom=victim@gmail.com() smtp.helo=x; spf=softfail smtp.mailfrom=victim@gmail.com';
-  assert.equal(cloudflareSpfPass([h], 'victim@gmail.com'), false);
+  expect(cloudflareSpfPass([h], 'victim@gmail.com')).toBe(false);
 });
 
 test('a pass smuggled in through a quoted HELO does not count', () => {
   const h =
     'mx.cloudflare.net; spf=none smtp.helo="a;spf=pass smtp.mailfrom=victim@gmail.com"; ' +
     'spf=softfail smtp.mailfrom=victim@gmail.com';
-  assert.equal(cloudflareSpfPass([h], 'victim@gmail.com'), false);
+  expect(cloudflareSpfPass([h], 'victim@gmail.com')).toBe(false);
 });
 
 test('mailfrom followed by end of header or by another property', () => {
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org'), true);
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org x=y'], 'a@example.org'), true);
+  expect(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org')).toBe(true);
+  expect(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org x=y'], 'a@example.org')).toBe(true);
 });

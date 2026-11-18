@@ -13,7 +13,9 @@
     "users": "node server/cli.ts",
     "api": "node scripts/api.ts",
     "lint": "oxlint",
-    "test": "node --test \"server/**/*.test.ts\" \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
+    "test": "node scripts/vitest.ts run",
+    "test:watch": "node scripts/vitest.ts",
+    "test:coverage": "node scripts/vitest.ts run --coverage",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -30,16 +32,23 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.12",
     "@types/node": "^24.19.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/wicg-file-system-access": "^2023.10.7",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^5.1.1",
     "concurrently": "^10.0.7",
+    "jsdom": "^31.0.1",
     "oxlint": "^1.71.0",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^5.1.1"
   },
   "engines": {
     "node": ">=22.18"

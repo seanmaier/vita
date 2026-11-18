@@ -1,11 +1,11 @@
-// Deliberately does not import ./test/env.ts: it needs a database created with
+// Points DB_PATH elsewhere than the setup file (server/test/env.ts) did and
+// imports server/db.ts only then: it needs a database created with
 // the old api_tokens schema (no scope column) before server/db.ts opens it.
-import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 
 test('the scope migration keeps old tokens as full and is idempotent', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-')), 'app.db');
@@ -24,8 +24,8 @@ test('the scope migration keeps old tokens as full and is idempotent', async () 
   process.env.DB_PATH = dbPath;
   const { db, migrate } = await import('./db.ts');
   const scopeOf = () => db.prepare("SELECT scope FROM api_tokens WHERE name = 'legacy'").get();
-  assert.deepEqual({ ...scopeOf() }, { scope: 'full' });
+  expect({ ...scopeOf() }).toEqual({ scope: 'full' });
   migrate();
   migrate();
-  assert.deepEqual({ ...scopeOf() }, { scope: 'full' });
+  expect({ ...scopeOf() }).toEqual({ scope: 'full' });
 });

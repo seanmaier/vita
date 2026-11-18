@@ -1,11 +1,11 @@
-// Deliberately does not import ./test/env.ts: it needs a database holding
+// Points DB_PATH elsewhere than the setup file (server/test/env.ts) did and
+// imports server/db.ts only then: it needs a database holding
 // data from before status histories existed before server/db.ts opens it.
-import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 
 test('old statuses become seeded histories, once', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-status-')), 'app.db');
@@ -38,14 +38,14 @@ test('old statuses become seeded histories, once', async () => {
     return row && (JSON.parse(row.value) as { to: string; date: string | null }[]).map((t) => [t.to, t.date]);
   };
 
-  assert.deepEqual(history('listed'), [['drafting', null], ['sent', '2026-10-01']]);
-  assert.deepEqual(history('ghost'), [['drafting', null], ['sent', '2026-09-01']]);
-  assert.deepEqual(history('bundled'), [['drafting', null], ['sent', null], ['interview', null]]);
-  assert.deepEqual(history('done'), [['drafting', null]]);
+  expect(history('listed')).toEqual([['drafting', null], ['sent', '2026-10-01']]);
+  expect(history('ghost')).toEqual([['drafting', null], ['sent', '2026-09-01']]);
+  expect(history('bundled')).toEqual([['drafting', null], ['sent', null], ['interview', null]]);
+  expect(history('done')).toEqual([['drafting', null]]);
   // The old values stay for a rollback.
-  assert.ok(db.prepare("SELECT 1 FROM kv WHERE key = 'status-ghost'").get());
+  expect(db.prepare("SELECT 1 FROM kv WHERE key = 'status-ghost'").get()).toBeTruthy();
 
   const before = db.prepare('SELECT key, value FROM kv ORDER BY key').all();
   migrate();
-  assert.deepEqual(db.prepare('SELECT key, value FROM kv ORDER BY key').all(), before);
+  expect(db.prepare('SELECT key, value FROM kv ORDER BY key').all()).toEqual(before);
 });
