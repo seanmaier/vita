@@ -37,3 +37,6 @@ dist-ssr
 .env
 # API token for scripts/api.ts and the assistant skills
 .env.assistant
+
+# Superpowers implementation plans are working files; specs in docs/superpowers/specs are committed
+docs/superpowers/plans/
