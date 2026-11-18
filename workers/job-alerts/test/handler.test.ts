@@ -127,6 +127,34 @@ test('valid LinkedIn alert is posted as leads with recipient and bearer token', 
   assert.equal(body.leads[0].source, 'linkedin');
 });
 
+test('an Instaffo mail (html + text part) is posted as leads built from both parts', async () => {
+  const part = (name: string) => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
+  const multipart = [
+    '--b1',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    part('instaffo-top-match.txt'),
+    '--b1',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    part('instaffo-top-match.html'),
+    '--b1--',
+  ].join('\r\n');
+  const raw = rawMail('Instaffo <notifications@app.instaffo.com>', multipart, 'multipart/alternative; boundary="b1"');
+  const m = fakeMessage(GMAIL_ENVELOPE, raw);
+  const f = fakeFetch(201);
+  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  assert.deepEqual(bodyOf(f).leads, [
+    {
+      source: 'instaffo',
+      externalId: '0adc31c6-604b-41c1-9ae0-caa338763987',
+      title: 'Backend and Platform Engineer (m/w/d)',
+      company: 'Beispiel AI GmbH',
+      url: 'https://app.instaffo.com/candidate/job/0adc31c6-604b-41c1-9ae0-caa338763987',
+    },
+  ]);
+});
+
 test('Cloudflare Access headers are sent when configured', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(201);

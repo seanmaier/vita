@@ -1,6 +1,10 @@
 export interface Anchor {
   href: string;
   text: string;
+  /** Raw HTML inside the link (a job card can be one big link). */
+  inner: string;
+  /** Raw HTML between this link and the next one (company and location often follow the title link). */
+  after: string;
 }
 
 const NAMED_ENTITIES: Record<string, string> = {
@@ -36,15 +40,29 @@ export function htmlToText(html: string): string {
   );
 }
 
-/** Extract every `<a href>` with its decoded href and plain, whitespace-collapsed text. */
+const collapse = (value: string) => value.replace(/[\s\u200b]+/g, ' ').trim();
+
+/** The visible text pieces of an HTML fragment, one per run of text between tags, empty ones dropped. */
+export function textNodes(html: string): string[] {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .split(/<[^>]*>/)
+    .map((piece) => collapse(decodeEntities(piece)))
+    .filter(Boolean);
+}
+
+/** Extract every `<a href>` with its decoded href, plain whitespace-collapsed text and surrounding HTML. */
 export function extractAnchors(html: string): Anchor[] {
   const anchors: Anchor[] = [];
-  for (const [, attrs, inner] of html.matchAll(ANCHOR)) {
+  const matches = [...html.matchAll(ANCHOR)];
+  matches.forEach((match, i) => {
+    const [whole, attrs, inner] = match;
     const hrefMatch = HREF.exec(attrs);
-    if (!hrefMatch) continue;
+    if (!hrefMatch) return;
+    const after = html.slice(match.index + whole.length, matches[i + 1]?.index ?? html.length);
     const href = decodeEntities((hrefMatch[1] ?? hrefMatch[2]).trim());
-    const text = decodeEntities(inner.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
-    anchors.push({ href, text });
-  }
+    const text = collapse(decodeEntities(inner.replace(/<[^>]*>/g, ' ')));
+    anchors.push({ href, text, inner, after });
+  });
   return anchors;
 }

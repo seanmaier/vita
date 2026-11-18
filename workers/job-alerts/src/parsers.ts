@@ -1,4 +1,4 @@
-import { extractAnchors } from './links.ts';
+import { type Anchor, extractAnchors, textNodes } from './links.ts';
 import type { JobLeadInput, JobLeadSource } from './types.ts';
 
 // Shown on the account page too (src/data/jobAlertSources.ts); a test keeps both in sync.
@@ -9,6 +9,7 @@ export const SENDER_DOMAINS: [string, JobLeadSource][] = [
   ['indeed.de', 'indeed'],
   ['glassdoor.com', 'glassdoor'],
   ['glassdoor.de', 'glassdoor'],
+  ['instaffo.com', 'instaffo'],
 ];
 
 /** Map a sender address (optionally "Name <addr>") to a platform by its domain; null if unknown. */
@@ -40,10 +41,27 @@ export function forwardedSource(text: string): JobLeadSource | null {
 }
 
 type Match = { externalId: string; url: string } | null;
+type Details = Partial<Pick<JobLeadInput, 'title' | 'company' | 'location'>>;
 
 interface PlatformRule {
   /** Returns the external id and normalized URL for a link, or null if it is not a job link. */
   match: (href: string) => Match | Promise<Match>;
+  /** Title, company and location from the markup around a job link, where the mail's layout gives them. */
+  details?: (anchor: Anchor) => Details;
+}
+
+const BOLD_BLOCK = /<(p|div|span|h[1-6]|strong|b)\b([^>]*)>([\s\S]*?)<\/\1\s*>/gi;
+const BOLD_STYLE = /font-weight\s*:\s*(?:[6-9]00|bold)/i;
+
+/** The text of the first bold element in a fragment (inline style or <b>/<strong>). */
+function boldText(html: string): string | undefined {
+  for (const [, tag, attrs, inner] of html.matchAll(BOLD_BLOCK)) {
+    if (/^(?:b|strong)$/i.test(tag) || BOLD_STYLE.test(attrs)) {
+      const text = textNodes(inner).join(' ');
+      if (text) return text;
+    }
+  }
+  return undefined;
 }
 
 const INDEED_JK = /[?&]jk=([0-9a-f]{16})/;
@@ -120,27 +138,101 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
       const jk = INDEED_JK.exec(search)?.[1];
       return jk ? indeedLead(jk) : null;
     },
+    // Job alert cards: the title link, then company and location as the next two text lines.
+    details: ({ after }) => {
+      const [company, location] = textNodes(after);
+      return { company, location };
+    },
   },
   glassdoor: {
     match: (href) => {
       const id = /jobListingId=(\d+)/.exec(href)?.[1];
       return id ? { externalId: id, url: `https://www.glassdoor.de/job-listing/index.htm?jl=${id}` } : null;
     },
+    // The whole card is one link: company (and rating) first, then the bold title, then the location.
+    details: ({ inner }) => {
+      const title = boldText(inner);
+      if (!title) return {};
+      const nodes = textNodes(inner);
+      const at = nodes.indexOf(title);
+      return {
+        title,
+        ...(at > 0 ? { company: nodes[0] } : {}),
+        ...(at >= 0 && nodes[at + 1] ? { location: nodes[at + 1] } : {}),
+      };
+    },
   },
 };
 
-/** Turn an alert mail's HTML into leads: one per job id, titled by the first non-empty link text. */
-export async function parseAlert(source: JobLeadSource, html: string): Promise<JobLeadInput[]> {
+const INSTAFFO_JOB_LINK =
+  /\[((?:[^[\]\n]|\[[^[\]\n]*\])*)\]\(https:\/\/app\.instaffo\.com\/candidate\/job\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[?#][^)\s]*)?\)/g;
+const INSTAFFO_LOCATION = /\[Ort\]\s*([^\n[]+)/;
+// Text-part labels start with icon placeholders such as "[Logo]".
+const sameText = (value: string) => value.replace(/^(?:\s*\[[^\]]*\])+/, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Instaffo's HTML links are opaque click trackers (a different one per link), but the text part
+ * carries the real job links. The HTML gives the order — title, then the company link — and the
+ * text part maps the title to the job id; a company only counts if it labels the same job there.
+ */
+function parseInstaffo(html: string, text: string): JobLeadInput[] {
+  const idByLabel = new Map<string, string>();
+  const labelsById = new Map<string, Set<string>>();
+  const locationById = new Map<string, string>();
+  for (const line of text.split('\n')) {
+    for (const [, rawLabel, id] of line.matchAll(INSTAFFO_JOB_LINK)) {
+      const label = sameText(rawLabel);
+      if (!idByLabel.has(label)) idByLabel.set(label, id);
+      labelsById.set(id, (labelsById.get(id) ?? new Set()).add(label));
+      const location = INSTAFFO_LOCATION.exec(line)?.[1]?.trim();
+      if (location && !locationById.has(id)) locationById.set(id, location);
+    }
+  }
+  const texts = extractAnchors(html)
+    .map((anchor) => anchor.text)
+    .filter((linkText) => linkText && !linkText.startsWith('✨'));
+  const leads = new Map<string, JobLeadInput>();
+  for (const [i, title] of texts.entries()) {
+    const id = idByLabel.get(sameText(title));
+    if (!id || leads.has(id)) continue;
+    const next = texts[i + 1];
+    const company = next && labelsById.get(id)?.has(sameText(next)) ? next : undefined;
+    const location = locationById.get(id);
+    leads.set(id, {
+      source: 'instaffo',
+      externalId: id,
+      title,
+      ...(company ? { company } : {}),
+      ...(location ? { location } : {}),
+      // Rebuilt from the id: the mail's link carries a login token ("sso") that must not be stored.
+      url: `https://app.instaffo.com/candidate/job/${id}`,
+    });
+  }
+  return [...leads.values()];
+}
+
+/**
+ * Turn an alert mail into leads: one per job id, titled by the first non-empty link text unless
+ * the platform's layout gives a better title. `text` is the mail's plain-text part.
+ */
+export async function parseAlert(source: JobLeadSource, html: string, text = ''): Promise<JobLeadInput[]> {
+  if (source === 'instaffo') return parseInstaffo(html, text);
   const rule = PLATFORMS[source];
   if (!rule) return [];
   const leads = new Map<string, JobLeadInput>();
-  for (const { href, text } of extractAnchors(html)) {
-    if (!text) continue;
-    const hit = await rule.match(href);
-    if (!hit) continue;
-    if (!leads.has(hit.externalId)) {
-      leads.set(hit.externalId, { source, externalId: hit.externalId, title: text, url: hit.url });
-    }
+  for (const anchor of extractAnchors(html)) {
+    if (!anchor.text) continue;
+    const hit = await rule.match(anchor.href);
+    if (!hit || leads.has(hit.externalId)) continue;
+    const { title, company, location } = rule.details?.(anchor) ?? {};
+    leads.set(hit.externalId, {
+      source,
+      externalId: hit.externalId,
+      title: title ?? anchor.text,
+      ...(company ? { company } : {}),
+      ...(location ? { location } : {}),
+      url: hit.url,
+    });
   }
   return [...leads.values()];
 }

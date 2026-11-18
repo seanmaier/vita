@@ -150,7 +150,7 @@ async function buildPayload(
     return { payload: { ...common, kind: 'failed', detail: 'unknown alert sender' }, log: 'failed (unknown sender)' };
   }
 
-  const leads = sanitize(await parseAlert(source, parsed.html ?? ''));
+  const leads = sanitize(await parseAlert(source, parsed.html ?? '', parsed.text ?? ''));
   if (leads.length === 0) {
     return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0` };
   }
