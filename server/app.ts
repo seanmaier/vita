@@ -32,10 +32,13 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   app.use('/api/*', requestId());
   app.use('/api/*', accessLog);
 
-  // Anything a handler didn't expect. HTTPExceptions (body too large, CSRF)
-  // are deliberate answers and already show up in the access log by status.
+  // Anything a handler didn't expect. HTTPExceptions (body too large, CSRF,
+  // malformed JSON) are deliberate answers and already show up in the access
+  // log by status; on the API they come as JSON like every other error.
   app.onError((err, c) => {
-    if (err instanceof HTTPException) return err.getResponse();
+    if (err instanceof HTTPException) {
+      return c.req.path.startsWith('/api/') ? c.json({ error: err.message || 'Request refused.' }, err.status) : err.getResponse();
+    }
     log.error('Unhandled error', requestFields(c), err);
     const requestId = c.get('requestId');
     return c.req.path.startsWith('/api/')
@@ -54,12 +57,13 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   );
   app.use('/api/*', bodyLimit({ maxSize: 10 * 1024 * 1024 }));
 
-  app.route('/api', authRoutes);
-  app.route('/api/tokens', tokenRoutes);
-  app.route('/api', dataRoutes);
-
   app.use('/api/v1/*', requireUserOrToken);
-  app.route('/api/v1', v1);
+  // One chain, so the returned type knows every route (see AppType).
+  const api = app
+    .route('/api', authRoutes)
+    .route('/api/tokens', tokenRoutes)
+    .route('/api', dataRoutes)
+    .route('/api/v1', v1);
 
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404));
 
@@ -68,5 +72,8 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   app.use('/*', serveStatic({ root: staticDir }));
   app.get('/*', serveStatic({ root: staticDir, path: 'index.html' }));
 
-  return app;
+  return api;
 }
+
+/** Every API route with its parameters, body fields and responses, for the frontend's typed client. */
+export type AppType = ReturnType<typeof createApp>;

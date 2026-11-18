@@ -64,7 +64,7 @@ export interface LeadPatch {
   exclusion?: string | null;
 }
 
-export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'];
+export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'] as const;
 
 // The plain fields of a patch; criteria and exclusion depend on each other
 // and on the score, so validateRating checks those.
