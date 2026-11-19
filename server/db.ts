@@ -11,6 +11,10 @@ mkdirSync(path.dirname(DB_PATH), { recursive: true });
 export const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
+  -- Other processes write to the same file (server/cli.ts in the container,
+  -- the backup script): wait up to 5 s for their lock instead of failing at once
+  -- with SQLITE_BUSY. First, so even switching to WAL below waits.
+  PRAGMA busy_timeout = 5000;
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
 

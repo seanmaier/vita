@@ -1,5 +1,5 @@
 import type { FitRecommendation, JobFit } from '#shared/types.ts';
-import { breakdownText } from '#shared/utils/fitCriteria.ts';
+import { breakdownText, fitScore } from '#shared/utils/fitCriteria.ts';
 
 const COLORS: Record<FitRecommendation, string> = {
   apply: 'var(--status-offer)',
@@ -14,11 +14,6 @@ const LABELS: Record<FitRecommendation, string> = {
   unlikely: 'unlikely',
   exclude: 'excluded',
 };
-
-/** The score that counts: after a cap from the priorities, if one applied. */
-export function fitScore(fit: JobFit): number {
-  return fit.cappedScore ?? fit.score;
-}
 
 /** The job check's score, coloured by its recommendation; the reason and the breakdown show on hover. */
 export function FitBadge({ fit, className = '' }: { fit?: JobFit; className?: string }) {

@@ -7,6 +7,9 @@ data
 .claude
 .env
 .env.assistant
+coverage
+test-results
+playwright-report
 
 # Personal data must never end up in an image pushed to a registry — only the
 # committed example templates are needed for the build.
