@@ -85,10 +85,9 @@ export async function revokeApiToken(name: string): Promise<void> {
 
 /** Gives a token a new secret, keeping its name and scope; the old secret stops working at once. */
 export async function rotateApiToken(name: string): Promise<string> {
-  const res = await fetch(`/api/tokens/${encodeURIComponent(name)}/rotate`, { method: 'POST' });
+  const res = await client.api.tokens[':name'].rotate.$post({ param: { name: encodeURIComponent(name) } });
   if (!res.ok) throw await errorFrom(res, 'Rotating the token failed');
-  const body: { token: string } = await res.json();
-  return body.token;
+  return (await res.json()).token;
 }
 
 export async function fetchUserData(): Promise<Record<string, string>> {
