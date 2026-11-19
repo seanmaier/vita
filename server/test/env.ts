@@ -1,5 +1,5 @@
-// Import this first in every test file: it points the database at a throwaway
-// file before server/db.ts opens it.
+// Setup file of the server tests (vitest.config.ts): runs before each test
+// file and points the database at a throwaway file before server/db.ts opens it.
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

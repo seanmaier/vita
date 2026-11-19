@@ -1,8 +1,6 @@
-import './test/env.ts';
-import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 import { db } from './db.ts';
 
 test('a write waits for another process to release its lock instead of failing', async () => {
@@ -24,7 +22,7 @@ test('a write waits for another process to release its lock instead of failing',
 
   const started = Date.now();
   db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('waited', 'x');
-  assert.ok(Date.now() - started >= 200, 'the insert should have waited for the lock');
-  assert.ok(db.prepare("SELECT 1 FROM users WHERE username = 'waited'").get());
+  expect(Date.now() - started, 'the insert should have waited for the lock').toBeGreaterThanOrEqual(200);
+  expect(db.prepare("SELECT 1 FROM users WHERE username = 'waited'").get()).toBeDefined();
   await once(holder, 'exit');
 });

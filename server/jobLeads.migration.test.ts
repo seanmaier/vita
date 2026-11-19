@@ -1,11 +1,11 @@
-// Deliberately does not import ./test/env.ts: it needs a database created with
+// Points DB_PATH elsewhere than the setup file (server/test/env.ts) did and
+// imports server/db.ts only then: it needs a database created with
 // the old job_leads schema (no rating column) before server/db.ts opens it.
-import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 
 test('the rating migration adds the column, keeps old leads and is idempotent', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-')), 'app.db');
@@ -30,7 +30,7 @@ test('the rating migration adds the column, keeps old leads and is idempotent', 
   migrate();
   migrate();
   const columns = (db.prepare('PRAGMA table_info(job_leads)').all() as { name: string }[]).map((c) => c.name);
-  assert.ok(columns.includes('rating'));
+  expect(columns).toContain('rating');
   const row = db.prepare("SELECT score, verdict, rating FROM job_leads WHERE external_id = 'e1'").get();
-  assert.deepEqual({ ...row }, { score: 71, verdict: 'Passt', rating: null });
+  expect({ ...row }).toEqual({ score: 71, verdict: 'Passt', rating: null });
 });

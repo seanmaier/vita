@@ -1,6 +1,4 @@
-import './test/env.ts';
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, onTestFinished, test } from 'vitest';
 import { createTestUser, testApp } from './test/testApp.ts';
 
 type App = ReturnType<typeof testApp>;
@@ -13,57 +11,57 @@ const put = (app: App, body: unknown) =>
 
 test('a user without an address gets nulls', async () => {
   const res = await get(testApp(createTestUser()));
-  assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { available: true, address: null, forwardingFrom: null });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ available: true, address: null, forwardingFrom: null });
 });
 
 test('generating an address creates a random one, and again replaces it', async () => {
   const app = testApp(createTestUser());
   const first = (await (await generate(app)).json()) as { address: string };
-  assert.match(first.address, ADDRESS);
+  expect(first.address).toMatch(ADDRESS);
   const second = (await (await generate(app)).json()) as { address: string };
-  assert.match(second.address, ADDRESS);
-  assert.notEqual(first.address, second.address);
-  assert.deepEqual(await (await get(app)).json(), { available: true, address: second.address, forwardingFrom: null });
+  expect(second.address).toMatch(ADDRESS);
+  expect(first.address).not.toBe(second.address);
+  expect(await (await get(app)).json()).toEqual({ available: true, address: second.address, forwardingFrom: null });
 });
 
 test('forwardingFrom needs an address first, must look like one, and is stored trimmed', async () => {
   const app = testApp(createTestUser());
-  assert.equal((await put(app, { forwardingFrom: 'me@example.org' })).status, 404);
+  expect((await put(app, { forwardingFrom: 'me@example.org' })).status).toBe(404);
   await generate(app);
-  assert.equal((await put(app, { forwardingFrom: 'kein-mail' })).status, 400);
-  assert.equal((await put(app, { forwardingFrom: 5 })).status, 400);
+  expect((await put(app, { forwardingFrom: 'kein-mail' })).status).toBe(400);
+  expect((await put(app, { forwardingFrom: 5 })).status).toBe(400);
   const ok = await put(app, { forwardingFrom: '  Me@Example.org ' });
-  assert.equal(ok.status, 200);
-  assert.equal(((await ok.json()) as { forwardingFrom: string }).forwardingFrom, 'Me@Example.org');
+  expect(ok.status).toBe(200);
+  expect(((await ok.json()) as { forwardingFrom: string }).forwardingFrom).toBe('Me@Example.org');
   const cleared = await put(app, { forwardingFrom: null });
-  assert.equal(((await cleared.json()) as { forwardingFrom: null }).forwardingFrom, null);
+  expect(((await cleared.json()) as { forwardingFrom: null }).forwardingFrom).toBe(null);
 });
 
 test("another user does not see someone's address", async () => {
   const a = testApp(createTestUser());
   const b = testApp(createTestUser());
   await generate(a);
-  assert.deepEqual(await (await get(b)).json(), { available: true, address: null, forwardingFrom: null });
+  expect(await (await get(b)).json()).toEqual({ available: true, address: null, forwardingFrom: null });
 });
 
 test('events validate their limit', async () => {
   const app = testApp(createTestUser());
-  assert.equal((await get(app, '/events?limit=0')).status, 400);
-  assert.equal((await get(app, '/events?limit=51')).status, 400);
-  assert.deepEqual(await (await get(app, '/events?limit=5')).json(), []);
+  expect((await get(app, '/events?limit=0')).status).toBe(400);
+  expect((await get(app, '/events?limit=51')).status).toBe(400);
+  expect(await (await get(app, '/events?limit=5')).json()).toEqual([]);
 });
 
-test('without INBOUND_DOMAIN job alerts are off and no address can be created', async (t) => {
+test('without INBOUND_DOMAIN job alerts are off and no address can be created', async () => {
   const app = testApp(createTestUser());
-  assert.equal((await generate(app)).status, 200);
+  expect((await generate(app)).status).toBe(200);
   const saved = process.env.INBOUND_DOMAIN;
   delete process.env.INBOUND_DOMAIN;
-  t.after(() => {
+  onTestFinished(() => {
     process.env.INBOUND_DOMAIN = saved;
   });
-  assert.deepEqual(await (await get(app)).json(), { available: false, address: null, forwardingFrom: null });
+  expect(await (await get(app)).json()).toEqual({ available: false, address: null, forwardingFrom: null });
   const res = await generate(app);
-  assert.equal(res.status, 503);
-  assert.match(((await res.json()) as { error: string }).error, /INBOUND_DOMAIN/);
+  expect(res.status).toBe(503);
+  expect(((await res.json()) as { error: string }).error).toMatch(/INBOUND_DOMAIN/);
 });
