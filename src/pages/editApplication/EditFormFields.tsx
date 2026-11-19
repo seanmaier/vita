@@ -46,7 +46,9 @@ export function EditFormFields({ form, onChange, baseProfiles, profile, onImport
           {baseProfiles.length > 0 && (
             <optgroup label="Base profiles">
               {baseProfiles.map((bp) => (
-                <option key={bp.id} value={bp.id}>{LANG_FLAGS[bp.language]} {bp.name}</option>
+                <option key={bp.id} value={bp.id}>
+                  {LANG_FLAGS[bp.language]} {bp.name}
+                </option>
               ))}
             </optgroup>
           )}
@@ -70,12 +72,20 @@ export function EditFormFields({ form, onChange, baseProfiles, profile, onImport
       />
       {form.hasSummaryOverride && (
         <Field label="Profile summary override" hint="(replaces the profile's summary on this application only)">
-          <AutoTextarea className={nafTextarea} value={form.summaryOverride} onChange={(e) => onChange({ summaryOverride: e.target.value })} />
+          <AutoTextarea
+            className={nafTextarea}
+            value={form.summaryOverride}
+            onChange={(e) => onChange({ summaryOverride: e.target.value })}
+          />
         </Field>
       )}
 
       <Field label="Featured projects">
-        <FeaturedProjectsPicker projects={profile.projects} featuredIds={form.featuredIds} onChange={(featuredIds) => onChange({ featuredIds })} />
+        <FeaturedProjectsPicker
+          projects={profile.projects}
+          featuredIds={form.featuredIds}
+          onChange={(featuredIds) => onChange({ featuredIds })}
+        />
       </Field>
 
       <CheckboxField
@@ -86,28 +96,51 @@ export function EditFormFields({ form, onChange, baseProfiles, profile, onImport
       {form.hasSkillGroupsOverride && (
         <Field label="Skill groups override" hint="(replaces the profile's skill groups on this application only)">
           <div className="flex gap-2">
-            <button className={nafAddBtn} onClick={onImportSkillGroups}>Import from JSON</button>
+            <button className={nafAddBtn} onClick={onImportSkillGroups}>
+              Import from JSON
+            </button>
             <ExportSkillGroupsButton skillGroups={form.skillGroupsOverride} />
           </div>
-          <SkillGroupsEditor skillGroups={form.skillGroupsOverride} onChange={(skillGroupsOverride) => onChange({ skillGroupsOverride })} />
+          <SkillGroupsEditor
+            skillGroups={form.skillGroupsOverride}
+            onChange={(skillGroupsOverride) => onChange({ skillGroupsOverride })}
+          />
         </Field>
       )}
 
-      <CheckboxField label="Include cover letter" checked={form.hasCoverLetter} onChange={(hasCoverLetter) => onChange({ hasCoverLetter })} />
+      <CheckboxField
+        label="Include cover letter"
+        checked={form.hasCoverLetter}
+        onChange={(hasCoverLetter) => onChange({ hasCoverLetter })}
+      />
       {form.hasCoverLetter && (
         <>
           <div className={nafRow}>
             <Field label="Cover letter date">
-              <input type="date" className={nafInput} value={form.dateISO} onChange={(e) => onChange({ dateISO: e.target.value })} />
+              <input
+                type="date"
+                className={nafInput}
+                value={form.dateISO}
+                onChange={(e) => onChange({ dateISO: e.target.value })}
+              />
             </Field>
             <Field label="Subject role">
-              <input className={nafInput} placeholder="defaults to Role" value={form.subjectRole} onChange={(e) => onChange({ subjectRole: e.target.value })} />
+              <input
+                className={nafInput}
+                placeholder="defaults to Role"
+                value={form.subjectRole}
+                onChange={(e) => onChange({ subjectRole: e.target.value })}
+              />
             </Field>
           </div>
 
           <div className={nafRow}>
             <Field label="Recipient org">
-              <input className={nafInput} value={form.recipientOrg} onChange={(e) => onChange({ recipientOrg: e.target.value })} />
+              <input
+                className={nafInput}
+                value={form.recipientOrg}
+                onChange={(e) => onChange({ recipientOrg: e.target.value })}
+              />
             </Field>
             <Field label="Recipient name" hint="(optional)">
               <input

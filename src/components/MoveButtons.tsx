@@ -11,8 +11,17 @@ interface Props {
 export function MoveButtons({ index, length, onMove }: Props) {
   return (
     <div className="flex gap-1 shrink-0">
-      <button className={nafMoveBtn} title="Move up" disabled={index === 0} onClick={() => onMove(index - 1)}>↑</button>
-      <button className={nafMoveBtn} title="Move down" disabled={index === length - 1} onClick={() => onMove(index + 1)}>↓</button>
+      <button className={nafMoveBtn} title="Move up" disabled={index === 0} onClick={() => onMove(index - 1)}>
+        ↑
+      </button>
+      <button
+        className={nafMoveBtn}
+        title="Move down"
+        disabled={index === length - 1}
+        onClick={() => onMove(index + 1)}
+      >
+        ↓
+      </button>
     </div>
   );
 }

@@ -16,9 +16,8 @@ export function AutoTextarea({ className, extraLines = 0, ...rest }: Props) {
     // scrollHeight is content + padding only; box-border sizing (Tailwind's
     // preflight default) needs the border included too, or the assigned
     // height ends up a couple px short and clips the last line.
-    const borderY = style.boxSizing === 'border-box'
-      ? parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth)
-      : 0;
+    const borderY =
+      style.boxSizing === 'border-box' ? parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth) : 0;
     // Collapsing the box below shrinks the page for a moment; on a long
     // document the browser clamps the scroll position meanwhile. Remember it
     // (window and scrollable ancestors) and put it back afterwards.
@@ -54,12 +53,5 @@ export function AutoTextarea({ className, extraLines = 0, ...rest }: Props) {
     for (const [node, top] of scrolled) node.scrollTop = top;
   }, [rest.value, extraLines]);
 
-  return (
-    <textarea
-      ref={ref}
-      className={className}
-      style={{ resize: 'none', overflow: 'hidden' }}
-      {...rest}
-    />
-  );
+  return <textarea ref={ref} className={className} style={{ resize: 'none', overflow: 'hidden' }} {...rest} />;
 }

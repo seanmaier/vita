@@ -33,9 +33,13 @@ interface NavItemProps {
 
 function NavItem({ to, onClick, tour, children }: NavItemProps) {
   return to ? (
-    <Link className={item} to={to} data-tour={tour}>{children}</Link>
+    <Link className={item} to={to} data-tour={tour}>
+      {children}
+    </Link>
   ) : (
-    <button className={item} type="button" onClick={onClick} data-tour={tour}>{children}</button>
+    <button className={item} type="button" onClick={onClick} data-tour={tour}>
+      {children}
+    </button>
   );
 }
 
@@ -45,11 +49,7 @@ function NavGroup({ name, children }: { name: keyof typeof GROUP_COLORS; childre
       <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[color:var(--group)] opacity-70 pl-0.5">
         {name}
       </span>
-      <div
-        role="group"
-        aria-label={name}
-        className={`flex items-stretch rounded border ${groupLine} overflow-hidden`}
-      >
+      <div role="group" aria-label={name} className={`flex items-stretch rounded border ${groupLine} overflow-hidden`}>
         {children}
       </div>
     </div>
@@ -91,7 +91,11 @@ export function DashboardNav({ trashCount, ratedLeadCount, onImport, onBackup }:
             className={accountItem}
             type="button"
             onClick={cycleTheme}
-            title={import.meta.env.DEV ? 'Cycle theme (auto follows the season; dev-only preview of the others)' : 'Toggle the seasonal theme'}
+            title={
+              import.meta.env.DEV
+                ? 'Cycle theme (auto follows the season; dev-only preview of the others)'
+                : 'Toggle the seasonal theme'
+            }
           >
             {import.meta.env.DEV
               ? `${THEME_ICON[theme]} ${preference === 'auto' ? `auto (${theme})` : preference}`
@@ -100,9 +104,15 @@ export function DashboardNav({ trashCount, ratedLeadCount, onImport, onBackup }:
           {/* The demo has no account to manage or log out of. */}
           {!isDemo && (
             <>
-              <button className={accountItem} type="button" onClick={startTour} data-tour="tour-button">tour</button>
-              <Link className={accountItem} to="/account">account</Link>
-              <button className={accountItem} type="button" onClick={() => void logoutAndReload()}>log out</button>
+              <button className={accountItem} type="button" onClick={startTour} data-tour="tour-button">
+                tour
+              </button>
+              <Link className={accountItem} to="/account">
+                account
+              </Link>
+              <button className={accountItem} type="button" onClick={() => void logoutAndReload()}>
+                log out
+              </button>
             </>
           )}
         </nav>
@@ -110,7 +120,9 @@ export function DashboardNav({ trashCount, ratedLeadCount, onImport, onBackup }:
 
       <nav className="flex flex-wrap items-end gap-x-4 gap-y-3" aria-label="Actions">
         <NavGroup name="create">
-          <NavItem to="/application/new" tour="new">+ new</NavItem>
+          <NavItem to="/application/new" tour="new">
+            + new
+          </NavItem>
           <NavItem onClick={onImport}>import</NavItem>
         </NavGroup>
         <NavGroup name="library">

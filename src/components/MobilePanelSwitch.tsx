@@ -1,6 +1,10 @@
 // Below lg the editor pages show one panel at a time instead of two columns
 // side by side; this picks which one. From lg up it isn't rendered.
-export function MobilePanelSwitch<T extends string>({ value, options, onChange }: {
+export function MobilePanelSwitch<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
@@ -14,9 +18,7 @@ export function MobilePanelSwitch<T extends string>({ value, options, onChange }
             role="tab"
             aria-selected={value === option.value}
             className={`flex-1 font-mono text-[11px] tracking-[0.06em] rounded px-3 py-1.5 border-none cursor-pointer transition-colors ${
-              value === option.value
-                ? 'bg-accent text-ink font-semibold'
-                : 'bg-transparent text-[#8896AB]'
+              value === option.value ? 'bg-accent text-ink font-semibold' : 'bg-transparent text-[#8896AB]'
             }`}
             onClick={() => onChange(option.value)}
           >

@@ -43,8 +43,7 @@ export async function setPassword(userId: number, password: string): Promise<voi
 
 export async function checkCredentials(username: string, password: string): Promise<User | null> {
   const row = db.prepare('SELECT id, username, password_hash FROM users WHERE username = ?').get(username) as
-    | { id: number; username: string; password_hash: string }
-    | undefined;
+    { id: number; username: string; password_hash: string } | undefined;
   const ok = await verifyPassword(password, row?.password_hash ?? dummyHash);
   return ok && row ? { id: row.id, username: row.username } : null;
 }
@@ -106,7 +105,9 @@ export function isAdmin(userId: number): boolean {
 
 /** Grants or revokes the admin role; false if there is no such user. CLI only. */
 export function setAdmin(username: string, admin: boolean): boolean {
-  const { changes } = db.prepare('UPDATE users SET role = ? WHERE username = ?').run(admin ? 'admin' : 'user', username);
+  const { changes } = db
+    .prepare('UPDATE users SET role = ? WHERE username = ?')
+    .run(admin ? 'admin' : 'user', username);
   return Number(changes) > 0;
 }
 
@@ -116,9 +117,7 @@ function radarAllows(method: string, path: string): boolean {
   switch (method) {
     case 'GET':
       return (
-        path === '/api/v1/job-leads' ||
-        path === '/api/v1/knowledge/priorities' ||
-        path === '/api/v1/knowledge/about-me'
+        path === '/api/v1/job-leads' || path === '/api/v1/knowledge/priorities' || path === '/api/v1/knowledge/about-me'
       );
     case 'POST':
       return path === '/api/v1/job-leads';
@@ -166,9 +165,7 @@ export interface ApiTokenInfo {
 export const MAX_TOKEN_NAME_LENGTH = 64;
 export const MAX_TOKENS_PER_USER = 20;
 
-export type CreateApiTokenResult =
-  | { ok: true; token: string }
-  | { ok: false; error: string; status: 400 | 409 };
+export type CreateApiTokenResult = { ok: true; token: string } | { ok: false; error: string; status: 400 | 409 };
 
 const newApiToken = () => API_TOKEN_PREFIX + randomBytes(32).toString('base64url');
 
@@ -194,8 +191,12 @@ export function createApiToken(userId: number, rawName: string, scope: TokenScop
   if (taken) return { ok: false, status: 409, error: `A token named "${name}" already exists.` };
 
   const token = newApiToken();
-  db.prepare('INSERT INTO api_tokens (user_id, name, token_hash, scope) VALUES (?, ?, ?, ?)')
-    .run(userId, name, hashToken(token), scope);
+  db.prepare('INSERT INTO api_tokens (user_id, name, token_hash, scope) VALUES (?, ?, ?, ?)').run(
+    userId,
+    name,
+    hashToken(token),
+    scope,
+  );
   return { ok: true, token };
 }
 

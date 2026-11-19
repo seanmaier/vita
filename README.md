@@ -90,6 +90,7 @@ account doesn't have yet; nothing that exists is overwritten.
 - `npm run dev` — start the local dev server
 - `npm run build` — type-check and build for production
 - `npm run lint` — run Oxlint
+- `npm run format` — format the code with Prettier (`npm run format:check` only reports, as CI does)
 - `npm test` — run all tests once with Vitest (`npm run test:watch` re-runs them on every change,
   `npm run test:coverage` adds a coverage report); the email worker has its own `npm test` in `workers/job-alerts`
 - `npm run test:e2e` — build the app and run the Playwright end-to-end tests in `e2e/` against it,

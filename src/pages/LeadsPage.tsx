@@ -15,9 +15,7 @@ const FILTERS: { status: Filter; label: string }[] = [
 
 const tabClass = (active: boolean) =>
   `font-mono text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
-    active
-      ? 'border-accent text-accent'
-      : 'border-transparent text-ink-3 hover:text-ink-invert'
+    active ? 'border-accent text-accent' : 'border-transparent text-ink-3 hover:text-ink-invert'
   }`;
 
 const actionButton =
@@ -69,9 +67,13 @@ function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' 
           Open posting ↗
         </a>
         {lead.status !== 'dismissed' && (
-          <button className={actionButton} type="button" onClick={() => onSet('dismissed')}>Dismiss</button>
+          <button className={actionButton} type="button" onClick={() => onSet('dismissed')}>
+            Dismiss
+          </button>
         )}
-        <button className={actionButton} type="button" onClick={() => onSet('applied')}>Mark as applied</button>
+        <button className={actionButton} type="button" onClick={() => onSet('applied')}>
+          Mark as applied
+        </button>
       </div>
     </li>
   );

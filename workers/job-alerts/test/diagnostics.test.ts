@@ -18,14 +18,15 @@ const raw = [
 
 test('collects envelope, From and authentication headers, but no subject, body or signature', async () => {
   const parsed = await PostalMime.parse(raw);
-  const d = headerDiagnostics({ from: 'SRS0=x=linkedin.com=jobalerts@outlook.com', to: 'jobs-k7x2@alerts.example.org' }, parsed);
+  const d = headerDiagnostics(
+    { from: 'SRS0=x=linkedin.com=jobalerts@outlook.com', to: 'jobs-k7x2@alerts.example.org' },
+    parsed,
+  );
 
   expect(d.envelopeFrom).toBe('SRS0=x=linkedin.com=jobalerts@outlook.com');
   expect(d.envelopeTo).toBe('jobs-k7x2@alerts.example.org');
   expect(d.from).toBe('jobalerts-noreply@linkedin.com');
-  expect(d.authenticationResults).toEqual([
-    'mx.cloudflare.net; dkim=pass header.d=linkedin.com header.s=proddkim1024',
-  ]);
+  expect(d.authenticationResults).toEqual(['mx.cloudflare.net; dkim=pass header.d=linkedin.com header.s=proddkim1024']);
   expect(d.arcAuthenticationResults.length).toBe(1);
   expect(d.receivedSpf.length).toBe(1);
   expect(d.dkimSignatures).toEqual([

@@ -131,7 +131,11 @@ function parseJsonValue<T>(raw: string | undefined): T | null {
  * stay in place, so the previous version still works after a rollback.
  */
 function migrateStatusHistories(): void {
-  const rows = db.prepare('SELECT user_id, key, value FROM kv').all() as { user_id: number; key: string; value: string }[];
+  const rows = db.prepare('SELECT user_id, key, value FROM kv').all() as {
+    user_id: number;
+    key: string;
+    value: string;
+  }[];
   const byUser = new Map<number, Map<string, string>>();
   for (const row of rows) {
     if (!byUser.has(row.user_id)) byUser.set(row.user_id, new Map());
@@ -143,7 +147,9 @@ function migrateStatusHistories(): void {
       const list = parseJsonValue<ApplicationConfig[]>(kv.get('local-apps')) ?? [];
       const ids = new Set([
         ...list.map((a) => a.id),
-        ...[...kv.keys()].filter((k) => k.startsWith('status-') && !k.startsWith('status-history-')).map((k) => k.slice('status-'.length)),
+        ...[...kv.keys()]
+          .filter((k) => k.startsWith('status-') && !k.startsWith('status-history-'))
+          .map((k) => k.slice('status-'.length)),
       ]);
       for (const id of ids) {
         if (kv.has(`status-history-${id}`)) continue;

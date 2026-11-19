@@ -21,7 +21,9 @@ export function JsonFileButton({ onLoad, className, label = 'Load file' }: Props
   return (
     <>
       <input ref={inputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleChange} />
-      <button className={className} onClick={() => inputRef.current?.click()}>{label}</button>
+      <button className={className} onClick={() => inputRef.current?.click()}>
+        {label}
+      </button>
     </>
   );
 }

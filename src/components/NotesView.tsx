@@ -30,7 +30,10 @@ export function NotesView({ notes, language, className = '', onDelete }: Props) 
               <button
                 type="button"
                 className="font-mono text-[10px] text-ink-3 bg-transparent border-none cursor-pointer opacity-0 group-hover/note:opacity-100 hover:text-status-rejected transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(note.id);
+                }}
                 aria-label="Delete note"
               >
                 ✕

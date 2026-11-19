@@ -18,7 +18,11 @@ export function formatPath(path: readonly PropertyKey[]): string {
 }
 
 /** The issues as messages, each prefixed with its path (and `prefix`, for a value nested in a larger one). */
-export function formatIssues(issues: readonly z.core.$ZodIssue[], style: IssueStyle, prefix: readonly PropertyKey[] = []): string[] {
+export function formatIssues(
+  issues: readonly z.core.$ZodIssue[],
+  style: IssueStyle,
+  prefix: readonly PropertyKey[] = [],
+): string[] {
   return issues.map((issue) => {
     const path = formatPath([...prefix, ...issue.path]);
     if (!path) return issue.message;
@@ -29,9 +33,16 @@ export function formatIssues(issues: readonly z.core.$ZodIssue[], style: IssueSt
 export type Checked<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 /** Parses `input`, returning the value or every error found as formatted messages. */
-export function check<T>(schema: z.ZodType<T>, input: unknown, style: IssueStyle, prefix?: readonly PropertyKey[]): Checked<T> {
+export function check<T>(
+  schema: z.ZodType<T>,
+  input: unknown,
+  style: IssueStyle,
+  prefix?: readonly PropertyKey[],
+): Checked<T> {
   const result = schema.safeParse(input);
-  return result.success ? { ok: true, value: result.data } : { ok: false, errors: formatIssues(result.error.issues, style, prefix) };
+  return result.success
+    ? { ok: true, value: result.data }
+    : { ok: false, errors: formatIssues(result.error.issues, style, prefix) };
 }
 
 // ---- Building blocks --------------------------------------------------------

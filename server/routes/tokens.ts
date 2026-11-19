@@ -1,7 +1,14 @@
 // Users manage their own API tokens from the account page. These routes take
 // the session cookie only: a token must not be able to mint, rotate or revoke tokens.
 import { Hono } from 'hono';
-import { createApiToken, isAdmin, listApiTokens, parseUserTokenScope, revokeApiToken, rotateApiToken } from '../auth.ts';
+import {
+  createApiToken,
+  isAdmin,
+  listApiTokens,
+  parseUserTokenScope,
+  revokeApiToken,
+  rotateApiToken,
+} from '../auth.ts';
 import { jsonFields } from '../http.ts';
 import { log } from '../log.ts';
 import { requireUser, type SessionEnv } from '../session.ts';

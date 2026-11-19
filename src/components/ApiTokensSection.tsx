@@ -76,7 +76,11 @@ export function ApiTokensSection() {
   };
 
   const rotate = async (tokenName: string) => {
-    if (!confirm(`Rotate the token "${tokenName}"? The current value stops working immediately; you'll get a new one to copy.`)) {
+    if (
+      !confirm(
+        `Rotate the token "${tokenName}"? The current value stops working immediately; you'll get a new one to copy.`,
+      )
+    ) {
       return;
     }
     setError(null);
@@ -100,8 +104,8 @@ export function ApiTokensSection() {
     <section className="max-w-[560px] flex flex-col gap-4">
       <span className={nafLabel}>API tokens</span>
       <p className={hint}>
-        Let scripts and AI assistants read and edit your applications through <code>/api/v1</code>, without
-        your password. A token can't log in, change your password or manage tokens.
+        Let scripts and AI assistants read and edit your applications through <code>/api/v1</code>, without your
+        password. A token can't log in, change your password or manage tokens.
       </p>
 
       {!tokens && !error && <TokenListSkeleton />}
@@ -141,9 +145,7 @@ export function ApiTokensSection() {
           <span className="text-[12px] text-ink-invert">
             Token "{created.name}" {created.rotated ? 'rotated' : 'created'}. Copy it now: it won't be shown again.
           </span>
-          <code className="font-mono text-[11.5px] break-all text-ink-2 select-all">
-            {created.token}
-          </code>
+          <code className="font-mono text-[11.5px] break-all text-ink-2 select-all">{created.token}</code>
           <button className={primaryButton} type="button" onClick={() => void copy()}>
             {copied ? 'copied' : 'copy token'}
           </button>

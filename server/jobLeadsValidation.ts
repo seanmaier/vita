@@ -5,7 +5,15 @@ import { criteriaScore, validateCriteria, validateExclusion } from '#shared/util
 import { check } from '#shared/validation/issues.ts';
 import type { Body, Validated } from './http.ts';
 
-export const LEAD_SOURCES = ['linkedin', 'stepstone', 'indeed', 'glassdoor', 'instaffo', 'arbeitsagentur', 'other'] as const satisfies readonly JobLeadSource[];
+export const LEAD_SOURCES = [
+  'linkedin',
+  'stepstone',
+  'indeed',
+  'glassdoor',
+  'instaffo',
+  'arbeitsagentur',
+  'other',
+] as const satisfies readonly JobLeadSource[];
 export const LEAD_STATUSES = ['new', 'rated', 'dismissed', 'applied'] as const satisfies readonly JobLeadStatus[];
 
 /** A trimmed string of min–max characters. */
@@ -75,11 +83,13 @@ const patchSchema = z.object({
     .refine((n) => Number.isInteger(n) && n >= 0 && n <= 100, { error: 'must be an integer 0-100 or null' })
     .nullable()
     .optional(),
-  verdict: z.string({ error: 'must be a string of at most 1000 characters or null' })
+  verdict: z
+    .string({ error: 'must be a string of at most 1000 characters or null' })
     .max(1000, { error: 'must be a string of at most 1000 characters or null' })
     .nullable()
     .optional(),
-  applicationId: z.string({ error: 'must be a string of 1-200 characters or null' })
+  applicationId: z
+    .string({ error: 'must be a string of 1-200 characters or null' })
     .refine((s) => s.length >= 1 && s.length <= 200, { error: 'must be a string of 1-200 characters or null' })
     .nullable()
     .optional(),

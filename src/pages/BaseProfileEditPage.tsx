@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { TrashedNotice } from '../components/TrashedNotice';
 import { useParams, Link, useNavigate, useBlocker } from 'react-router-dom';
-import type {
-  ApplicationConfig, BaseProfile, Profile,
-  Experience, Project, HumanLanguage,
-} from '#shared/types.ts';
+import type { ApplicationConfig, BaseProfile, Profile, Experience, Project, HumanLanguage } from '#shared/types.ts';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
-import {
-  getBaseProfile, saveBaseProfile, trashBaseProfile, trashConfirmMessage,
-} from '../utils/baseProfiles';
+import { getBaseProfile, saveBaseProfile, trashBaseProfile, trashConfirmMessage } from '../utils/baseProfiles';
 import { CVDocument } from '../components/cv/CVDocument';
 import { FitToWidth } from '../components/FitToWidth';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
@@ -19,8 +14,15 @@ import { SkillGroupsEditor } from '../components/SkillGroupsEditor';
 import { MoveButtons } from '../components/MoveButtons';
 import { move } from '../utils/move';
 import {
-  nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,
-  nafParagraphRow, nafRemoveBtn, nafAddBtn,
+  nafSection,
+  nafRow,
+  nafLabel,
+  nafOptional,
+  nafInput,
+  nafTextarea,
+  nafParagraphRow,
+  nafRemoveBtn,
+  nafAddBtn,
 } from '../styles/formStyles';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -43,7 +45,13 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function EntryCard<T>({ children, items, index, onChange, removeLabel = 'Remove' }: {
+function EntryCard<T>({
+  children,
+  items,
+  index,
+  onChange,
+  removeLabel = 'Remove',
+}: {
   children: React.ReactNode;
   items: T[];
   index: number;
@@ -54,7 +62,9 @@ function EntryCard<T>({ children, items, index, onChange, removeLabel = 'Remove'
     <div className="border border-rule rounded p-3.5 flex flex-col gap-3">
       {children}
       <div className="flex justify-between">
-        <button className={nafRemoveBtn} onClick={() => onChange(without(items, index))}>{removeLabel}</button>
+        <button className={nafRemoveBtn} onClick={() => onChange(without(items, index))}>
+          {removeLabel}
+        </button>
         <MoveButtons index={index} length={items.length} onMove={(to) => onChange(move(items, index, to))} />
       </div>
     </div>
@@ -75,7 +85,9 @@ export function BaseProfileEditPage() {
     return (
       <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
         <p>Base profile not found.</p>
-        <Link className="text-accent" to="/profiles">← Back to base profiles</Link>
+        <Link className="text-accent" to="/profiles">
+          ← Back to base profiles
+        </Link>
       </div>
     );
   }
@@ -108,17 +120,14 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
     setIsDirty(true);
   };
 
-  const setExp = (i: number, patch: Partial<Experience>) =>
-    set({ experience: at(profile.experience, i, patch) });
+  const setExp = (i: number, patch: Partial<Experience>) => set({ experience: at(profile.experience, i, patch) });
 
   const setExpBullet = (ei: number, bi: number, val: string) =>
     setExp(ei, { bullets: profile.experience[ei].bullets.map((b, i) => (i === bi ? val : b)) });
 
-  const setProj = (i: number, patch: Partial<Project>) =>
-    set({ projects: at(profile.projects, i, patch) });
+  const setProj = (i: number, patch: Partial<Project>) => set({ projects: at(profile.projects, i, patch) });
 
-  const setLangItem = (i: number, patch: Partial<HumanLanguage>) =>
-    set({ languages: at(profile.languages, i, patch) });
+  const setLangItem = (i: number, patch: Partial<HumanLanguage>) => set({ languages: at(profile.languages, i, patch) });
 
   const setInterest = (i: number, val: string) =>
     set({ interests: profile.interests.map((x, idx) => (idx === i ? val : x)) });
@@ -178,7 +187,6 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
 
   return (
     <div className="h-dvh bg-ink flex flex-col">
-
       {/* Header */}
       <div className="bg-ink flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] shrink-0 gap-x-4 gap-y-2">
         <div className="flex items-center gap-5 min-w-0">
@@ -188,7 +196,9 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
           <div className="font-mono text-[13px] flex items-center gap-2 min-w-0">
             <span className="text-ink-3">~/</span>
             <span className="text-ink-invert font-semibold truncate">{stored.name}</span>
-            <span className="text-[12px]" title={stored.language}>{LANG_FLAGS[stored.language]}</span>
+            <span className="text-[12px]" title={stored.language}>
+              {LANG_FLAGS[stored.language]}
+            </span>
             {isDirty && (
               <span className="text-[9px] tracking-[0.1em] uppercase text-status-sent border border-status-sent rounded-[10px] py-px px-[7px] opacity-80 shrink-0">
                 unsaved
@@ -203,7 +213,9 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
               saved ? 'bg-status-offer text-ink pointer-events-none' : 'bg-accent text-ink hover:opacity-90'
             }`}
             onClick={handleSave}
-          >{saved ? 'Saved!' : 'Save'}</button>
+          >
+            {saved ? 'Saved!' : 'Save'}
+          </button>
 
           <button
             className="font-mono text-[11px] bg-transparent text-ink-3 border border-white/12 rounded px-3 py-[5px] cursor-pointer hover:text-status-rejected hover:border-status-rejected transition-colors"
@@ -212,13 +224,22 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
             Delete
           </button>
 
-          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleCopy}>
+          <button
+            className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14"
+            onClick={handleCopy}
+          >
             {copied ? 'Copied!' : 'Copy JSON'}
           </button>
-          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleDownload}>
+          <button
+            className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14"
+            onClick={handleDownload}
+          >
             Download
           </button>
-          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={() => setImportOpen(true)}>
+          <button
+            className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14"
+            onClick={() => setImportOpen(true)}
+          >
             {imported ? 'Imported!' : 'Import'}
           </button>
         </div>
@@ -229,19 +250,24 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
       <MobilePanelSwitch
         value={mobilePanel}
         onChange={setMobilePanel}
-        options={[{ value: 'form', label: 'edit' }, { value: 'preview', label: 'preview' }]}
+        options={[
+          { value: 'form', label: 'edit' },
+          { value: 'preview', label: 'preview' },
+        ]}
       />
 
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[520px_1fr]">
-
         {/* Form */}
-        <div className={`h-full py-6 px-4 sm:py-7 sm:px-7 overflow-y-auto bg-bg flex flex-col gap-6 lg:border-r border-rule ${mobilePanel === 'form' ? '' : 'max-lg:hidden'}`}>
-
+        <div
+          className={`h-full py-6 px-4 sm:py-7 sm:px-7 overflow-y-auto bg-bg flex flex-col gap-6 lg:border-r border-rule ${mobilePanel === 'form' ? '' : 'max-lg:hidden'}`}
+        >
           {/* ── Base profile name ── */}
           <SectionHeader title="base profile" />
           <div className={nafSection}>
-            <span className={nafLabel}>Name <span className={nafOptional}>(used to pick this profile when creating an application)</span></span>
+            <span className={nafLabel}>
+              Name <span className={nafOptional}>(used to pick this profile when creating an application)</span>
+            </span>
             <input className={nafInput} value={name} onChange={(e) => setName_(e.target.value)} />
           </div>
 
@@ -271,7 +297,11 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
             <div className={nafRow}>
               <div className={nafSection}>
                 <span className={nafLabel}>Website</span>
-                <input className={nafInput} value={profile.website} onChange={(e) => set({ website: e.target.value })} />
+                <input
+                  className={nafInput}
+                  value={profile.website}
+                  onChange={(e) => set({ website: e.target.value })}
+                />
               </div>
               <div className={nafSection}>
                 <span className={nafLabel}>GitHub</span>
@@ -280,7 +310,11 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
             </div>
             <div className={nafSection}>
               <span className={nafLabel}>LinkedIn</span>
-              <input className={nafInput} value={profile.linkedin} onChange={(e) => set({ linkedin: e.target.value })} />
+              <input
+                className={nafInput}
+                value={profile.linkedin}
+                onChange={(e) => set({ linkedin: e.target.value })}
+              />
             </div>
           </div>
 
@@ -300,21 +334,39 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
                 <div className={nafRow}>
                   <div className={nafSection}>
                     <span className={nafLabel}>Title</span>
-                    <input className={nafInput} value={exp.title} onChange={(e) => setExp(ei, { title: e.target.value })} />
+                    <input
+                      className={nafInput}
+                      value={exp.title}
+                      onChange={(e) => setExp(ei, { title: e.target.value })}
+                    />
                   </div>
                   <div className={nafSection}>
                     <span className={nafLabel}>Dates</span>
-                    <input className={nafInput} value={exp.dates} onChange={(e) => setExp(ei, { dates: e.target.value })} />
+                    <input
+                      className={nafInput}
+                      value={exp.dates}
+                      onChange={(e) => setExp(ei, { dates: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className={nafRow}>
                   <div className={nafSection}>
                     <span className={nafLabel}>Company</span>
-                    <input className={nafInput} value={exp.company} onChange={(e) => setExp(ei, { company: e.target.value })} />
+                    <input
+                      className={nafInput}
+                      value={exp.company}
+                      onChange={(e) => setExp(ei, { company: e.target.value })}
+                    />
                   </div>
                   <div className={nafSection}>
-                    <span className={nafLabel}>Note <span className={nafOptional}>(optional)</span></span>
-                    <input className={nafInput} value={exp.companyNote ?? ''} onChange={(e) => setExp(ei, { companyNote: e.target.value || undefined })} />
+                    <span className={nafLabel}>
+                      Note <span className={nafOptional}>(optional)</span>
+                    </span>
+                    <input
+                      className={nafInput}
+                      value={exp.companyNote ?? ''}
+                      onChange={(e) => setExp(ei, { companyNote: e.target.value || undefined })}
+                    />
                   </div>
                 </div>
                 <div className={nafSection}>
@@ -323,15 +375,27 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
                     <div key={bi} className={nafParagraphRow}>
                       <input className={nafInput} value={b} onChange={(e) => setExpBullet(ei, bi, e.target.value)} />
                       {exp.bullets.length > 1 && (
-                        <button className={nafRemoveBtn} onClick={() => setExp(ei, { bullets: without(exp.bullets, bi) })}>✕</button>
+                        <button
+                          className={nafRemoveBtn}
+                          onClick={() => setExp(ei, { bullets: without(exp.bullets, bi) })}
+                        >
+                          ✕
+                        </button>
                       )}
                     </div>
                   ))}
-                  <button className={nafAddBtn} onClick={() => setExp(ei, { bullets: [...exp.bullets, ''] })}>+ Add bullet</button>
+                  <button className={nafAddBtn} onClick={() => setExp(ei, { bullets: [...exp.bullets, ''] })}>
+                    + Add bullet
+                  </button>
                 </div>
               </EntryCard>
             ))}
-            <button className={nafAddBtn} onClick={() => set({ experience: [...profile.experience, { title: '', company: '', dates: '', bullets: [''] }] })}>
+            <button
+              className={nafAddBtn}
+              onClick={() =>
+                set({ experience: [...profile.experience, { title: '', company: '', dates: '', bullets: [''] }] })
+              }
+            >
               + Add experience
             </button>
           </div>
@@ -344,38 +408,73 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
                 <div className={nafRow}>
                   <div className={nafSection}>
                     <span className={nafLabel}>Name</span>
-                    <input className={nafInput} value={proj.name} onChange={(e) => setProj(pi, { name: e.target.value })} />
+                    <input
+                      className={nafInput}
+                      value={proj.name}
+                      onChange={(e) => setProj(pi, { name: e.target.value })}
+                    />
                   </div>
                   <div className={nafSection}>
-                    <span className={nafLabel}>ID <span className={nafOptional}>(url slug)</span></span>
+                    <span className={nafLabel}>
+                      ID <span className={nafOptional}>(url slug)</span>
+                    </span>
                     <input className={nafInput} value={proj.id} onChange={(e) => setProj(pi, { id: e.target.value })} />
                   </div>
                 </div>
                 <div className={nafSection}>
                   <span className={nafLabel}>Stack</span>
-                  <input className={nafInput} value={proj.stack} onChange={(e) => setProj(pi, { stack: e.target.value })} />
+                  <input
+                    className={nafInput}
+                    value={proj.stack}
+                    onChange={(e) => setProj(pi, { stack: e.target.value })}
+                  />
                 </div>
                 <div className={nafSection}>
                   <span className={nafLabel}>Description</span>
-                  <AutoTextarea className={nafTextarea} value={proj.description} onChange={(e) => setProj(pi, { description: e.target.value })} />
+                  <AutoTextarea
+                    className={nafTextarea}
+                    value={proj.description}
+                    onChange={(e) => setProj(pi, { description: e.target.value })}
+                  />
                 </div>
                 <div className={nafRow}>
                   <div className={nafSection}>
-                    <span className={nafLabel}>Link <span className={nafOptional}>(optional)</span></span>
-                    <input className={nafInput} value={proj.link ?? ''} onChange={(e) => setProj(pi, { link: e.target.value || undefined })} />
+                    <span className={nafLabel}>
+                      Link <span className={nafOptional}>(optional)</span>
+                    </span>
+                    <input
+                      className={nafInput}
+                      value={proj.link ?? ''}
+                      onChange={(e) => setProj(pi, { link: e.target.value || undefined })}
+                    />
                   </div>
                   <div className={nafSection}>
-                    <span className={nafLabel}>Link label <span className={nafOptional}>(optional)</span></span>
-                    <input className={nafInput} value={proj.linkLabel ?? ''} onChange={(e) => setProj(pi, { linkLabel: e.target.value || undefined })} />
+                    <span className={nafLabel}>
+                      Link label <span className={nafOptional}>(optional)</span>
+                    </span>
+                    <input
+                      className={nafInput}
+                      value={proj.linkLabel ?? ''}
+                      onChange={(e) => setProj(pi, { linkLabel: e.target.value || undefined })}
+                    />
                   </div>
                 </div>
                 <div className={nafSection}>
-                  <span className={nafLabel}>Hackathon label <span className={nafOptional}>(optional)</span></span>
-                  <input className={nafInput} value={proj.hackathonLabel ?? ''} onChange={(e) => setProj(pi, { hackathonLabel: e.target.value || undefined })} />
+                  <span className={nafLabel}>
+                    Hackathon label <span className={nafOptional}>(optional)</span>
+                  </span>
+                  <input
+                    className={nafInput}
+                    value={proj.hackathonLabel ?? ''}
+                    onChange={(e) => setProj(pi, { hackathonLabel: e.target.value || undefined })}
+                  />
                 </div>
               </EntryCard>
             ))}
-            <button className={nafAddBtn} onClick={() => set({ projects: [...profile.projects, { id: '', name: '', stack: '', description: '' }] })}>
+            <button
+              className={nafAddBtn}
+              onClick={() => set({ projects: [...profile.projects, { id: '', name: '', stack: '', description: '' }] })}
+            >
               + Add project
             </button>
           </div>
@@ -386,21 +485,41 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
             <div className={nafRow}>
               <div className={nafSection}>
                 <span className={nafLabel}>Degree / program</span>
-                <input className={nafInput} value={profile.education.degree} onChange={(e) => set({ education: { ...profile.education, degree: e.target.value } })} />
+                <input
+                  className={nafInput}
+                  value={profile.education.degree}
+                  onChange={(e) => set({ education: { ...profile.education, degree: e.target.value } })}
+                />
               </div>
               <div className={nafSection}>
                 <span className={nafLabel}>Dates</span>
-                <input className={nafInput} value={profile.education.dates} onChange={(e) => set({ education: { ...profile.education, dates: e.target.value } })} />
+                <input
+                  className={nafInput}
+                  value={profile.education.dates}
+                  onChange={(e) => set({ education: { ...profile.education, dates: e.target.value } })}
+                />
               </div>
             </div>
             <div className={nafRow}>
               <div className={nafSection}>
                 <span className={nafLabel}>School</span>
-                <input className={nafInput} value={profile.education.school} onChange={(e) => set({ education: { ...profile.education, school: e.target.value } })} />
+                <input
+                  className={nafInput}
+                  value={profile.education.school}
+                  onChange={(e) => set({ education: { ...profile.education, school: e.target.value } })}
+                />
               </div>
               <div className={nafSection}>
-                <span className={nafLabel}>Detail <span className={nafOptional}>(optional)</span></span>
-                <input className={nafInput} value={profile.education.schoolDetail ?? ''} onChange={(e) => set({ education: { ...profile.education, schoolDetail: e.target.value || undefined } })} />
+                <span className={nafLabel}>
+                  Detail <span className={nafOptional}>(optional)</span>
+                </span>
+                <input
+                  className={nafInput}
+                  value={profile.education.schoolDetail ?? ''}
+                  onChange={(e) =>
+                    set({ education: { ...profile.education, schoolDetail: e.target.value || undefined } })
+                  }
+                />
               </div>
             </div>
           </div>
@@ -415,15 +534,30 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
             {profile.languages.map((lang, li) => (
               <div key={li} className={nafParagraphRow}>
                 <div className="flex-1 grid grid-cols-2 gap-3">
-                  <input className={nafInput} value={lang.name} placeholder="Language" onChange={(e) => setLangItem(li, { name: e.target.value })} />
-                  <input className={nafInput} value={lang.level} placeholder="Level" onChange={(e) => setLangItem(li, { level: e.target.value })} />
+                  <input
+                    className={nafInput}
+                    value={lang.name}
+                    placeholder="Language"
+                    onChange={(e) => setLangItem(li, { name: e.target.value })}
+                  />
+                  <input
+                    className={nafInput}
+                    value={lang.level}
+                    placeholder="Level"
+                    onChange={(e) => setLangItem(li, { level: e.target.value })}
+                  />
                 </div>
                 {profile.languages.length > 1 && (
-                  <button className={nafRemoveBtn} onClick={() => set({ languages: without(profile.languages, li) })}>✕</button>
+                  <button className={nafRemoveBtn} onClick={() => set({ languages: without(profile.languages, li) })}>
+                    ✕
+                  </button>
                 )}
               </div>
             ))}
-            <button className={nafAddBtn} onClick={() => set({ languages: [...profile.languages, { name: '', level: '' }] })}>
+            <button
+              className={nafAddBtn}
+              onClick={() => set({ languages: [...profile.languages, { name: '', level: '' }] })}
+            >
               + Add language
             </button>
           </div>
@@ -435,7 +569,9 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
               <div key={ii} className={nafParagraphRow}>
                 <input className={nafInput} value={interest} onChange={(e) => setInterest(ii, e.target.value)} />
                 {profile.interests.length > 1 && (
-                  <button className={nafRemoveBtn} onClick={() => set({ interests: without(profile.interests, ii) })}>✕</button>
+                  <button className={nafRemoveBtn} onClick={() => set({ interests: without(profile.interests, ii) })}>
+                    ✕
+                  </button>
                 )}
               </div>
             ))}

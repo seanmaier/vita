@@ -36,11 +36,12 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
       }
       profile = result.profile;
     } else {
-      profile = startFrom === 'blank'
-        ? blankProfile(language)
-        : startFrom === 'language-default'
-          ? { ...getStaticProfile(language) }
-          : { ...existingProfiles.find((p) => p.id === startFrom.slice('duplicate:'.length))!.profile };
+      profile =
+        startFrom === 'blank'
+          ? blankProfile(language)
+          : startFrom === 'language-default'
+            ? { ...getStaticProfile(language) }
+            : { ...existingProfiles.find((p) => p.id === startFrom.slice('duplicate:'.length))!.profile };
     }
 
     const id = uniqueBaseProfileId(name);
@@ -50,7 +51,10 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
   };
 
   return (
-    <div className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6"
+      onClick={onClose}
+    >
       <div
         className={`bg-[#1a2236] rounded-lg w-full ${startFrom === 'json' ? 'max-w-[600px]' : 'max-w-[440px]'} p-6 flex flex-col gap-4 shadow-[0_20px_60px_rgba(20,28,46,0.40)]`}
         onClick={(e) => e.stopPropagation()}
@@ -72,31 +76,27 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
 
         <div className={nafSection}>
           <span className={nafLabel}>Language</span>
-          <select
-            className={nafInput}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as AppLanguage)}
-          >
+          <select className={nafInput} value={language} onChange={(e) => setLanguage(e.target.value as AppLanguage)}>
             {LANGUAGES.map((lang) => (
-              <option key={lang} value={lang}>{LANGUAGE_LABELS[lang]} {LANG_FLAGS[lang]}</option>
+              <option key={lang} value={lang}>
+                {LANGUAGE_LABELS[lang]} {LANG_FLAGS[lang]}
+              </option>
             ))}
           </select>
         </div>
 
         <div className={nafSection}>
           <span className={nafLabel}>Start from</span>
-          <select
-            className={nafInput}
-            value={startFrom}
-            onChange={(e) => setStartFrom(e.target.value as StartFrom)}
-          >
+          <select className={nafInput} value={startFrom} onChange={(e) => setStartFrom(e.target.value as StartFrom)}>
             <option value="language-default">Language default</option>
             <option value="blank">Blank profile</option>
             <option value="json">Import JSON (paste or file)</option>
             {existingProfiles.length > 0 && (
               <optgroup label="Duplicate existing">
                 {existingProfiles.map((p) => (
-                  <option key={p.id} value={`duplicate:${p.id}`}>{p.name}</option>
+                  <option key={p.id} value={`duplicate:${p.id}`}>
+                    {p.name}
+                  </option>
                 ))}
               </optgroup>
             )}
@@ -109,20 +109,31 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
               <span className={nafLabel}>Profile JSON</span>
               <JsonFileButton
                 className={nafAddBtn}
-                onLoad={(fileText) => { setJsonText(fileText); setJsonErrors([]); }}
+                onLoad={(fileText) => {
+                  setJsonText(fileText);
+                  setJsonErrors([]);
+                }}
               />
             </div>
             <textarea
-              className={nafInput + ' font-mono text-[11.5px] leading-[1.55] h-[220px] resize-none whitespace-pre [overflow-wrap:normal] overflow-auto'}
+              className={
+                nafInput +
+                ' font-mono text-[11.5px] leading-[1.55] h-[220px] resize-none whitespace-pre [overflow-wrap:normal] overflow-auto'
+              }
               placeholder={'{\n  "name": "...",\n  "role": "...",\n  ...\n}'}
               spellCheck={false}
               value={jsonText}
-              onChange={(e) => { setJsonText(e.target.value); setJsonErrors([]); }}
+              onChange={(e) => {
+                setJsonText(e.target.value);
+                setJsonErrors([]);
+              }}
             />
             {jsonErrors.length > 0 && (
               <div className="font-mono text-[11px] text-status-rejected flex flex-col gap-1 max-h-[120px] overflow-y-auto">
                 <span className="font-semibold">This doesn't look like a profile:</span>
-                {jsonErrors.map((err, i) => <div key={i}>{err}</div>)}
+                {jsonErrors.map((err, i) => (
+                  <div key={i}>{err}</div>
+                ))}
               </div>
             )}
           </div>

@@ -13,7 +13,9 @@ export function BackupModal({ onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
@@ -53,9 +55,9 @@ export function BackupModal({ onClose }: Props) {
       alert(
         `Added ${added.length} application${added.length === 1 ? '' : 's'}${list(added)}.
 ` +
-        `Skipped ${skipped.length} that already exist${list(skipped)}.
+          `Skipped ${skipped.length} that already exist${list(skipped)}.
 ` +
-        `Added ${addedProfiles.length} base profile${addedProfiles.length === 1 ? '' : 's'}${list(addedProfiles)}.`,
+          `Added ${addedProfiles.length} base profile${addedProfiles.length === 1 ? '' : 's'}${list(addedProfiles)}.`,
       );
       window.location.reload();
     } catch (e) {
@@ -65,7 +67,10 @@ export function BackupModal({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6"
+      onClick={onClose}
+    >
       <div
         className="bg-[#1a2236] rounded-lg w-full max-w-[520px] flex flex-col shadow-[0_20px_60px_rgba(20,28,46,0.40)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -84,11 +89,10 @@ export function BackupModal({ onClose }: Props) {
 
         <div className="p-5 flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
-              Export
-            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">Export</span>
             <p className="text-[12.5px] text-ink-2 leading-[1.5] m-0">
-              Downloads every application, its status history and notes, your base profiles, and any profile customizations stored in your account as one JSON file — for moving data between accounts or as a backup.
+              Downloads every application, its status history and notes, your base profiles, and any profile
+              customizations stored in your account as one JSON file — for moving data between accounts or as a backup.
             </p>
             <button
               className="self-start font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
@@ -101,11 +105,10 @@ export function BackupModal({ onClose }: Props) {
           <div className="h-px bg-white/7" />
 
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
-              Import
-            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">Import</span>
             <p className="text-[12.5px] text-ink-2 leading-[1.5] m-0">
-              Adds what's missing from a backup file exported above: applications and base profiles your account doesn't have yet. Nothing that already exists is changed; those are skipped.
+              Adds what's missing from a backup file exported above: applications and base profiles your account doesn't
+              have yet. Nothing that already exists is changed; those are skipped.
             </p>
             <input
               ref={fileInputRef}
@@ -120,9 +123,7 @@ export function BackupModal({ onClose }: Props) {
                 {new Date(pendingBackup.exportedAt).toLocaleString()}
               </span>
             )}
-            {error && (
-              <span className="font-mono text-[11px] text-status-rejected">{error}</span>
-            )}
+            {error && <span className="font-mono text-[11px] text-status-rejected">{error}</span>}
             <button
               className="self-start font-mono text-[11px] bg-transparent text-accent border border-accent rounded px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-accent hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-accent"
               disabled={!pendingBackup || importing}

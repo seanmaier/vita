@@ -23,29 +23,34 @@ import { TourHost } from './tour/TourHost';
 import { SeasonalEffect } from './components/SeasonalEffect';
 
 // The demo has no account (password, API tokens), so it has no account page.
-const router = createBrowserRouter([
-  { path: '/', element: <DashboardPage /> },
-  { path: '/profiles', element: <BaseProfilesPage /> },
-  ...(isDemo ? [] : [
-    {
-      path: '/account',
-      element: <AccountLayout />,
-      children: [
-        { index: true, element: <PasswordSection /> },
-        { path: 'job-alerts', element: <JobAlertsSection /> },
-        { path: 'knowledge', element: <KnowledgePage /> },
-        { path: 'tokens', element: <ApiTokensSection /> },
-      ],
-    },
-    { path: '/knowledge', element: <Navigate to="/account/knowledge" replace /> },
-    { path: '/leads', element: <LeadsPage /> },
-  ]),
-  { path: '/profiles/:id', element: <BaseProfileEditPage /> },
-  { path: '/trash', element: <TrashPage /> },
-  { path: '/application/new', element: <NewApplicationPage /> },
-  { path: '/application/:id/edit', element: <EditApplicationPage /> },
-  { path: '/application/:id', element: <ApplicationPage /> },
-], isDemo ? { basename: DEMO_BASENAME } : undefined);
+const router = createBrowserRouter(
+  [
+    { path: '/', element: <DashboardPage /> },
+    { path: '/profiles', element: <BaseProfilesPage /> },
+    ...(isDemo
+      ? []
+      : [
+          {
+            path: '/account',
+            element: <AccountLayout />,
+            children: [
+              { index: true, element: <PasswordSection /> },
+              { path: 'job-alerts', element: <JobAlertsSection /> },
+              { path: 'knowledge', element: <KnowledgePage /> },
+              { path: 'tokens', element: <ApiTokensSection /> },
+            ],
+          },
+          { path: '/knowledge', element: <Navigate to="/account/knowledge" replace /> },
+          { path: '/leads', element: <LeadsPage /> },
+        ]),
+    { path: '/profiles/:id', element: <BaseProfileEditPage /> },
+    { path: '/trash', element: <TrashPage /> },
+    { path: '/application/new', element: <NewApplicationPage /> },
+    { path: '/application/:id/edit', element: <EditApplicationPage /> },
+    { path: '/application/:id', element: <ApplicationPage /> },
+  ],
+  isDemo ? { basename: DEMO_BASENAME } : undefined,
+);
 
 // The demo skips the login and keeps every edit in this tab, so the server
 // (and any real user's data) is never touched.
@@ -110,13 +115,28 @@ export function App() {
   }, []);
 
   if (auth.kind === 'loading') {
-    return <><SeasonalEffect /><AppSkeleton /></>;
+    return (
+      <>
+        <SeasonalEffect />
+        <AppSkeleton />
+      </>
+    );
   }
   if (auth.kind === 'error') {
-    return <><SeasonalEffect /><div className={`${centered} text-status-rejected`}>{auth.message}</div></>;
+    return (
+      <>
+        <SeasonalEffect />
+        <div className={`${centered} text-status-rejected`}>{auth.message}</div>
+      </>
+    );
   }
   if (auth.kind === 'anonymous') {
-    return <><SeasonalEffect /><LoginPage onLoggedIn={() => void loadData()} /></>;
+    return (
+      <>
+        <SeasonalEffect />
+        <LoginPage onLoggedIn={() => void loadData()} />
+      </>
+    );
   }
 
   return (

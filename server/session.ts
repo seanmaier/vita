@@ -8,7 +8,9 @@ import type { V1Env } from './http.ts';
 export const SESSION_COOKIE = 'session';
 
 // On in production (behind the HTTPS reverse proxy), off for local http dev.
-const SECURE_COOKIE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production';
+const SECURE_COOKIE = process.env.COOKIE_SECURE
+  ? process.env.COOKIE_SECURE === 'true'
+  : process.env.NODE_ENV === 'production';
 
 /** Hono env of routes behind requireUser. */
 export type SessionEnv = { Variables: { user: User } };

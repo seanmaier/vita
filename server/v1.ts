@@ -3,8 +3,26 @@
 // sync raw storage keys, these routes work on one application or base profile
 // at a time and return the merged, effective view of it.
 import { Hono, type Context } from 'hono';
-import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '#shared/domain/statusMachine.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '#shared/types.ts';
+import {
+  allowedNext,
+  appendTransition,
+  currentStatus,
+  derivedDates,
+  INITIAL_STATUSES,
+  isIsoDate,
+  isStoredStatus,
+  setTransitionDate,
+  undoLast,
+} from '#shared/domain/statusMachine.ts';
+import type {
+  AppLanguage,
+  ApplicationConfig,
+  ApplicationStatus,
+  BaseProfile,
+  SkillGroup,
+  StatusTransition,
+  StoredStatus,
+} from '#shared/types.ts';
 import { validateApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
 import { validateProfile } from '#shared/validation/parseProfile.ts';
 import { validateSkillGroups } from '#shared/validation/parseSkillGroups.ts';
@@ -83,8 +101,23 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
 // Items in the trash can't be changed until they're restored.
 
 const APPLICATION_FIELDS = [
-  'id', 'company', 'role', 'status', 'language', 'font', 'appliedDate', 'interviewDate', 'finalDecisionDate',
-  'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter', 'fit',
+  'id',
+  'company',
+  'role',
+  'status',
+  'language',
+  'font',
+  'appliedDate',
+  'interviewDate',
+  'finalDecisionDate',
+  'notes',
+  'url',
+  'baseProfileId',
+  'summaryOverride',
+  'featuredProjectIds',
+  'skillGroupsOverride',
+  'coverLetter',
+  'fit',
 ] as const;
 // Derived from the status history; changed only through the transitions
 // endpoints below. Still listed above so a request naming them gets this
@@ -138,10 +171,7 @@ function baseProfileIdError(userId: number, body: Body): string | null {
 // every step is recorded with its date. An application the server can't see
 // (bundled with the app in development) starts from the caller's `expected`.
 
-type HistoryChange =
-  | StatusTransition[]
-  | { kind: 'invalid'; error: string }
-  | { kind: 'conflict'; error: string };
+type HistoryChange = StatusTransition[] | { kind: 'invalid'; error: string } | { kind: 'conflict'; error: string };
 
 type HistoryOutcome =
   | { kind: 'ok'; app: EffectiveApplication }
@@ -198,7 +228,8 @@ const DATE_ERROR = '"date" must be a date like "2026-11-16".';
 
 function validateBaseProfile(input: Body): Validated<Omit<BaseProfile, 'id'>> {
   const errors: string[] = [];
-  if (typeof input.name !== 'string' || !input.name.trim()) errors.push('"name" is required and must be a non-empty string.');
+  if (typeof input.name !== 'string' || !input.name.trim())
+    errors.push('"name" is required and must be a non-empty string.');
   if (!isAppLanguage(input.language)) errors.push(LANGUAGE_ERROR);
   const profile = validateProfile(input.profile);
   if (!profile.ok) errors.push(...profile.errors.map((e) => `profile: ${e}`));
@@ -261,7 +292,9 @@ export const v1 = new Hono<V1Env>()
     if (Array.isArray(message)) return invalid(c, message);
     if (DATE_FIELDS.some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
     if (body.status !== undefined && !INITIAL_STATUSES.includes(body.status as StoredStatus)) {
-      return invalid(c, [`"status" of a new application must be ${INITIAL_STATUSES.map((st) => `"${st}"`).join(' or ')}.`]);
+      return invalid(c, [
+        `"status" of a new application must be ${INITIAL_STATUSES.map((st) => `"${st}"`).join(' or ')}.`,
+      ]);
     }
     const initial = (body.status as StoredStatus | undefined) ?? 'drafting';
     const result = validateApplication({ ...body, status: initial });
@@ -295,7 +328,10 @@ export const v1 = new Hono<V1Env>()
     });
 
     if (!outcome) {
-      return c.json({ error: `The id "${result.value.id}" is already in use. Pick another one or leave "id" out.` }, 409);
+      return c.json(
+        { error: `The id "${result.value.id}" is already in use. Pick another one or leave "id" out.` },
+        409,
+      );
     }
     return c.json(effectiveApplication(userId, outcome), 201);
   })
@@ -335,7 +371,8 @@ export const v1 = new Hono<V1Env>()
     });
 
     if (!outcome) return c.json({ error: 'No such application.' }, 404);
-    if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+    if (outcome === 'trashed')
+      return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
     if (!outcome.ok) return invalid(c, outcome.errors);
     return c.json(findApplication(userId, id));
   })
@@ -402,7 +439,8 @@ export const v1 = new Hono<V1Env>()
 
     if (outcome === 'no-app') return c.json({ error: 'No such application.' }, 404);
     if (outcome === 'no-version') return c.json({ error: 'No such version.' }, 404);
-    if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+    if (outcome === 'trashed')
+      return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
     return c.json(outcome);
   })
   .post('/base-profiles', jsonBody(BASE_PROFILE_FIELDS), async (c) => {
@@ -448,7 +486,11 @@ export const v1 = new Hono<V1Env>()
       if (!list || !current) return 'not-found';
       if (current.deletedAt) return 'trashed';
       const replacement: BaseProfile = { id, ...result.value };
-      setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? replacement : p)));
+      setJson(
+        userId,
+        KEYS.baseProfiles,
+        list.map((p) => (p.id === id ? replacement : p)),
+      );
       return replacement;
     });
 
@@ -470,7 +512,11 @@ export const v1 = new Hono<V1Env>()
       const usedBy = applicationsUsing(userId, id);
       if (usedBy.length) return usedBy;
       const trashed: BaseProfile = { ...current, deletedAt: new Date().toISOString() };
-      setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? trashed : p)));
+      setJson(
+        userId,
+        KEYS.baseProfiles,
+        list.map((p) => (p.id === id ? trashed : p)),
+      );
       return trashed;
     });
 
@@ -494,9 +540,16 @@ export const v1 = new Hono<V1Env>()
       const current = list?.find((p) => p.id === id);
       if (!list || !current) return null;
       const { deletedAt: _deletedAt, ...active } = current;
-      if (current.deletedAt) setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? active : p)));
+      if (current.deletedAt)
+        setJson(
+          userId,
+          KEYS.baseProfiles,
+          list.map((p) => (p.id === id ? active : p)),
+        );
       return active;
     });
 
-    return restored ? c.json(restored) : c.json({ error: 'No such base profile (it may already have been purged).' }, 404);
+    return restored
+      ? c.json(restored)
+      : c.json({ error: 'No such base profile (it may already have been purged).' }, 404);
   });

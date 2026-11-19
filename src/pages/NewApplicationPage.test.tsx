@@ -36,7 +36,9 @@ describe('NewApplicationPage', () => {
     expect(save).toBeDisabled();
 
     fireEvent.change(screen.getByPlaceholderText('e.g. Vattenfall'), { target: { value: 'Kaiwerk Studio' } });
-    fireEvent.change(screen.getByPlaceholderText('e.g. Backend Engineer'), { target: { value: 'Fullstack Developer' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Backend Engineer'), {
+      target: { value: 'Fullstack Developer' },
+    });
     expect(screen.getByText(/"id": "kaiwerk-studio"/)).toBeInTheDocument();
 
     await userEvent.click(save);

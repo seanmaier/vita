@@ -100,7 +100,9 @@ describe('API tokens', () => {
     const posted = await app.request('/api/v1/job-leads', {
       method: 'POST',
       headers: { ...json, authorization },
-      body: JSON.stringify({ leads: [{ source: 'linkedin', externalId: '1', title: 'Dev', url: 'https://example.com/1' }] }),
+      body: JSON.stringify({
+        leads: [{ source: 'linkedin', externalId: '1', title: 'Dev', url: 'https://example.com/1' }],
+      }),
     });
     expect(posted.status).toBe(201);
   });
@@ -111,15 +113,24 @@ describe('API tokens', () => {
     const old = tokenFor(user.id, 'full');
     const label = `token-${counter}`; // the name tokenFor() just gave it
     // A token can't rotate tokens, not even itself.
-    const byToken = await app.request(`/api/tokens/${label}/rotate`, { method: 'POST', headers: { authorization: `Bearer ${old}`, ...sameOrigin } });
+    const byToken = await app.request(`/api/tokens/${label}/rotate`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${old}`, ...sameOrigin },
+    });
     expect(byToken.status).toBe(401);
 
-    const res = await app.request(`/api/tokens/${label}/rotate`, { method: 'POST', headers: { cookie, ...sameOrigin } });
+    const res = await app.request(`/api/tokens/${label}/rotate`, {
+      method: 'POST',
+      headers: { cookie, ...sameOrigin },
+    });
     expect(res.status).toBe(200);
     const { token } = (await res.json()) as { token: string };
     expect((await app.request('/api/v1/me', { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
     expect((await app.request('/api/v1/me', { headers: { authorization: `Bearer ${old}` } })).status).toBe(401);
-    const missing = await app.request('/api/tokens/nope/rotate', { method: 'POST', headers: { cookie, ...sameOrigin } });
+    const missing = await app.request('/api/tokens/nope/rotate', {
+      method: 'POST',
+      headers: { cookie, ...sameOrigin },
+    });
     expect(missing.status).toBe(404);
   });
 

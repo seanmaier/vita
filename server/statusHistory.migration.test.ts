@@ -18,11 +18,14 @@ test('old statuses become seeded histories, once', async () => {
     INSERT INTO users (id, username, password_hash) VALUES (1, 'old', 'x');
   `);
   const put = old.prepare('INSERT INTO kv (user_id, key, value) VALUES (1, ?, ?)');
-  put.run('local-apps', JSON.stringify([
-    { id: 'listed', company: 'A', role: 'R', status: 'sent', appliedDate: '01.10.2026' },
-    { id: 'ghost', company: 'B', role: 'R', status: 'drafting' },
-    { id: 'done', company: 'C', role: 'R', status: 'drafting' },
-  ]));
+  put.run(
+    'local-apps',
+    JSON.stringify([
+      { id: 'listed', company: 'A', role: 'R', status: 'sent', appliedDate: '01.10.2026' },
+      { id: 'ghost', company: 'B', role: 'R', status: 'drafting' },
+      { id: 'done', company: 'C', role: 'R', status: 'drafting' },
+    ]),
+  );
   put.run('status-ghost', 'ghosted');
   put.run('app-config-ghost', JSON.stringify({ id: 'ghost', company: 'B', role: 'R', appliedDate: '2026-09-01' }));
   put.run('status-bundled', 'interview');
@@ -34,13 +37,24 @@ test('old statuses become seeded histories, once', async () => {
   process.env.DB_PATH = dbPath;
   const { db, migrate } = await import('./db.ts');
   const history = (id: string) => {
-    const row = db.prepare('SELECT value FROM kv WHERE user_id = 1 AND key = ?').get(`status-history-${id}`) as { value: string } | undefined;
+    const row = db.prepare('SELECT value FROM kv WHERE user_id = 1 AND key = ?').get(`status-history-${id}`) as
+      { value: string } | undefined;
     return row && (JSON.parse(row.value) as { to: string; date: string | null }[]).map((t) => [t.to, t.date]);
   };
 
-  expect(history('listed')).toEqual([['drafting', null], ['sent', '2026-10-01']]);
-  expect(history('ghost')).toEqual([['drafting', null], ['sent', '2026-09-01']]);
-  expect(history('bundled')).toEqual([['drafting', null], ['sent', null], ['interview', null]]);
+  expect(history('listed')).toEqual([
+    ['drafting', null],
+    ['sent', '2026-10-01'],
+  ]);
+  expect(history('ghost')).toEqual([
+    ['drafting', null],
+    ['sent', '2026-09-01'],
+  ]);
+  expect(history('bundled')).toEqual([
+    ['drafting', null],
+    ['sent', null],
+    ['interview', null],
+  ]);
   expect(history('done')).toEqual([['drafting', null]]);
   // The old values stay for a rollback.
   expect(db.prepare("SELECT 1 FROM kv WHERE key = 'status-ghost'").get()).toBeTruthy();

@@ -3,10 +3,15 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
 import {
-  applicationsUsingBaseProfile, deleteBaseProfilePermanently, getDeletedBaseProfiles, restoreBaseProfile,
+  applicationsUsingBaseProfile,
+  deleteBaseProfilePermanently,
+  getDeletedBaseProfiles,
+  restoreBaseProfile,
 } from '../utils/baseProfiles';
 import {
-  deleteLocalApplicationPermanently, getDeletedLocalApplications, restoreLocalApplication,
+  deleteLocalApplicationPermanently,
+  getDeletedLocalApplications,
+  restoreLocalApplication,
 } from '../utils/localApplications';
 import { purgeDate, TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
@@ -78,17 +83,23 @@ export function TrashPage() {
   };
 
   const deleteApplication = (app: ApplicationConfig) => {
-    if (!confirm(`Delete "${app.company} – ${app.role}" permanently, with its cover letter and notes? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Delete "${app.company} – ${app.role}" permanently, with its cover letter and notes? This cannot be undone.`,
+      )
+    )
+      return;
     deleteLocalApplicationPermanently(app.id);
     reload();
   };
 
   const deleteProfile = (profile: BaseProfile) => {
     const usedBy = applicationsUsingBaseProfile(profile.id);
-    const fallback = usedBy.length > 0
-      ? ` ${plural(usedBy.length, 'application')} (${usedBy.map((a) => a.company).join(', ')}) ` +
-        'will fall back to the language default profile.'
-      : '';
+    const fallback =
+      usedBy.length > 0
+        ? ` ${plural(usedBy.length, 'application')} (${usedBy.map((a) => a.company).join(', ')}) ` +
+          'will fall back to the language default profile.'
+        : '';
     if (!confirm(`Delete "${profile.name}" permanently? This cannot be undone.${fallback}`)) return;
     deleteBaseProfilePermanently(profile.id);
     reload();
@@ -118,7 +129,10 @@ export function TrashPage() {
             key={a.id}
             title={`${LANG_FLAGS[a.language ?? 'en']} ${a.company} – ${a.role}`}
             deletedAt={a.deletedAt!}
-            onRestore={() => { restoreLocalApplication(a.id); reload(); }}
+            onRestore={() => {
+              restoreLocalApplication(a.id);
+              reload();
+            }}
             onDeletePermanently={() => deleteApplication(a)}
           />
         ))}
@@ -133,7 +147,10 @@ export function TrashPage() {
               title={`${LANG_FLAGS[p.language]} ${p.name}`}
               deletedAt={p.deletedAt!}
               extra={usedBy > 0 ? `used by ${plural(usedBy, 'application')}` : undefined}
-              onRestore={() => { restoreBaseProfile(p.id); reload(); }}
+              onRestore={() => {
+                restoreBaseProfile(p.id);
+                reload();
+              }}
               onDeletePermanently={() => deleteProfile(p)}
             />
           );

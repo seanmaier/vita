@@ -73,7 +73,10 @@ export function NewApplicationPage() {
       <MobilePanelSwitch
         value={mobilePanel}
         onChange={setMobilePanel}
-        options={[{ value: 'form', label: 'form' }, { value: 'json', label: 'JSON' }]}
+        options={[
+          { value: 'form', label: 'form' },
+          { value: 'json', label: 'JSON' },
+        ]}
       />
 
       <div className={newAppBody}>
@@ -87,7 +90,9 @@ export function NewApplicationPage() {
                     {selectedBaseProfile.name}
                   </>
                 ) : (
-                  <span className={nafOptional}>{LANG_FLAGS[form.language]} {LANGUAGE_LABELS[form.language]} default</span>
+                  <span className={nafOptional}>
+                    {LANG_FLAGS[form.language]} {LANGUAGE_LABELS[form.language]} default
+                  </span>
                 )}
               </span>
               <button
@@ -102,18 +107,36 @@ export function NewApplicationPage() {
           <BasicsFields value={form} onChange={update} />
 
           <Field label="Featured projects">
-            <FeaturedProjectsPicker projects={profile.projects} featuredIds={form.featuredIds} onChange={(featuredIds) => update({ featuredIds })} />
+            <FeaturedProjectsPicker
+              projects={profile.projects}
+              featuredIds={form.featuredIds}
+              onChange={(featuredIds) => update({ featuredIds })}
+            />
           </Field>
 
-          <CheckboxField label="Include cover letter" checked={form.hasCoverLetter} onChange={(hasCoverLetter) => update({ hasCoverLetter })} />
+          <CheckboxField
+            label="Include cover letter"
+            checked={form.hasCoverLetter}
+            onChange={(hasCoverLetter) => update({ hasCoverLetter })}
+          />
           {form.hasCoverLetter && (
             <>
               <div className={nafRow}>
                 <Field label="Cover letter date">
-                  <input type="date" className={nafInput} value={form.dateISO} onChange={(e) => update({ dateISO: e.target.value })} />
+                  <input
+                    type="date"
+                    className={nafInput}
+                    value={form.dateISO}
+                    onChange={(e) => update({ dateISO: e.target.value })}
+                  />
                 </Field>
                 <Field label="Subject role" hint="(if different)">
-                  <input className={nafInput} placeholder="defaults to Role" value={form.subjectRole} onChange={(e) => update({ subjectRole: e.target.value })} />
+                  <input
+                    className={nafInput}
+                    placeholder="defaults to Role"
+                    value={form.subjectRole}
+                    onChange={(e) => update({ subjectRole: e.target.value })}
+                  />
                 </Field>
               </div>
               <CoverLetterParagraphs paragraphs={form.paragraphs} onChange={(paragraphs) => update({ paragraphs })} />

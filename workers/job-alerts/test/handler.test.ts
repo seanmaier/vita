@@ -27,7 +27,8 @@ function rawMail(fromHeader: string, html: string, contentType = 'text/html'): s
 
 /** By default Cloudflare's topmost header confirms the envelope sender by SPF, as for real forwards. */
 function fakeMessage(from: string, raw: string, { spf = true } = {}) {
-  if (spf) raw = `Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=${from}
+  if (spf)
+    raw = `Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=${from}
 ${raw}`;
   const rejects: string[] = [];
   return {
@@ -217,7 +218,10 @@ test("a rejection logs the app's error message, so the three 403 causes can be t
   const impl = (async () =>
     Response.json({ error: 'This endpoint is for the mail worker only.' }, { status: 403 })) as unknown as typeof fetch;
   const logs = await captureLogs(() => handleEmail(m.message, env, impl, noSleep));
-  expect(logs.some((l) => l.includes('status=403') && l.includes('reason="This endpoint is for the mail worker only."')), logs.join('\n')).toBeTruthy();
+  expect(
+    logs.some((l) => l.includes('status=403') && l.includes('reason="This endpoint is for the mail worker only."')),
+    logs.join('\n'),
+  ).toBeTruthy();
 });
 
 test('a rejection without a JSON error (e.g. an HTML page) logs no reason', async () => {
@@ -277,7 +281,11 @@ test('leads are capped at 100 per batch and titles at 300 chars', async () => {
 
 test('sanitize drops https urls that do not parse', () => {
   const lead = (url: string) => ({ source: 'linkedin' as const, externalId: '1', title: 'T', url });
-  const clean = sanitize([lead('https://'), lead('https://exa mple.com/x'), lead('https://www.linkedin.com/jobs/view/1/')]);
+  const clean = sanitize([
+    lead('https://'),
+    lead('https://exa mple.com/x'),
+    lead('https://www.linkedin.com/jobs/view/1/'),
+  ]);
   expect(clean.map((l) => l.url)).toEqual(['https://www.linkedin.com/jobs/view/1/']);
 });
 
@@ -356,8 +364,21 @@ test('a forward whose text part is one long line (iCloud after Outlook) still fi
   const html =
     '<div>From: Me &lt;me@outlook.example&gt;</div><div>Von: Indeed &lt;donotreply@jobalert.indeed.com&gt;</div>' +
     '<a href="https://de.indeed.com/rc/clk/dl?jk=abcdefabcdef0123&amp;from=ja">Backend Dev</a>';
-  const multipart = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', text, '--b1', 'Content-Type: text/html; charset=utf-8', '', html, '--b1--'].join('\r\n');
-  const m = fakeMessage('me@icloud.example', rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'));
+  const multipart = [
+    '--b1',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    text,
+    '--b1',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+    '--b1--',
+  ].join('\r\n');
+  const m = fakeMessage(
+    'me@icloud.example',
+    rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'),
+  );
   const f = fakeFetch(201);
   expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
   expect(bodyOf(f).kind).toBe('leads');
@@ -386,8 +407,21 @@ function forwardedAsAttachment(original: string, disposition = 'attachment; file
 
 const instaffoOriginal = () => {
   const part = (name: string) => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
-  const body = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', part('instaffo-top-match.txt'), '--b1', 'Content-Type: text/html; charset=utf-8', '', part('instaffo-top-match.html'), '--b1--'].join('\r\n');
-  return rawMail('Instaffo <notifications@app.instaffo.com>', body, 'multipart/alternative; boundary="b1"').replace('Subject: Neue Jobs', 'Subject: Neuer Top-Match');
+  const body = [
+    '--b1',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    part('instaffo-top-match.txt'),
+    '--b1',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    part('instaffo-top-match.html'),
+    '--b1--',
+  ].join('\r\n');
+  return rawMail('Instaffo <notifications@app.instaffo.com>', body, 'multipart/alternative; boundary="b1"').replace(
+    'Subject: Neue Jobs',
+    'Subject: Neuer Top-Match',
+  );
 };
 
 test('a mail forwarded as attachment is read from the attached original, text part included', async () => {
@@ -400,7 +434,9 @@ test('a mail forwarded as attachment is read from the attached original, text pa
     expect(body.envelopeFrom).toBe('me@outlook.example');
     expect(body.subject).toBe('Neuer Top-Match');
     expect(body.sender).toBe('Instaffo <notifications@app.instaffo.com>');
-    expect(body.leads.map((l: { externalId: string }) => l.externalId)).toEqual(['0adc31c6-604b-41c1-9ae0-caa338763987']);
+    expect(body.leads.map((l: { externalId: string }) => l.externalId)).toEqual([
+      '0adc31c6-604b-41c1-9ae0-caa338763987',
+    ]);
   }
 });
 
@@ -423,7 +459,9 @@ test('an attached alert is not read when the outer mail fails SPF', async () => 
 
 test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async () => {
   const logs: string[] = [];
-  vi.spyOn(console, 'log').mockImplementation((line: string) => { logs.push(line); });
+  vi.spyOn(console, 'log').mockImplementation((line: string) => {
+    logs.push(line);
+  });
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(201);
   expect(await handleEmail(m.message, { ...env, LOG_HEADERS: '1' }, f.impl, noSleep)).toBe('delivered');
@@ -437,14 +475,18 @@ test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', as
 
 test('without LOG_HEADERS no header diagnostics are logged', async () => {
   const logs: string[] = [];
-  vi.spyOn(console, 'log').mockImplementation((line: string) => { logs.push(line); });
+  vi.spyOn(console, 'log').mockImplementation((line: string) => {
+    logs.push(line);
+  });
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   await handleEmail(m.message, env, fakeFetch(201).impl, noSleep);
   expect(logs).not.toContainEqual(expect.stringMatching(/^job-alerts: headers /));
 });
 
 test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as leads', async () => {
-  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml), { spf: false });
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml), {
+    spf: false,
+  });
   const f = fakeFetch(201);
   expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
   const body = bodyOf(f);

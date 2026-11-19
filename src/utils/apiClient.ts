@@ -15,7 +15,10 @@ export async function errorFrom(res: { status: number; json(): Promise<unknown> 
 }
 
 /** Like errorFrom, but a validation error's `details` (e.g. "too long") make the message when there are any. */
-export async function detailedErrorFrom(res: { status: number; json(): Promise<unknown> }, fallback: string): Promise<Error> {
+export async function detailedErrorFrom(
+  res: { status: number; json(): Promise<unknown> },
+  fallback: string,
+): Promise<Error> {
   const body = (await res.json().catch(() => ({}))) as { error?: unknown; details?: unknown };
   const details = Array.isArray(body.details) ? body.details.filter((d): d is string => typeof d === 'string') : [];
   if (details.length > 0) return new Error(details.join(' '));

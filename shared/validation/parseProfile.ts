@@ -2,9 +2,7 @@ import { z } from 'zod';
 import type { Profile } from '#shared/types.ts';
 import { check, nonBlank, parseJsonText, stringArray } from './issues.ts';
 
-export type ParseResult =
-  | { ok: true; profile: Profile }
-  | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; profile: Profile } | { ok: false; errors: string[] };
 
 const string = () => z.string({ error: 'must be a string.' });
 const strings = () => stringArray('must be an array of strings.');
@@ -46,26 +44,25 @@ const skillGroup = object({
 const humanLanguage = object({ name: string(), level: string() });
 
 /** A CV profile. Unknown fields are dropped. */
-const profileSchema: z.ZodType<Profile> = z
-  .object(
-    {
-      name: nonBlank('is required and must be a non-empty string.'),
-      role: string(),
-      email: string(),
-      website: string(),
-      github: string(),
-      linkedin: string(),
-      city: string(),
-      summary: string(),
-      experience: list(experience),
-      projects: list(project),
-      education,
-      skillGroups: list(skillGroup),
-      languages: list(humanLanguage),
-      interests: strings(),
-    },
-    { error: 'Expected a JSON object.' },
-  );
+const profileSchema: z.ZodType<Profile> = z.object(
+  {
+    name: nonBlank('is required and must be a non-empty string.'),
+    role: string(),
+    email: string(),
+    website: string(),
+    github: string(),
+    linkedin: string(),
+    city: string(),
+    summary: string(),
+    experience: list(experience),
+    projects: list(project),
+    education,
+    skillGroups: list(skillGroup),
+    languages: list(humanLanguage),
+    interests: strings(),
+  },
+  { error: 'Expected a JSON object.' },
+);
 
 /** Validates a parsed JSON value against the Profile shape, collecting every error found. */
 export function validateProfile(input: unknown): ParseResult {

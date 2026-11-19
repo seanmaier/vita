@@ -70,20 +70,32 @@ function applyLocally(appId: string, result: HistoryResult): StatusTransition[] 
 }
 
 /** Performs a status action; resolves with the new history or rejects with a message to show. */
-export function changeStatus(appId: string, history: StatusTransition[], action: StatusAction): Promise<StatusTransition[]> {
+export function changeStatus(
+  appId: string,
+  history: StatusTransition[],
+  action: StatusAction,
+): Promise<StatusTransition[]> {
   if (action === 'undo') {
     if (isDemo) return Promise.resolve().then(() => applyLocally(appId, undoLast(history)));
     return transitions.last.$delete({ param: idParam(appId) }).then((res) => applied(appId, res));
   }
   const date = todayIso();
-  if (isDemo) return Promise.resolve().then(() => applyLocally(appId, appendTransition(history, action, date, new Date().toISOString())));
+  if (isDemo)
+    return Promise.resolve().then(() =>
+      applyLocally(appId, appendTransition(history, action, date, new Date().toISOString())),
+    );
   return transitions
     .$post({ param: idParam(appId), json: { to: action, date, expected: statusOf(history) } })
     .then((res) => applied(appId, res));
 }
 
 /** Changes when step `index` of the history happened. */
-export function changeStepDate(appId: string, history: StatusTransition[], index: number, date: string): Promise<StatusTransition[]> {
+export function changeStepDate(
+  appId: string,
+  history: StatusTransition[],
+  index: number,
+  date: string,
+): Promise<StatusTransition[]> {
   if (isDemo) return Promise.resolve().then(() => applyLocally(appId, setTransitionDate(history, index, date)));
   return transitions[':index']
     .$patch({ param: { ...idParam(appId), index: String(index) }, json: { date } })

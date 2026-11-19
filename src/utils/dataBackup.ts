@@ -43,7 +43,8 @@ export function exportAllData(): DataBackup {
   }
   // Applications still without a recorded history export the one they read as.
   for (const [id, status] of Object.entries(legacyStatuses)) {
-    if (!statusHistories[id]) statusHistories[id] = seedHistory(status, configOverrides[id] ?? localApps.find((a) => a.id === id) ?? {});
+    if (!statusHistories[id])
+      statusHistories[id] = seedHistory(status, configOverrides[id] ?? localApps.find((a) => a.id === id) ?? {});
   }
 
   // Goes through getAllBaseProfiles so an account that never opened the profiles
@@ -51,7 +52,15 @@ export function exportAllData(): DataBackup {
   // Trashed profiles are included, so importing keeps them restorable.
   const baseProfiles = getAllBaseProfiles();
 
-  return { version: 3, exportedAt: new Date().toISOString(), localApps, statusHistories, configOverrides, profileOverrides, baseProfiles };
+  return {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    localApps,
+    statusHistories,
+    configOverrides,
+    profileOverrides,
+    baseProfiles,
+  };
 }
 
 /** Triggers a browser download of the backup as a .json file — works the same in Chrome and Firefox. */

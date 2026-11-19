@@ -6,7 +6,14 @@ import { hydrate, setStorageBackend } from '../utils/storage';
 import { getConfigOverride } from '../utils/appStorage';
 import { EditApplicationPage } from './EditApplicationPage';
 
-const stored = { id: 'acme', company: 'Acme', role: 'Developer', status: 'drafting', language: 'en', appliedDate: '2026-11-01' };
+const stored = {
+  id: 'acme',
+  company: 'Acme',
+  role: 'Developer',
+  status: 'drafting',
+  language: 'en',
+  appliedDate: '2026-11-01',
+};
 
 function renderEditor() {
   // A data router, since the page blocks leaving with unsaved edits.

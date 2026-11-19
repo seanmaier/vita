@@ -10,7 +10,10 @@ const app = createApp({ staticDir: './does-not-exist' });
 
 async function loggedInClient() {
   const username = `rpc-${crypto.randomUUID().slice(0, 8)}`;
-  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, await hashPassword('rpc password 123'));
+  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(
+    username,
+    await hashPassword('rpc password 123'),
+  );
   let cookie = '';
   const client = hc<AppType>('http://localhost/', {
     fetch: async (input: string | URL | Request, init?: RequestInit) => {
@@ -41,7 +44,9 @@ describe('typed API client', () => {
     expect((await client.api.tokens.$post({ json: { name: 'my laptop/2', scope: 'full' } })).status).toBe(201);
     const listed = await (await client.api.tokens.$get()).json();
     expect(listed.map((t) => t.name)).toEqual(['my laptop/2']);
-    const rotated = await client.api.tokens[':name'].rotate.$post({ param: { name: encodeURIComponent('my laptop/2') } });
+    const rotated = await client.api.tokens[':name'].rotate.$post({
+      param: { name: encodeURIComponent('my laptop/2') },
+    });
     expect(await rotated.json()).toMatchObject({ token: expect.any(String) });
     const revoked = await client.api.tokens[':name'].$delete({ param: { name: encodeURIComponent('my laptop/2') } });
     expect(revoked.status).toBe(204);

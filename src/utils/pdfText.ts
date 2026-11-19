@@ -18,7 +18,13 @@ const PT_PER_MM = 72 / 25.4;
 const WIN_ANSI_EXTRAS = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
 const isWinAnsi = (ch: string) => {
   const code = ch.codePointAt(0)!;
-  return (code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || code === 0x0a || code === 0x09 || WIN_ANSI_EXTRAS.includes(ch);
+  return (
+    (code >= 0x20 && code <= 0x7e) ||
+    (code >= 0xa0 && code <= 0xff) ||
+    code === 0x0a ||
+    code === 0x09 ||
+    WIN_ANSI_EXTRAS.includes(ch)
+  );
 };
 
 type Rgb = [number, number, number];
@@ -34,7 +40,11 @@ function parseColor(css: string): Rgb | null {
 
 function pdfFont(style: CSSStyleDeclaration): [string, string] {
   const family = style.fontFamily.toLowerCase();
-  const name = /mono|consolas|courier|menlo/.test(family) ? 'courier' : /georgia|times|serif/.test(family) && !/sans-serif/.test(family) ? 'times' : 'helvetica';
+  const name = /mono|consolas|courier|menlo/.test(family)
+    ? 'courier'
+    : /georgia|times|serif/.test(family) && !/sans-serif/.test(family)
+      ? 'times'
+      : 'helvetica';
   const bold = parseInt(style.fontWeight, 10) >= 600;
   const italic = style.fontStyle === 'italic';
   return [name, bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal'];
@@ -84,7 +94,15 @@ function drawBox(p: Page, el: Element, style: CSSStyleDeclaration) {
 }
 
 /** Writes one line of text at the place and width it has on screen. */
-function drawLine(p: Page, text: string, left: number, top: number, width: number, height: number, style: CSSStyleDeclaration) {
+function drawLine(
+  p: Page,
+  text: string,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  style: CSSStyleDeclaration,
+) {
   const [font, variant] = pdfFont(style);
   const fontSizeMm = parseFloat(style.fontSize) * p.k;
   p.pdf.setFont(font, variant);
@@ -93,7 +111,10 @@ function drawLine(p: Page, text: string, left: number, top: number, width: numbe
   const natural = p.pdf.getTextWidth(text);
   const target = width * p.k;
   // Spread (or tighten) the letters so the line has its on-screen width.
-  const charSpace = text.length > 1 ? Math.max(-0.3 * fontSizeMm, Math.min(0.5 * fontSizeMm, (target - natural) / (text.length - 1))) : 0;
+  const charSpace =
+    text.length > 1
+      ? Math.max(-0.3 * fontSizeMm, Math.min(0.5 * fontSizeMm, (target - natural) / (text.length - 1)))
+      : 0;
   // The line box of the glyphs is roughly 80 % above and 20 % below the baseline.
   const baseline = y(p, top) + height * p.k * 0.8;
   p.pdf.text(text, x(p, left), baseline, { charSpace, baseline: 'alphabetic' });
@@ -128,17 +149,23 @@ function lines(node: Text, style: CSSStyleDeclaration): Line[] {
     // Collapsed or wrapped whitespace takes no room; it still separates words.
     if (!rect || rect.width === 0) {
       const last = current?.glyphs.at(-1);
-      if (last && /\s/.test(ch) && last.ch !== ' ') current!.glyphs.push({ ch: ' ', left: last.right, right: last.right });
+      if (last && /\s/.test(ch) && last.ch !== ' ')
+        current!.glyphs.push({ ch: ' ', left: last.right, right: last.right });
       continue;
     }
-    const startsLine = !current || rect.top >= current.bottom - 1 || rect.left < (current.glyphs.at(-1)?.right ?? 0) - rect.width - 1;
+    const startsLine =
+      !current || rect.top >= current.bottom - 1 || rect.left < (current.glyphs.at(-1)?.right ?? 0) - rect.width - 1;
     if (startsLine) {
       current = { glyphs: [], top: rect.top, bottom: rect.bottom };
       out.push(current);
     }
     const line = current!;
     if (collapse && /\s/.test(ch) && (line.glyphs.length === 0 || line.glyphs.at(-1)!.ch === ' ')) continue;
-    line.glyphs.push({ ch: collapse && /\s/.test(ch) ? ' ' : upper ? ch.toUpperCase() : ch, left: rect.left, right: rect.right });
+    line.glyphs.push({
+      ch: collapse && /\s/.test(ch) ? ' ' : upper ? ch.toUpperCase() : ch,
+      left: rect.left,
+      right: rect.right,
+    });
     line.top = Math.min(line.top, rect.top);
     line.bottom = Math.max(line.bottom, rect.bottom);
   }
@@ -150,7 +177,15 @@ function lines(node: Text, style: CSSStyleDeclaration): Line[] {
  * Characters the PDF's fonts can't write (arrows, emoji) as a small picture of
  * themselves, drawn by the browser in the page's own font and colour.
  */
-function drawGlyphImage(p: Page, text: string, left: number, top: number, width: number, height: number, style: CSSStyleDeclaration) {
+function drawGlyphImage(
+  p: Page,
+  text: string,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  style: CSSStyleDeclaration,
+) {
   const scale = 6;
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.ceil(width * scale));
@@ -219,7 +254,8 @@ function drawElement(p: Page, el: Element) {
     }
   }
   if (el instanceof HTMLAnchorElement && el.href) {
-    for (const r of el.getClientRects()) p.pdf.link(x(p, r.left), y(p, r.top), r.width * p.k, r.height * p.k, { url: el.href });
+    for (const r of el.getClientRects())
+      p.pdf.link(x(p, r.left), y(p, r.top), r.width * p.k, r.height * p.k, { url: el.href });
   }
 }
 

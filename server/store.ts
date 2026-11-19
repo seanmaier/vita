@@ -8,8 +8,7 @@ export const KEYS = STORAGE_KEYS;
 
 export function getValue(userId: number, key: string): string | null {
   const row = db.prepare('SELECT value FROM kv WHERE user_id = ? AND key = ?').get(userId, key) as
-    | { value: string }
-    | undefined;
+    { value: string } | undefined;
   return row?.value ?? null;
 }
 
@@ -29,7 +28,9 @@ export function parseJson<T>(raw: string | null | undefined): T | null {
 
 /** The ids stored under a key prefix, e.g. every id with an `app-config-<id>` row. */
 export function idsWithStoredKey(userId: number, prefix: string): string[] {
-  const rows = db.prepare('SELECT key FROM kv WHERE user_id = ? AND substr(key, 1, ?) = ?').all(userId, prefix.length, prefix) as {
+  const rows = db
+    .prepare('SELECT key FROM kv WHERE user_id = ? AND substr(key, 1, ?) = ?')
+    .all(userId, prefix.length, prefix) as {
     key: string;
   }[];
   return rows.map((r) => r.key.slice(prefix.length));

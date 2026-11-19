@@ -55,9 +55,7 @@ export function generateTextExport(profile: Profile, application: ApplicationCon
 
   lines.push(section('PROJECTS'));
   projects.forEach((project) => {
-    const name = project.hackathonLabel
-      ? `${project.name} [${project.hackathonLabel}]`
-      : project.name;
+    const name = project.hackathonLabel ? `${project.name} [${project.hackathonLabel}]` : project.name;
     lines.push(name);
     lines.push(`Stack:       ${project.stack}`);
     if (project.link) lines.push(`Link:        ${project.link}`);

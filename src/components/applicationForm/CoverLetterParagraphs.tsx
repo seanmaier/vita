@@ -7,7 +7,13 @@ import { nafAddBtn, nafParagraphRow, nafRemoveBtn, nafTextarea } from '../../sty
 import { Field } from './fields';
 
 /** The cover letter's paragraphs: edit, reorder, add and remove them, or import and export them all. */
-export function CoverLetterParagraphs({ paragraphs, onChange }: { paragraphs: string[]; onChange: (next: string[]) => void }) {
+export function CoverLetterParagraphs({
+  paragraphs,
+  onChange,
+}: {
+  paragraphs: string[];
+  onChange: (next: string[]) => void;
+}) {
   const update = (i: number, value: string) => onChange(paragraphs.map((p, idx) => (idx === i ? value : p)));
   const remove = (i: number) => onChange(paragraphs.filter((_, idx) => idx !== i));
 
@@ -17,16 +23,25 @@ export function CoverLetterParagraphs({ paragraphs, onChange }: { paragraphs: st
       <ExportParagraphsButton paragraphs={paragraphs} />
       {paragraphs.map((p, i) => (
         <div className={nafParagraphRow} key={i}>
-          <AutoTextarea className={nafTextarea} placeholder={`Paragraph ${i + 1}`} value={p} onChange={(e) => update(i, e.target.value)} />
+          <AutoTextarea
+            className={nafTextarea}
+            placeholder={`Paragraph ${i + 1}`}
+            value={p}
+            onChange={(e) => update(i, e.target.value)}
+          />
           {paragraphs.length > 1 && (
             <>
               <MoveButtons index={i} length={paragraphs.length} onMove={(to) => onChange(move(paragraphs, i, to))} />
-              <button className={nafRemoveBtn} onClick={() => remove(i)}>✕</button>
+              <button className={nafRemoveBtn} onClick={() => remove(i)}>
+                ✕
+              </button>
             </>
           )}
         </div>
       ))}
-      <button className={nafAddBtn} onClick={() => onChange([...paragraphs, ''])}>+ Add paragraph</button>
+      <button className={nafAddBtn} onClick={() => onChange([...paragraphs, ''])}>
+        + Add paragraph
+      </button>
     </Field>
   );
 }

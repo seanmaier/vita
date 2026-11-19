@@ -3,7 +3,14 @@
 // over the account's raw kv entries, so the server (POST /api/import) and the
 // demo (which never talks to the server) merge the same way.
 import { KEY_PREFIXES, STORAGE_KEYS } from '#shared/storageKeys.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, Profile, StatusTransition } from '#shared/types.ts';
+import type {
+  AppLanguage,
+  ApplicationConfig,
+  ApplicationStatus,
+  BaseProfile,
+  Profile,
+  StatusTransition,
+} from '#shared/types.ts';
 import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
@@ -50,7 +57,8 @@ export function parseBackupValue(p: unknown): ParseBackupResult {
   if (!isObject(p)) return { ok: false, error: 'Expected a JSON object.' };
   if (!Array.isArray(p.localApps)) return invalid('missing "localApps" array');
   const hasHistories = isObject(p.statusHistories);
-  if (!hasHistories && !isObject(p.statuses)) return invalid('missing "statusHistories" (or, in older files, "statuses")');
+  if (!hasHistories && !isObject(p.statuses))
+    return invalid('missing "statusHistories" (or, in older files, "statuses")');
   if (!isObject(p.configOverrides)) return invalid('missing "configOverrides" object');
   if (!isObject(p.profileOverrides)) return invalid('missing "profileOverrides" object');
   if (p.baseProfiles !== undefined && !Array.isArray(p.baseProfiles)) return invalid('"baseProfiles" must be an array');
@@ -105,12 +113,14 @@ export function mergeBackup(current: Record<string, string>, backup: DataBackup)
   const set: Record<string, string> = {};
   const taken = takenIds(current);
   const entries = new Map(backup.localApps.map((a) => [a.id, a]));
-  const ids = [...new Set([
-    ...entries.keys(),
-    ...Object.keys(backup.configOverrides),
-    ...Object.keys(backup.statusHistories),
-    ...Object.keys(backup.statuses ?? {}),
-  ])];
+  const ids = [
+    ...new Set([
+      ...entries.keys(),
+      ...Object.keys(backup.configOverrides),
+      ...Object.keys(backup.statusHistories),
+      ...Object.keys(backup.statuses ?? {}),
+    ]),
+  ];
 
   const added: string[] = [];
   const skipped: string[] = [];

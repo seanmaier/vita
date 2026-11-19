@@ -54,9 +54,7 @@ function makeParticles(symbols: readonly string[], count: number): Particle[] {
 }
 
 function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const listener = (e: MediaQueryListEvent) => setReduced(e.matches);
@@ -94,13 +92,15 @@ export function SeasonalEffect() {
         <span
           key={p.id}
           className={`seasonal-effect__particle seasonal-effect__particle--${particleKind}`}
-          style={{
-            left: `${p.left}vw`,
-            fontSize: `${p.size}rem`,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `${p.delay}s`,
-            '--drift': `${p.drift}vw`,
-          } as CSSProperties}
+          style={
+            {
+              left: `${p.left}vw`,
+              fontSize: `${p.size}rem`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
+              '--drift': `${p.drift}vw`,
+            } as CSSProperties
+          }
         >
           {p.symbol}
         </span>

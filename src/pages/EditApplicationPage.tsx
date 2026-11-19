@@ -28,9 +28,12 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
   const navigate = useNavigate();
   const [baseProfiles] = useState(() => getBaseProfiles());
   const profileFor = (form: Pick<EditForm, 'baseProfileId' | 'language'>) =>
-    (form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId)?.profile : undefined) ?? getProfile(form.language);
+    (form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId)?.profile : undefined) ??
+    getProfile(form.language);
 
-  const [form, setForm] = useState(() => initialEditForm(app, profileFor({ baseProfileId: app.baseProfileId ?? '', language: app.language ?? 'en' })));
+  const [form, setForm] = useState(() =>
+    initialEditForm(app, profileFor({ baseProfileId: app.baseProfileId ?? '', language: app.language ?? 'en' })),
+  );
   const update = (patch: Partial<EditForm>) => setForm((prev) => ({ ...prev, ...patch }));
   const profile = profileFor(form);
   const config = editFormToConfig(form, app, staticApp.id);
@@ -62,10 +65,13 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
 
   // Readable names for the ids a version diff mentions. Projects come from
   // the profile the form currently shows; ids it doesn't know stay as they are.
-  const historyNames = useMemo((): DiffNames => ({
-    baseProfile: (id) => baseProfiles.find((p) => p.id === id)?.name,
-    project: (id) => profile.projects.find((p) => p.id === id)?.name,
-  }), [baseProfiles, profile]);
+  const historyNames = useMemo(
+    (): DiffNames => ({
+      baseProfile: (id) => baseProfiles.find((p) => p.id === id)?.name,
+      project: (id) => profile.projects.find((p) => p.id === id)?.name,
+    }),
+    [baseProfiles, profile],
+  );
 
   // A restore rewrites the stored config on the server: drop the form's
   // state and remount it from what's stored now.
@@ -99,7 +105,10 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
       <MobilePanelSwitch
         value={mobilePanel}
         onChange={setMobilePanel}
-        options={[{ value: 'form', label: 'edit' }, { value: 'preview', label: 'preview / JSON' }]}
+        options={[
+          { value: 'form', label: 'edit' },
+          { value: 'preview', label: 'preview / JSON' },
+        ]}
       />
 
       <div className={newAppBody}>
@@ -173,7 +182,9 @@ export function EditApplicationPage() {
     return (
       <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
         <p>Application not found.</p>
-        <Link className="text-accent" to="/">← Back to dashboard</Link>
+        <Link className="text-accent" to="/">
+          ← Back to dashboard
+        </Link>
       </div>
     );
   }

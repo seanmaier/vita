@@ -28,7 +28,9 @@ const criterion = z.preprocess(
 );
 
 const trimmedName = (v: unknown) =>
-  typeof v === 'object' && v !== null && typeof (v as { name?: unknown }).name === 'string' ? (v as { name: string }).name.trim() : '';
+  typeof v === 'object' && v !== null && typeof (v as { name?: unknown }).name === 'string'
+    ? (v as { name: string }).name.trim()
+    : '';
 
 /** A rating's per-criterion breakdown: 1–20 criteria with unique names whose weights add up to 100. */
 export const criteriaSchema: z.ZodType<FitCriterion[]> = z
@@ -44,7 +46,8 @@ export const criteriaSchema: z.ZodType<FitCriterion[]> = z
           const seen = new Set<string>();
           items.forEach((item, i) => {
             const name = trimmedName(item);
-            if (name && seen.has(name)) ctx.addIssue({ code: 'custom', path: [i, 'name'], message: `"${name}" appears twice.` });
+            if (name && seen.has(name))
+              ctx.addIssue({ code: 'custom', path: [i, 'name'], message: `"${name}" appears twice.` });
             seen.add(name);
           });
         },

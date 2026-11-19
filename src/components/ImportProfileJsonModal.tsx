@@ -20,7 +20,9 @@ export function ImportProfileJsonModal({ onApply, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
@@ -36,7 +38,10 @@ export function ImportProfileJsonModal({ onApply, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6"
+      onClick={onClose}
+    >
       <div
         className="bg-[#1a2236] rounded-lg w-full max-w-[760px] h-[80vh] flex flex-col shadow-[0_20px_60px_rgba(20,28,46,0.40)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -48,7 +53,10 @@ export function ImportProfileJsonModal({ onApply, onClose }: Props) {
           <div className="flex items-center gap-2.5 shrink-0">
             <JsonFileButton
               className="font-mono text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-ink-invert"
-              onLoad={(fileText) => { setText(fileText); setErrors([]); }}
+              onLoad={(fileText) => {
+                setText(fileText);
+                setErrors([]);
+              }}
             />
             <button
               className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -69,7 +77,9 @@ export function ImportProfileJsonModal({ onApply, onClose }: Props) {
         {errors.length > 0 && (
           <div className="font-mono text-[11px] text-status-rejected bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1">
             <span className="font-semibold">This doesn't look like a profile:</span>
-            {errors.map((e, i) => <div key={i}>{e}</div>)}
+            {errors.map((e, i) => (
+              <div key={i}>{e}</div>
+            ))}
           </div>
         )}
 
@@ -77,8 +87,13 @@ export function ImportProfileJsonModal({ onApply, onClose }: Props) {
           ref={textareaRef}
           className="flex-1 font-mono text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre [overflow-wrap:normal] overflow-auto"
           value={text}
-          onChange={(e) => { setText(e.target.value); setErrors([]); }}
-          placeholder={'{\n  "name": "...",\n  "role": "...",\n  "experience": [ ... ],\n  "projects": [ ... ],\n  "skillGroups": [ ... ]\n}'}
+          onChange={(e) => {
+            setText(e.target.value);
+            setErrors([]);
+          }}
+          placeholder={
+            '{\n  "name": "...",\n  "role": "...",\n  "experience": [ ... ],\n  "projects": [ ... ],\n  "skillGroups": [ ... ]\n}'
+          }
           spellCheck={false}
         />
       </div>

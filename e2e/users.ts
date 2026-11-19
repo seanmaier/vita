@@ -16,10 +16,14 @@ export interface TestUser {
 export function createUser(): TestUser {
   // A throwaway user per test, with a random password.
   const user = { username: `e2e-${randomUUID().slice(0, 8)}`, password: randomUUID() };
-  execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/cli.ts', 'add', user.username, user.password], {
-    env: { ...process.env, DB_PATH: process.env.E2E_DB_PATH },
-    stdio: 'ignore',
-  });
+  execFileSync(
+    process.execPath,
+    ['--disable-warning=ExperimentalWarning', 'server/cli.ts', 'add', user.username, user.password],
+    {
+      env: { ...process.env, DB_PATH: process.env.E2E_DB_PATH },
+      stdio: 'ignore',
+    },
+  );
   return user;
 }
 

@@ -2,9 +2,7 @@ import { z } from 'zod';
 import type { SkillGroup } from '#shared/types.ts';
 import { nonBlank, parseJsonText } from './issues.ts';
 
-export type SkillGroupsParseResult =
-  | { ok: true; skillGroups: SkillGroup[] }
-  | { ok: false; errors: string[] };
+export type SkillGroupsParseResult = { ok: true; skillGroups: SkillGroup[] } | { ok: false; errors: string[] };
 
 const skillGroup = z
   .object(
@@ -18,7 +16,11 @@ const skillGroup = z
     { error: 'expected an object with "label" and "skills".' },
   )
   // "default" is what an unset variant means, so only "learning" is kept.
-  .transform(({ label, skills, variant }): SkillGroup => ({ label, skills, ...(variant === 'learning' && { variant }) }));
+  .transform(({ label, skills, variant }): SkillGroup => ({
+    label,
+    skills,
+    ...(variant === 'learning' && { variant }),
+  }));
 
 const skillGroupsSchema = z.array(skillGroup, { error: 'Expected a JSON array of skill groups.' });
 
@@ -29,7 +31,9 @@ export function validateSkillGroups(input: unknown): SkillGroupsParseResult {
   // This import dialog names items by number ("Item 2: …") rather than by path.
   return {
     ok: false,
-    errors: result.error.issues.map((issue) => (issue.path.length ? `Item ${String(issue.path[0])}: ${issue.message}` : issue.message)),
+    errors: result.error.issues.map((issue) =>
+      issue.path.length ? `Item ${String(issue.path[0])}: ${issue.message}` : issue.message,
+    ),
   };
 }
 

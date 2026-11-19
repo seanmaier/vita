@@ -129,12 +129,24 @@ test('seeding builds the shortest plausible path without inventing dates', () =>
   expect(seedHistory('drafting', {})).toEqual(path(['drafting', null]));
   expect(seedHistory('ready', {})).toEqual(path(['drafting', null], ['ready', null]));
   expect(seedHistory('sent', { appliedDate: '10.11.2026' })).toEqual(path(['drafting', null], ['sent', '2026-11-10']));
-  expect(seedHistory('interview', { appliedDate: '11/10/2026' })).toEqual(path(['drafting', null], ['sent', '2026-11-10'], ['interview', null]));
-  expect(seedHistory('rejected', { appliedDate: '2026-10-01', interviewDate: '2026-10-08', finalDecisionDate: '2026-10-20' })).toEqual(path(['drafting', null], ['sent', '2026-10-01'], ['interview', '2026-10-08'], ['rejected', '2026-10-20']));
+  expect(seedHistory('interview', { appliedDate: '11/10/2026' })).toEqual(
+    path(['drafting', null], ['sent', '2026-11-10'], ['interview', null]),
+  );
+  expect(
+    seedHistory('rejected', {
+      appliedDate: '2026-10-01',
+      interviewDate: '2026-10-08',
+      finalDecisionDate: '2026-10-20',
+    }),
+  ).toEqual(path(['drafting', null], ['sent', '2026-10-01'], ['interview', '2026-10-08'], ['rejected', '2026-10-20']));
   expect(seedHistory('rejected', {})).toEqual(path(['drafting', null], ['sent', null], ['rejected', null]));
   expect(seedHistory('withdrawn', {})).toEqual(path(['drafting', null], ['withdrawn', null]));
-  expect(seedHistory('withdrawn', { appliedDate: '2026-10-01' })).toEqual(path(['drafting', null], ['sent', '2026-10-01'], ['withdrawn', null]));
-  expect(seedHistory('accepted', { finalDecisionDate: '2026-11-01' })).toEqual(path(['drafting', null], ['sent', null], ['offer', null], ['accepted', '2026-11-01']));
+  expect(seedHistory('withdrawn', { appliedDate: '2026-10-01' })).toEqual(
+    path(['drafting', null], ['sent', '2026-10-01'], ['withdrawn', null]),
+  );
+  expect(seedHistory('accepted', { finalDecisionDate: '2026-11-01' })).toEqual(
+    path(['drafting', null], ['sent', null], ['offer', null], ['accepted', '2026-11-01']),
+  );
 });
 
 test('a stored ghosted status seeds as sent', () => {
@@ -144,17 +156,36 @@ test('a stored ghosted status seeds as sent', () => {
 });
 
 test('every seeded history is valid', () => {
-  for (const status of ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'] as const) {
+  for (const status of [
+    'drafting',
+    'ready',
+    'sent',
+    'interview',
+    'offer',
+    'rejected',
+    'ghosted',
+    'withdrawn',
+    'accepted',
+    'declined',
+    'evaluated',
+    'skipped',
+  ] as const) {
     expect(validateHistory(seedHistory(status, { appliedDate: '2026-10-01' })).ok, status).toBeTruthy();
   }
 });
 
 test('dates are derived from the history', () => {
   const history = path(
-    ['drafting', null], ['sent', '2026-10-01'], ['interview', '2026-10-08'], ['offer', '2026-10-20'], ['accepted', '2026-10-25'],
+    ['drafting', null],
+    ['sent', '2026-10-01'],
+    ['interview', '2026-10-08'],
+    ['offer', '2026-10-20'],
+    ['accepted', '2026-10-25'],
   );
   expect(derivedDates(history, 'de')).toEqual({
-    appliedDate: '01.10.2026', interviewDate: '08.10.2026', finalDecisionDate: '25.10.2026',
+    appliedDate: '01.10.2026',
+    interviewDate: '08.10.2026',
+    finalDecisionDate: '25.10.2026',
   });
   expect(derivedDates(path(['drafting', null]), 'en')).toEqual({});
   expect(derivedDates(path(['drafting', null], ['sent', null]), 'en')).toEqual({});

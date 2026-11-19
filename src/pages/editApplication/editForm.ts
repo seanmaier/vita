@@ -54,7 +54,11 @@ export function initialEditForm(app: ApplicationConfig, profile: Profile): EditF
 }
 
 /** What saving the form stores for the application `app` (with id `id`). */
-export function editFormToConfig(form: EditForm, app: ApplicationConfig, id: string): Omit<ApplicationConfig, 'status'> {
+export function editFormToConfig(
+  form: EditForm,
+  app: ApplicationConfig,
+  id: string,
+): Omit<ApplicationConfig, 'status'> {
   return {
     id,
     company: form.company,

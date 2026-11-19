@@ -82,7 +82,9 @@ function parseArgs(argv: string[]): SearchParams & { body: boolean } {
   const umkreis = Number(values.get('umkreis') ?? 30);
   const tage = Number(values.get('tage') ?? 1);
   if (!was || !wo || !Number.isInteger(umkreis) || !Number.isInteger(tage) || umkreis < 0 || tage < 1) {
-    throw new Error('Usage: node scripts/arbeitsagentur.ts --was "<term>" --wo "<place>" --umkreis <km> --tage <n> [--body]');
+    throw new Error(
+      'Usage: node scripts/arbeitsagentur.ts --was "<term>" --wo "<place>" --umkreis <km> --tage <n> [--body]',
+    );
   }
   return { was, wo, umkreis, tage, body };
 }

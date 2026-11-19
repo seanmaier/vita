@@ -102,7 +102,8 @@ export const jobLeads = new Hono<{ Variables: { user: User } }>()
     const body = c.req.valid('json');
     const { leads } = body;
     if (!Array.isArray(leads)) return invalid(c, ['"leads" must be an array.']);
-    if (leads.length < 1 || leads.length > MAX_BATCH) return invalid(c, [`"leads" must contain 1-${MAX_BATCH} entries.`]);
+    if (leads.length < 1 || leads.length > MAX_BATCH)
+      return invalid(c, [`"leads" must contain 1-${MAX_BATCH} entries.`]);
 
     const parsed: JobLeadInput[] = [];
     const errors: string[] = [];
@@ -124,16 +125,17 @@ export const jobLeads = new Hono<{ Variables: { user: User } }>()
     let limit = DEFAULT_LIMIT;
     if (rawLimit !== undefined) {
       limit = Number(rawLimit);
-      if (!/^\d+$/.test(rawLimit) || limit < 1 || limit > MAX_LIMIT) errors.push(`"limit" must be an integer 1-${MAX_LIMIT}.`);
+      if (!/^\d+$/.test(rawLimit) || limit < 1 || limit > MAX_LIMIT)
+        errors.push(`"limit" must be an integer 1-${MAX_LIMIT}.`);
     }
     if (errors.length) return invalid(c, errors);
 
     const userId = c.get('user').id;
-    const rows = (
-      status === undefined
-        ? db.prepare('SELECT * FROM job_leads WHERE user_id = ? ORDER BY id DESC LIMIT ?').all(userId, limit)
-        : db.prepare('SELECT * FROM job_leads WHERE user_id = ? AND status = ? ORDER BY id DESC LIMIT ?').all(userId, status, limit)
-    ) as unknown as LeadRow[];
+    const rows = (status === undefined
+      ? db.prepare('SELECT * FROM job_leads WHERE user_id = ? ORDER BY id DESC LIMIT ?').all(userId, limit)
+      : db
+          .prepare('SELECT * FROM job_leads WHERE user_id = ? AND status = ? ORDER BY id DESC LIMIT ?')
+          .all(userId, status, limit)) as unknown as LeadRow[];
     return c.json(rows.map(toLead));
   })
   .patch('/:id', jsonBody(PATCH_FIELDS), async (c) => {

@@ -9,7 +9,12 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
     <div className={nafSection}>
       <span className={nafLabel}>
         {label}
-        {hint && <> <span className={nafOptional}>{hint}</span></>}
+        {hint && (
+          <>
+            {' '}
+            <span className={nafOptional}>{hint}</span>
+          </>
+        )}
       </span>
       {children}
     </div>
@@ -17,11 +22,24 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 /** A checkbox with its label, e.g. to switch an optional part of the form on. */
-export function CheckboxField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+export function CheckboxField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <div className={nafSection}>
       <label className={nafCheckboxLabel}>
-        <input className={nafCheckboxInput} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+        <input
+          className={nafCheckboxInput}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
         {label}
       </label>
     </div>

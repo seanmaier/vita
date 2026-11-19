@@ -1,0 +1,19 @@
+# Generated, installed or personal files
+node_modules
+dist
+data
+coverage
+private
+package-lock.json
+workers/job-alerts/package-lock.json
+
+# Prose is wrapped by hand (docs, skills, README)
+*.md
+
+# Recorded mails and API answers the tests read byte for byte
+**/fixtures
+
+# Editor and tool settings
+.claude
+.idea
+.superpowers

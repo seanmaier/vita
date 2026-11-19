@@ -14,7 +14,10 @@ export function DemoBanner() {
   const t = DEMO_TEXTS[demoLocale];
 
   return (
-    <div data-tour="demo-bar" className="print:hidden bg-accent-bg border-b-2 border-accent font-mono text-[11.5px] text-ink-invert">
+    <div
+      data-tour="demo-bar"
+      className="print:hidden bg-accent-bg border-b-2 border-accent font-mono text-[11.5px] text-ink-invert"
+    >
       <div className="max-w-[1220px] mx-auto px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="m-0 flex items-baseline gap-2.5 min-w-0">
           <span className="shrink-0 bg-accent text-ink font-semibold uppercase tracking-[0.08em] text-[10px] rounded px-2 py-0.5">

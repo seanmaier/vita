@@ -18,7 +18,11 @@ describe('CriteriaBreakdown', () => {
       />,
     );
     const location = screen.getByRole('row', { name: /Location/ });
-    expect(within(location).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Location', '40', '25 %', '10']);
+    expect(
+      within(location)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Location', '40', '25 %', '10']);
   });
 
   it('names the exclusion criterion that applied', () => {

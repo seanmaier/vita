@@ -159,7 +159,10 @@ export async function fetchLeads(status?: JobLeadStatus): Promise<JobLead[]> {
   return res.json();
 }
 
-export async function updateLead(id: number, patch: Partial<Pick<JobLead, 'status' | 'applicationId'>>): Promise<JobLead> {
+export async function updateLead(
+  id: number,
+  patch: Partial<Pick<JobLead, 'status' | 'applicationId'>>,
+): Promise<JobLead> {
   const res = await client.api.v1['job-leads'][':id'].$patch({ param: { id: String(id) }, json: patch });
   if (!res.ok) throw await errorFrom(res, 'Updating the job lead failed');
   return res.json();

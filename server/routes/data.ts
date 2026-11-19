@@ -14,10 +14,14 @@ import { getJson, KEYS, parseJson } from '../store.ts';
 // Mounted at /api, so requireUser goes on each route: a wildcard middleware
 // here would also catch /api/login and /api/v1.
 
-const UPSERT = 'INSERT INTO kv (user_id, key, value) VALUES (?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value';
+const UPSERT =
+  'INSERT INTO kv (user_id, key, value) VALUES (?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value';
 
 function allValues(userId: number): Record<string, string> {
-  const rows = db.prepare('SELECT key, value FROM kv WHERE user_id = ?').all(userId) as { key: string; value: string }[];
+  const rows = db.prepare('SELECT key, value FROM kv WHERE user_id = ?').all(userId) as {
+    key: string;
+    value: string;
+  }[];
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
@@ -36,15 +40,25 @@ export const dataRoutes = new Hono<SessionEnv>()
     const rawRemove = body.remove ?? [];
     const rawMessages = body.messages ?? {};
     if (
-      !isStringRecord(rawSet) || !isStringRecord(rawMessages) ||
-      !Array.isArray(rawRemove) || !rawRemove.every((k) => typeof k === 'string')
+      !isStringRecord(rawSet) ||
+      !isStringRecord(rawMessages) ||
+      !Array.isArray(rawRemove) ||
+      !rawRemove.every((k) => typeof k === 'string')
     ) {
-      return c.json({ error: 'Expected { set: Record<string, string>, remove: string[], messages?: Record<string, string> }.' }, 400);
+      return c.json(
+        { error: 'Expected { set: Record<string, string>, remove: string[], messages?: Record<string, string> }.' },
+        400,
+      );
     }
 
     const refused = refusedStorageKeys(Object.keys(rawSet));
     if (refused.length) {
-      return c.json({ error: `The status can only change through /api/v1/applications/:id/transitions; refused: ${refused.join(', ')}.` }, 400);
+      return c.json(
+        {
+          error: `The status can only change through /api/v1/applications/:id/transitions; refused: ${refused.join(', ')}.`,
+        },
+        400,
+      );
     }
 
     const userId = c.get('user').id;
@@ -56,7 +70,10 @@ export const dataRoutes = new Hono<SessionEnv>()
     transaction(() => {
       const listBefore = getJson<ApplicationConfig[]>(userId, KEYS.localApps);
       const listAfter = KEYS.localApps in set ? parseJson<ApplicationConfig[]>(set[KEYS.localApps]) : null;
-      const appIds = affectedAppIds([...remove, ...Object.keys(set)], KEYS.localApps in set ? [listBefore, listAfter] : []);
+      const appIds = affectedAppIds(
+        [...remove, ...Object.keys(set)],
+        KEYS.localApps in set ? [listBefore, listAfter] : [],
+      );
       const before = snapshot(userId, appIds);
 
       for (const key of remove) del.run(userId, key);

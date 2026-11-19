@@ -25,9 +25,17 @@ function WordDiff({ before, after }: { before: string; after: string }) {
   return (
     <>
       {diffWords(before, after).map((part, i) =>
-        part.added ? <ins key={i} className={insClass}>{part.value}</ins>
-          : part.removed ? <del key={i} className={delClass}>{part.value}</del>
-            : <span key={i}>{part.value}</span>,
+        part.added ? (
+          <ins key={i} className={insClass}>
+            {part.value}
+          </ins>
+        ) : part.removed ? (
+          <del key={i} className={delClass}>
+            {part.value}
+          </del>
+        ) : (
+          <span key={i}>{part.value}</span>
+        ),
       )}
     </>
   );
@@ -56,13 +64,19 @@ function ChangeView({ change }: { change: FieldChange }) {
         <ul className="m-0 p-0 list-none flex flex-col gap-1">
           {change.items.map((item, i) => (
             <li key={i} className="flex gap-2 text-[12.5px] leading-[1.6] text-ink-invert">
-              <span className={`${mono} shrink-0 w-3 ${item.op === 'added' ? 'text-[#7ee787]' : item.op === 'removed' ? 'text-[#ffa198]' : 'text-status-sent'}`}>
+              <span
+                className={`${mono} shrink-0 w-3 ${item.op === 'added' ? 'text-[#7ee787]' : item.op === 'removed' ? 'text-[#ffa198]' : 'text-status-sent'}`}
+              >
                 {item.op === 'added' ? '+' : item.op === 'removed' ? '−' : '~'}
               </span>
               <span className="whitespace-pre-wrap break-words min-w-0">
-                {item.op === 'changed' ? <WordDiff before={item.before ?? ''} after={item.text} />
-                  : item.op === 'added' ? <ins className={insClass}>{item.text}</ins>
-                    : <del className={delClass}>{item.text}</del>}
+                {item.op === 'changed' ? (
+                  <WordDiff before={item.before ?? ''} after={item.text} />
+                ) : item.op === 'added' ? (
+                  <ins className={insClass}>{item.text}</ins>
+                ) : (
+                  <del className={delClass}>{item.text}</del>
+                )}
               </span>
             </li>
           ))}
@@ -123,23 +137,29 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
       <div
         className="bg-[#1a2236] rounded-lg w-full max-w-[1040px] h-[88dvh] flex flex-col outline-none shadow-[0_20px_60px_rgba(20,28,46,0.40)]"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
         tabIndex={-1}
         ref={dialogRef}
       >
         <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-white/8 shrink-0">
-          <div className={`${mono} text-[12px] font-semibold tracking-[0.04em] uppercase text-ink-invert min-w-0 truncate`}>
+          <div
+            className={`${mono} text-[12px] font-semibold tracking-[0.04em] uppercase text-ink-invert min-w-0 truncate`}
+          >
             History · <span className="text-accent normal-case">{company}</span>
           </div>
-          <button className={secondaryBtn} onClick={onClose}>Close</button>
+          <button className={secondaryBtn} onClick={onClose}>
+            Close
+          </button>
         </div>
 
         {error && <p className={`${mono} text-[11px] text-status-rejected px-5 py-2 m-0`}>{error}</p>}
         {!versions && !error && <VersionHistorySkeleton />}
         {versions && versions.length === 0 && (
           <p className="text-[13px] text-ink-2 px-5 py-4 m-0 leading-[1.55]">
-            No changes recorded yet. From now on, every change to this application, in the app or through the API,
-            is kept here.
+            No changes recorded yet. From now on, every change to this application, in the app or through the API, is
+            kept here.
           </p>
         )}
 
@@ -156,11 +176,16 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
                       onClick={() => setSelectedId(v.id)}
                     >
                       <span className="flex items-center gap-2">
-                        <span className={`${mono} text-[10px] border rounded px-1.5 py-px ${author.className}`}>{author.text}</span>
+                        <span className={`${mono} text-[10px] border rounded px-1.5 py-px ${author.className}`}>
+                          {author.text}
+                        </span>
                         <span className={`${mono} text-[10.5px] text-ink-3`}>{formatTime(v.createdAt)}</span>
                       </span>
-                      <span className={`text-[12.5px] leading-[1.45] ${v.message ? 'text-ink-invert' : 'text-ink-3 italic'}`}>
-                        {v.message ?? (v.author === 'baseline' ? 'State before the first recorded change' : 'No description')}
+                      <span
+                        className={`text-[12.5px] leading-[1.45] ${v.message ? 'text-ink-invert' : 'text-ink-3 italic'}`}
+                      >
+                        {v.message ??
+                          (v.author === 'baseline' ? 'State before the first recorded change' : 'No description')}
                       </span>
                     </button>
                   </li>
@@ -174,8 +199,12 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
                   <span className={`${mono} text-[11px] text-ink-2`}>
                     {previous ? `Changes compared to ${formatTime(previous.createdAt)}` : 'Oldest kept version'}
                   </span>
-                  <button className={restoreBtn} onClick={handleRestore} disabled={restoring || index === 0}
-                    title={index === 0 ? 'This is the current version' : undefined}>
+                  <button
+                    className={restoreBtn}
+                    onClick={handleRestore}
+                    disabled={restoring || index === 0}
+                    title={index === 0 ? 'This is the current version' : undefined}
+                  >
                     {index === 0 ? 'Current version' : restoring ? 'Restoring…' : 'Restore this version'}
                   </button>
                 </div>
@@ -188,7 +217,9 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
                   There's no older version to compare this one with.
                 </p>
               )}
-              {changes.map((change, i) => <ChangeView key={i} change={change} />)}
+              {changes.map((change, i) => (
+                <ChangeView key={i} change={change} />
+              ))}
             </div>
           </div>
         )}

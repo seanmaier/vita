@@ -97,13 +97,26 @@ function sequence(label: string, before: string[], after: string[]): ListChange[
 function skillGroups(before: SkillGroup[] | undefined, after: SkillGroup[] | undefined): FieldChange[] {
   if (!before && !after) return [];
   if (!before || !after) {
-    return text('Skills', before ? 'Custom skill groups' : 'From base profile', after ? 'Custom skill groups' : 'From base profile');
+    return text(
+      'Skills',
+      before ? 'Custom skill groups' : 'From base profile',
+      after ? 'Custom skill groups' : 'From base profile',
+    );
   }
-  const changes: FieldChange[] = membership('Skill groups', before.map((g) => g.label), after.map((g) => g.label));
+  const changes: FieldChange[] = membership(
+    'Skill groups',
+    before.map((g) => g.label),
+    after.map((g) => g.label),
+  );
   for (const group of after) {
     const old = before.find((g) => g.label === group.label);
     if (!old) {
-      if (group.skills.length) changes.push({ type: 'list', label: `Skills · ${group.label}`, items: group.skills.map((s) => ({ op: 'added', text: s })) });
+      if (group.skills.length)
+        changes.push({
+          type: 'list',
+          label: `Skills · ${group.label}`,
+          items: group.skills.map((s) => ({ op: 'added', text: s })),
+        });
       continue;
     }
     changes.push(...membership(`Skills · ${group.label}`, old.skills, group.skills));
@@ -116,7 +129,7 @@ function skillGroups(before: SkillGroup[] | undefined, after: SkillGroup[] | und
 
 /** Every field that differs between two versions, in the order the editor shows them. */
 export function diffVersions(before: VersionContent, after: VersionContent, names: DiffNames = {}): FieldChange[] {
-  const profileName = (id?: string) => (id ? names.baseProfile?.(id) ?? id : 'Language default');
+  const profileName = (id?: string) => (id ? (names.baseProfile?.(id) ?? id) : 'Language default');
   const projectName = (id: string) => names.project?.(id) ?? id;
   const a = before.coverLetter;
   const b = after.coverLetter;
@@ -151,8 +164,20 @@ export function diffVersions(before: VersionContent, after: VersionContent, name
 }
 
 const KNOWN_FIELDS = new Set([
-  'id', 'company', 'role', 'language', 'font', 'appliedDate', 'interviewDate', 'finalDecisionDate', 'url',
-  'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter',
+  'id',
+  'company',
+  'role',
+  'language',
+  'font',
+  'appliedDate',
+  'interviewDate',
+  'finalDecisionDate',
+  'url',
+  'baseProfileId',
+  'summaryOverride',
+  'featuredProjectIds',
+  'skillGroupsOverride',
+  'coverLetter',
 ]);
 
 // Fields added to ApplicationConfig later still show up, as raw JSON, until

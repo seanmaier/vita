@@ -28,7 +28,9 @@ export function buildNotification(
   clickUrl?: string,
 ): { url: string; init: RequestInit } {
   if (topic.length < MIN_TOPIC_LENGTH) {
-    throw new Error(`NTFY_TOPIC must be at least ${MIN_TOPIC_LENGTH} characters (use a random one, e.g. openssl rand -hex 16).`);
+    throw new Error(
+      `NTFY_TOPIC must be at least ${MIN_TOPIC_LENGTH} characters (use a random one, e.g. openssl rand -hex 16).`,
+    );
   }
   const headers: Record<string, string> = { Title: headerValue(title), Tags: 'briefcase' };
   if (clickUrl) headers.Click = clickUrl;

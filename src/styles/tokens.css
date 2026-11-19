@@ -1,151 +1,151 @@
 :root {
-  --ink:          #0D1117;
-  --ink-2:        #8B949E;
-  --ink-3:        #484F58;
-  --ink-invert:   #C9D1D9;
-  --accent:       #79C0FF;
-  --accent-bg:    #1C2128;
-  --bg:           #161B22;
-  --surface:      #21262D;
-  --rule:         #30363D;
-  --ph-bg:        #2D2D1A;
-  --ph-ink:       #E3B341;
-  --font-sans:    'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
-  --font-mono:    'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  --ink: #0d1117;
+  --ink-2: #8b949e;
+  --ink-3: #484f58;
+  --ink-invert: #c9d1d9;
+  --accent: #79c0ff;
+  --accent-bg: #1c2128;
+  --bg: #161b22;
+  --surface: #21262d;
+  --rule: #30363d;
+  --ph-bg: #2d2d1a;
+  --ph-ink: #e3b341;
+  --font-sans: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
 
   /* Status colours */
-  --status-drafting:   #484F58;
-  --status-ready:      #3FB950;
-  --status-sent:       #D29922;
-  --status-interview:  #BC8CFF;
-  --status-offer:      #3FB950;
-  --status-rejected:   #F85149;
-  --status-ghosted:    #F0883E;
-  --status-withdrawn:  #8B6F56;
-  --status-accepted:   #56D364;
-  --status-declined:   #6E7681;
-  --status-evaluated:  #58A6FF;
-  --status-skipped:    #484F58;
+  --status-drafting: #484f58;
+  --status-ready: #3fb950;
+  --status-sent: #d29922;
+  --status-interview: #bc8cff;
+  --status-offer: #3fb950;
+  --status-rejected: #f85149;
+  --status-ghosted: #f0883e;
+  --status-withdrawn: #8b6f56;
+  --status-accepted: #56d364;
+  --status-declined: #6e7681;
+  --status-evaluated: #58a6ff;
+  --status-skipped: #484f58;
 }
 
 /* Winter theme: same structure as the default palette above (dark surfaces,
    light ink-invert text), hues shifted to an icy blue instead of neutral grey. */
-:root[data-theme="winter"] {
-  --ink:          #050B14;
-  --ink-2:        #7D96B3;
-  --ink-3:        #3E5068;
-  --ink-invert:   #E6F1FA;
-  --accent:       #6FD3FF;
-  --accent-bg:    #142A3D;
-  --bg:           #0A1420;
-  --surface:      #15283A;
-  --rule:         #24415C;
-  --ph-bg:        #16332E;
-  --ph-ink:       #8FE6C2;
+:root[data-theme='winter'] {
+  --ink: #050b14;
+  --ink-2: #7d96b3;
+  --ink-3: #3e5068;
+  --ink-invert: #e6f1fa;
+  --accent: #6fd3ff;
+  --accent-bg: #142a3d;
+  --bg: #0a1420;
+  --surface: #15283a;
+  --rule: #24415c;
+  --ph-bg: #16332e;
+  --ph-ink: #8fe6c2;
 }
 
 /* Autumn theme: same structure again, hues shifted to warm amber/rust tones. */
-:root[data-theme="autumn"] {
-  --ink:          #140B05;
-  --ink-2:        #C2946B;
-  --ink-3:        #6B4A32;
-  --ink-invert:   #F6E8D8;
-  --accent:       #E8903C;
-  --accent-bg:    #2A1C10;
-  --bg:           #1A1008;
-  --surface:      #2A1C10;
-  --rule:         #4A3220;
-  --ph-bg:        #332113;
-  --ph-ink:       #F2B860;
+:root[data-theme='autumn'] {
+  --ink: #140b05;
+  --ink-2: #c2946b;
+  --ink-3: #6b4a32;
+  --ink-invert: #f6e8d8;
+  --accent: #e8903c;
+  --accent-bg: #2a1c10;
+  --bg: #1a1008;
+  --surface: #2a1c10;
+  --rule: #4a3220;
+  --ph-bg: #332113;
+  --ph-ink: #f2b860;
 }
 
 /* Spring theme: same structure again, hues shifted to fresh green with a blossom-pink accent. */
-:root[data-theme="spring"] {
-  --ink:          #0A1408;
-  --ink-2:        #8FB37A;
-  --ink-3:        #3F5C34;
-  --ink-invert:   #EAF6E3;
-  --accent:       #FF9FC2;
-  --accent-bg:    #1C3314;
-  --bg:           #0E1C0A;
-  --surface:      #182A10;
-  --rule:         #2E4A22;
-  --ph-bg:        #23331A;
-  --ph-ink:       #C3F17A;
+:root[data-theme='spring'] {
+  --ink: #0a1408;
+  --ink-2: #8fb37a;
+  --ink-3: #3f5c34;
+  --ink-invert: #eaf6e3;
+  --accent: #ff9fc2;
+  --accent-bg: #1c3314;
+  --bg: #0e1c0a;
+  --surface: #182a10;
+  --rule: #2e4a22;
+  --ph-bg: #23331a;
+  --ph-ink: #c3f17a;
 }
 
 /* Summer theme: same structure again, hues shifted to sun-warmed teal with a golden accent. */
-:root[data-theme="summer"] {
-  --ink:          #140F02;
-  --ink-2:        #D9B56A;
-  --ink-3:        #6B5428;
-  --ink-invert:   #FFF6DF;
-  --accent:       #FFD23F;
-  --accent-bg:    #1C3A3F;
-  --bg:           #10262B;
-  --surface:      #17343A;
-  --rule:         #2A4A50;
-  --ph-bg:        #3A2E12;
-  --ph-ink:       #FFEB85;
+:root[data-theme='summer'] {
+  --ink: #140f02;
+  --ink-2: #d9b56a;
+  --ink-3: #6b5428;
+  --ink-invert: #fff6df;
+  --accent: #ffd23f;
+  --accent-bg: #1c3a3f;
+  --bg: #10262b;
+  --surface: #17343a;
+  --rule: #2a4a50;
+  --ph-bg: #3a2e12;
+  --ph-ink: #ffeb85;
 }
 
 /* Winter theme: same structure as the default palette above (dark surfaces,
    light ink-invert text), hues shifted to an icy blue instead of neutral grey. */
-:root[data-theme="winter"] {
-  --ink:          #050B14;
-  --ink-2:        #7D96B3;
-  --ink-3:        #3E5068;
-  --ink-invert:   #E6F1FA;
-  --accent:       #6FD3FF;
-  --accent-bg:    #142A3D;
-  --bg:           #0A1420;
-  --surface:      #15283A;
-  --rule:         #24415C;
-  --ph-bg:        #16332E;
-  --ph-ink:       #8FE6C2;
+:root[data-theme='winter'] {
+  --ink: #050b14;
+  --ink-2: #7d96b3;
+  --ink-3: #3e5068;
+  --ink-invert: #e6f1fa;
+  --accent: #6fd3ff;
+  --accent-bg: #142a3d;
+  --bg: #0a1420;
+  --surface: #15283a;
+  --rule: #24415c;
+  --ph-bg: #16332e;
+  --ph-ink: #8fe6c2;
 }
 
 /* Autumn theme: same structure again, hues shifted to warm amber/rust tones. */
-:root[data-theme="autumn"] {
-  --ink:          #140B05;
-  --ink-2:        #C2946B;
-  --ink-3:        #6B4A32;
-  --ink-invert:   #F6E8D8;
-  --accent:       #E8903C;
-  --accent-bg:    #2A1C10;
-  --bg:           #1A1008;
-  --surface:      #2A1C10;
-  --rule:         #4A3220;
-  --ph-bg:        #332113;
-  --ph-ink:       #F2B860;
+:root[data-theme='autumn'] {
+  --ink: #140b05;
+  --ink-2: #c2946b;
+  --ink-3: #6b4a32;
+  --ink-invert: #f6e8d8;
+  --accent: #e8903c;
+  --accent-bg: #2a1c10;
+  --bg: #1a1008;
+  --surface: #2a1c10;
+  --rule: #4a3220;
+  --ph-bg: #332113;
+  --ph-ink: #f2b860;
 }
 
 /* Spring theme: same structure again, hues shifted to fresh green with a blossom-pink accent. */
-:root[data-theme="spring"] {
-  --ink:          #0A1408;
-  --ink-2:        #8FB37A;
-  --ink-3:        #3F5C34;
-  --ink-invert:   #EAF6E3;
-  --accent:       #FF9FC2;
-  --accent-bg:    #1C3314;
-  --bg:           #0E1C0A;
-  --surface:      #182A10;
-  --rule:         #2E4A22;
-  --ph-bg:        #23331A;
-  --ph-ink:       #C3F17A;
+:root[data-theme='spring'] {
+  --ink: #0a1408;
+  --ink-2: #8fb37a;
+  --ink-3: #3f5c34;
+  --ink-invert: #eaf6e3;
+  --accent: #ff9fc2;
+  --accent-bg: #1c3314;
+  --bg: #0e1c0a;
+  --surface: #182a10;
+  --rule: #2e4a22;
+  --ph-bg: #23331a;
+  --ph-ink: #c3f17a;
 }
 
 /* Summer theme: same structure again, hues shifted to sun-warmed teal with a golden accent. */
-:root[data-theme="summer"] {
-  --ink:          #140F02;
-  --ink-2:        #D9B56A;
-  --ink-3:        #6B5428;
-  --ink-invert:   #FFF6DF;
-  --accent:       #FFD23F;
-  --accent-bg:    #1C3A3F;
-  --bg:           #10262B;
-  --surface:      #17343A;
-  --rule:         #2A4A50;
-  --ph-bg:        #3A2E12;
-  --ph-ink:       #FFEB85;
+:root[data-theme='summer'] {
+  --ink: #140f02;
+  --ink-2: #d9b56a;
+  --ink-3: #6b5428;
+  --ink-invert: #fff6df;
+  --accent: #ffd23f;
+  --accent-bg: #1c3a3f;
+  --bg: #10262b;
+  --surface: #17343a;
+  --rule: #2a4a50;
+  --ph-bg: #3a2e12;
+  --ph-ink: #ffeb85;
 }

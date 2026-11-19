@@ -9,7 +9,9 @@ import { newAppBack, newAppHeader, newAppPage, newAppTitle } from '../../styles/
 export function NewApplicationHeader() {
   return (
     <div className={newAppHeader}>
-      <Link className={newAppBack} to="/">← Dashboard</Link>
+      <Link className={newAppBack} to="/">
+        ← Dashboard
+      </Link>
       <span className={newAppTitle}>New Application</span>
       <ImportJsonButton />
     </div>
@@ -35,7 +37,9 @@ function ImportJsonButton() {
 
 /** The first step: which base profile the new application uses, or which language's default. */
 export function ChooseBaseProfileScreen({
-  baseProfiles, onChoose, onSkip,
+  baseProfiles,
+  onChoose,
+  onSkip,
 }: {
   baseProfiles: BaseProfile[];
   onChoose: (bp: BaseProfile) => void;
@@ -48,9 +52,7 @@ export function ChooseBaseProfileScreen({
       <div className="flex-1 overflow-y-auto flex justify-center">
         <div className="w-full max-w-[560px] pt-14 px-6 flex flex-col gap-5">
           <div>
-            <h1 className="text-[15px] font-semibold text-ink-invert m-0 mb-1.5">
-              Choose a base profile
-            </h1>
+            <h1 className="text-[15px] font-semibold text-ink-invert m-0 mb-1.5">Choose a base profile</h1>
             <p className="font-mono text-[11.5px] text-ink-3 m-0">
               Applications resolve their CV content from a base profile. Pick which one this application should use.
             </p>
@@ -79,10 +81,7 @@ export function ChooseBaseProfileScreen({
                 Skip — {LANG_FLAGS[lang]} {LANGUAGE_LABELS[lang]} default
               </button>
             ))}
-            <Link
-              className="font-mono text-[11px] text-ink-3 no-underline hover:text-accent"
-              to="/profiles"
-            >
+            <Link className="font-mono text-[11px] text-ink-3 no-underline hover:text-accent" to="/profiles">
               Manage base profiles →
             </Link>
           </div>

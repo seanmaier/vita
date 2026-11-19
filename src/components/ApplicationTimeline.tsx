@@ -48,22 +48,29 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  * application, the day it went without a response for too long. The earliest
  * note is labelled as the initial one.
  */
-function buildTimeline(app: ApplicationConfig, history: StatusTransition[], status: ApplicationStatus, language: AppLanguage): TimelineEvent[] {
+function buildTimeline(
+  app: ApplicationConfig,
+  history: StatusTransition[],
+  status: ApplicationStatus,
+  language: AppLanguage,
+): TimelineEvent[] {
   // A step without a known date (from data before the history existed) sorts
   // with the step before it, so the steps keep their order.
   let previousKey = '';
-  const steps = history.map((step, index) => {
-    previousKey = step.date ?? previousKey;
-    return {
-      key: `step-${index}`,
-      sortKey: previousKey,
-      dateLabel: step.date ? formatDateNumeric(step.date, language) : 'date unknown',
-      label: capitalize(STATUS_LABELS[step.to]),
-      color: STATUS_COLORS[step.to],
-      stepIndex: index,
-      stepDate: step.date,
-    };
-  }).slice(1);
+  const steps = history
+    .map((step, index) => {
+      previousKey = step.date ?? previousKey;
+      return {
+        key: `step-${index}`,
+        sortKey: previousKey,
+        dateLabel: step.date ? formatDateNumeric(step.date, language) : 'date unknown',
+        label: capitalize(STATUS_LABELS[step.to]),
+        color: STATUS_COLORS[step.to],
+        stepIndex: index,
+        stepDate: step.date,
+      };
+    })
+    .slice(1);
 
   const events: TimelineEvent[] = [
     ...steps,
@@ -116,7 +123,12 @@ function StepDate({ event, onChange }: { event: TimelineEvent; onChange: (date: 
     );
   }
   return (
-    <button type="button" className={actionClass} onClick={() => setEditing(true)} aria-label={`Change the date of ${event.label}`}>
+    <button
+      type="button"
+      className={actionClass}
+      onClick={() => setEditing(true)}
+      aria-label={`Change the date of ${event.label}`}
+    >
       ✎ date
     </button>
   );
@@ -138,7 +150,11 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
           {i < events.length - 1 && (
             <span aria-hidden className="absolute left-[4px] top-[12px] bottom-[-2px] w-px bg-rule" />
           )}
-          <span aria-hidden className="absolute left-0 top-[4px] w-[9px] h-[9px] rounded-full" style={{ background: event.color }} />
+          <span
+            aria-hidden
+            className="absolute left-0 top-[4px] w-[9px] h-[9px] rounded-full"
+            style={{ background: event.color }}
+          />
           <div className="flex items-baseline justify-between gap-2">
             <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
               <span className="font-mono text-[11px] font-semibold" style={{ color: event.color }}>

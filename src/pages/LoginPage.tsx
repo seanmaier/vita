@@ -25,10 +25,7 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-      <form
-        className="w-full max-w-[340px] flex flex-col gap-5 bg-ink p-7 rounded-md"
-        onSubmit={submit}
-      >
+      <form className="w-full max-w-[340px] flex flex-col gap-5 bg-ink p-7 rounded-md" onSubmit={submit}>
         <div className="flex items-center gap-2.5 font-mono text-[15px]">
           <AppLogo />
           <span>

@@ -1,18 +1,42 @@
 import { z } from 'zod';
-import type { ApplicationConfig, ApplicationStatus, AppFont, AppLanguage, CoverLetter, FitRecommendation, JobFit } from '#shared/types.ts';
+import type {
+  ApplicationConfig,
+  ApplicationStatus,
+  AppFont,
+  AppLanguage,
+  CoverLetter,
+  FitRecommendation,
+  JobFit,
+} from '#shared/types.ts';
 import { slugify } from '#shared/utils/slug.ts';
 import { LANGUAGE_MESSAGE, LANGUAGES } from '#shared/utils/language.ts';
 import { normalizeNotes } from '#shared/utils/notes.ts';
 import { criteriaSchema, criteriaScore, exclusionSchema } from '#shared/utils/fitCriteria.ts';
 import { check, nonBlank, parseJsonText, percent, stringArray } from './issues.ts';
 
-const STATUSES = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'] as const satisfies readonly ApplicationStatus[];
+const STATUSES = [
+  'drafting',
+  'ready',
+  'sent',
+  'interview',
+  'offer',
+  'rejected',
+  'ghosted',
+  'withdrawn',
+  'accepted',
+  'declined',
+  'evaluated',
+  'skipped',
+] as const satisfies readonly ApplicationStatus[];
 const FONTS = ['sans', 'serif', 'mono'] as const satisfies readonly AppFont[];
-export const FIT_RECOMMENDATIONS = ['apply', 'apply-if', 'unlikely', 'exclude'] as const satisfies readonly FitRecommendation[];
+export const FIT_RECOMMENDATIONS = [
+  'apply',
+  'apply-if',
+  'unlikely',
+  'exclude',
+] as const satisfies readonly FitRecommendation[];
 
-export type ParseResult =
-  | { ok: true; config: ApplicationConfig }
-  | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; config: ApplicationConfig } | { ok: false; errors: string[] };
 
 const optionalString = z.string({ error: 'must be a string.' }).optional();
 
@@ -57,7 +81,11 @@ const fitSchema: z.ZodType<JobFit> = z
       if (typeof fit !== 'object' || fit === null) return;
       const criteria = criteriaSchema.safeParse(fit.criteria);
       if (criteria.success && typeof fit.score === 'number' && Math.abs(fit.score - criteriaScore(criteria.data)) > 1) {
-        ctx.addIssue({ code: 'custom', path: ['score'], message: `must match the criteria breakdown (${criteriaScore(criteria.data)}).` });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['score'],
+          message: `must match the criteria breakdown (${criteriaScore(criteria.data)}).`,
+        });
       }
       if (fit.exclusion === undefined) return;
       if (fit.criteria === undefined) {
@@ -99,7 +127,9 @@ const applicationSchema: z.ZodType<ApplicationConfig> = z
       summaryOverride: optionalString,
       // The current array of notes, or the legacy single free-text string,
       // migrated on the fly.
-      notes: z.union([z.string(), z.array(z.unknown())], { error: 'must be a string or an array of notes.' }).optional(),
+      notes: z
+        .union([z.string(), z.array(z.unknown())], { error: 'must be a string or an array of notes.' })
+        .optional(),
       featuredProjectIds: stringArray('must be an array of strings.').optional(),
       coverLetter: coverLetterSchema.optional(),
       fit: fitSchema.optional(),

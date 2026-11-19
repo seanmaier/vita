@@ -39,19 +39,21 @@ export function ChangeBar({ appId, message, onMessageChange, onSave, onOpenHisto
           <span className={`${mono} text-[9.5px] tracking-[0.14em] uppercase text-accent`}>Last change</span>
           {latest && author && (
             <>
-              <span className={`${mono} text-[10px] border rounded px-1.5 py-px ${author.className}`}>{author.text}</span>
+              <span className={`${mono} text-[10px] border rounded px-1.5 py-px ${author.className}`}>
+                {author.text}
+              </span>
               <span className={`${mono} text-[10.5px] text-ink-3`}>{formatRelative(latest.createdAt)}</span>
             </>
           )}
-          <span className={`${mono} text-[10.5px] text-ink-2 group-hover:text-accent ml-auto`}>
-            history →
-          </span>
+          <span className={`${mono} text-[10.5px] text-ink-2 group-hover:text-accent ml-auto`}>history →</span>
         </span>
         {latest === undefined ? (
           <LatestChangeSkeleton />
         ) : (
-          <span className={`text-[12px] leading-[1.45] line-clamp-2 ${latest?.message ? 'text-ink-invert' : 'text-ink-3 italic'}`}>
-            {latest === null ? 'No changes recorded yet' : latest.message ?? 'No description'}
+          <span
+            className={`text-[12px] leading-[1.45] line-clamp-2 ${latest?.message ? 'text-ink-invert' : 'text-ink-3 italic'}`}
+          >
+            {latest === null ? 'No changes recorded yet' : (latest.message ?? 'No description')}
           </span>
         )}
       </button>
@@ -63,7 +65,9 @@ export function ChangeBar({ appId, message, onMessageChange, onSave, onOpenHisto
           maxLength={500}
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') onSave(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onSave();
+          }}
         />
         <button
           className={`${mono} text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 cursor-pointer hover:brightness-110 shrink-0`}

@@ -37,7 +37,9 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   // log by status; on the API they come as JSON like every other error.
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.req.path.startsWith('/api/') ? c.json({ error: err.message || 'Request refused.' }, err.status) : err.getResponse();
+      return c.req.path.startsWith('/api/')
+        ? c.json({ error: err.message || 'Request refused.' }, err.status)
+        : err.getResponse();
     }
     log.error('Unhandled error', requestFields(c), err);
     const requestId = c.get('requestId');

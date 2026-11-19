@@ -3,7 +3,13 @@ import type { ApplicationConfig, Profile } from '#shared/types.ts';
 import { editFormToConfig, initialEditForm } from './editForm.ts';
 
 const profile: Profile = {
-  name: 'Sam', role: 'Developer', email: '', website: '', github: '', linkedin: '', city: '',
+  name: 'Sam',
+  role: 'Developer',
+  email: '',
+  website: '',
+  github: '',
+  linkedin: '',
+  city: '',
   summary: 'Profile summary',
   experience: [],
   projects: [
@@ -86,6 +92,9 @@ describe('editFormToConfig', () => {
       coverLetter: { recipientOrg: 'Acme', date: '3. November 2026', subjectRole: 'Developer', paragraphs: ['Hi'] },
     };
     const { status: _status, ...stored } = withLetter;
-    expect(editFormToConfig(initialEditForm(withLetter, profile), withLetter, 'acme')).toEqual({ ...stored, font: 'sans' });
+    expect(editFormToConfig(initialEditForm(withLetter, profile), withLetter, 'acme')).toEqual({
+      ...stored,
+      font: 'sans',
+    });
   });
 });

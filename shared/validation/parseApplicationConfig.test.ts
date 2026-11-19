@@ -2,7 +2,12 @@ import { assert, expect, test } from 'vitest';
 import { validateApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
 
 const base = { company: 'Acme', role: 'Dev' };
-const fit = { score: 72, recommendation: 'apply-if', reason: 'Fits if hybrid in Hamburg.', evaluatedAt: '2026-11-16T10:00:00.000Z' };
+const fit = {
+  score: 72,
+  recommendation: 'apply-if',
+  reason: 'Fits if hybrid in Hamburg.',
+  evaluatedAt: '2026-11-16T10:00:00.000Z',
+};
 
 test('a fit is kept as given', () => {
   const result = validateApplicationConfig({ ...base, fit: { ...fit, cappedScore: 40 } });
@@ -22,7 +27,11 @@ test('a fit needs a score from 0 to 100, a known recommendation, a reason and a 
   ]) {
     const result = validateApplicationConfig({ ...base, fit: bad });
     expect(result.ok, JSON.stringify(bad)).toBe(false);
-    if (!result.ok) expect(result.errors.some((e) => e.startsWith('"fit')), JSON.stringify(result.errors)).toBeTruthy();
+    if (!result.ok)
+      expect(
+        result.errors.some((e) => e.startsWith('"fit')),
+        JSON.stringify(result.errors),
+      ).toBeTruthy();
   }
 });
 
@@ -52,7 +61,10 @@ test('a fit score must match its breakdown within one point', () => {
 });
 
 test('a fit with a broken breakdown or an exclusion without one is rejected', () => {
-  const broken = validateApplicationConfig({ ...base, fit: { ...fit, score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] } });
+  const broken = validateApplicationConfig({
+    ...base,
+    fit: { ...fit, score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] },
+  });
   assert(!broken.ok);
   expect(broken.errors).toContainEqual(expect.stringContaining('"fit.criteria"'));
   const lonely = validateApplicationConfig({ ...base, fit: { ...fit, exclusion: 'Freelance' } });

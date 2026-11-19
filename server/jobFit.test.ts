@@ -4,14 +4,29 @@ import { createTestUser, testApp } from './test/testApp.ts';
 type App = ReturnType<typeof testApp>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test responses are checked by assertions
 type Json = Record<string, any>;
-const json = (method: string, body: unknown) => ({ method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const fit = { score: 80, recommendation: 'apply', reason: 'Backend, C#, hybrid in Hamburg.', evaluatedAt: '2026-11-16T10:00:00.000Z' };
+const json = (method: string, body: unknown) => ({
+  method,
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+});
+const fit = {
+  score: 80,
+  recommendation: 'apply',
+  reason: 'Backend, C#, hybrid in Hamburg.',
+  evaluatedAt: '2026-11-16T10:00:00.000Z',
+};
 
 const create = (app: App, body: unknown) => app.request('/api/v1/applications', json('POST', body));
 
 test('a checked job is created as evaluated with its fit', async () => {
   const app = testApp(createTestUser());
-  const res = await create(app, { company: 'Acme', role: 'Dev', status: 'evaluated', fit, url: 'https://example.org/job/1' });
+  const res = await create(app, {
+    company: 'Acme',
+    role: 'Dev',
+    status: 'evaluated',
+    fit,
+    url: 'https://example.org/job/1',
+  });
   expect(res.status).toBe(201);
   const body = (await res.json()) as Json;
   expect(body.status).toBe('evaluated');

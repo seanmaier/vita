@@ -51,9 +51,7 @@ export function EditPreviewPanel({ application, profile, onApplyJson, className 
               role="tab"
               aria-selected={view === option}
               className={`font-mono text-[10.5px] tracking-[0.06em] rounded px-3 py-1 border-none cursor-pointer transition-colors ${
-                view === option
-                  ? 'bg-accent text-ink'
-                  : 'bg-transparent text-[#8896AB] hover:text-ink-invert'
+                view === option ? 'bg-accent text-ink' : 'bg-transparent text-[#8896AB] hover:text-ink-invert'
               }`}
               onClick={() => switchView(option)}
             >
@@ -81,9 +79,16 @@ export function EditPreviewPanel({ application, profile, onApplyJson, className 
         </div>
       )}
       <p className={napHint}>
-        {view === 'json'
-          ? <>Starts from the form, unsaved edits included. <code>Apply JSON</code> saves it and reloads the form.</>
-          : <>Changes are saved to your account as you edit. Switch to <code>JSON</code> to edit or copy the config for <code>private/applications/{fileName}</code>.</>}
+        {view === 'json' ? (
+          <>
+            Starts from the form, unsaved edits included. <code>Apply JSON</code> saves it and reloads the form.
+          </>
+        ) : (
+          <>
+            Changes are saved to your account as you edit. Switch to <code>JSON</code> to edit or copy the config for{' '}
+            <code>private/applications/{fileName}</code>.
+          </>
+        )}
       </p>
     </div>
   );

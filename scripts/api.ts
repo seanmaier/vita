@@ -20,7 +20,9 @@ function fail(message: string): never {
 
 const [method = '', rawPath = '', bodyFile] = process.argv.slice(2);
 if (!METHODS.includes(method.toUpperCase()) || !rawPath || /^[a-z]:/i.test(rawPath)) {
-  fail('Usage: node scripts/api.ts <GET|POST|PUT|PATCH|DELETE> <path under /api/v1, e.g. applications/acme> [body.json]');
+  fail(
+    'Usage: node scripts/api.ts <GET|POST|PUT|PATCH|DELETE> <path under /api/v1, e.g. applications/acme> [body.json]',
+  );
 }
 const path = rawPath.replace(/^\/*/, '/');
 

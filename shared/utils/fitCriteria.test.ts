@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest';
-import { breakdownText, criteriaScore, criterionPoints, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
+import {
+  breakdownText,
+  criteriaScore,
+  criterionPoints,
+  validateCriteria,
+  validateExclusion,
+} from '#shared/utils/fitCriteria.ts';
 
 const criteria = [
   { name: 'A', weight: 60, fulfilled: 50 },
@@ -14,7 +20,12 @@ function check(value: unknown) {
 
 test('the score of a breakdown is the rounded weighted sum', () => {
   expect(criteriaScore(criteria)).toBe(60);
-  expect(criteriaScore([{ name: 'A', weight: 15, fulfilled: 50 }, { name: 'B', weight: 85, fulfilled: 0 }])).toBe(8);
+  expect(
+    criteriaScore([
+      { name: 'A', weight: 15, fulfilled: 50 },
+      { name: 'B', weight: 85, fulfilled: 0 },
+    ]),
+  ).toBe(8);
 });
 
 test('a valid breakdown is returned with trimmed names', () => {
@@ -28,7 +39,10 @@ test('a breakdown is rejected unless it is a list of 1 to 20 criteria', () => {
   for (const value of [[], many, 'A', null]) {
     const { result, errors } = check(value);
     expect(result).toBe(undefined);
-    expect(errors.some((e) => e.startsWith('"fit.criteria"')), String(value)).toBeTruthy();
+    expect(
+      errors.some((e) => e.startsWith('"fit.criteria"')),
+      String(value),
+    ).toBeTruthy();
   }
 });
 

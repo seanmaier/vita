@@ -13,13 +13,15 @@ test('extractAnchors decodes entities, strips tags and collapses whitespace', ()
     `<a class="x" href="https://e.com/?a=1&amp;b=2">  Foo &amp;\n <b>Bar</b> </a><a href='https://e.com/img'><img src="x"></a>`,
   );
   expect(anchors.map(({ href, text }) => ({ href, text }))).toEqual([
-      { href: 'https://e.com/?a=1&b=2', text: 'Foo & Bar' },
-      { href: 'https://e.com/img', text: '' },
-    ]);
+    { href: 'https://e.com/?a=1&b=2', text: 'Foo & Bar' },
+    { href: 'https://e.com/img', text: '' },
+  ]);
 });
 
 test('extractAnchors keeps the link markup and the markup up to the next link', () => {
-  const [first, second] = extractAnchors('<a href="https://e.com/1"><b>T</b></a><p>Firma</p><p>Ort</p><a href="https://e.com/2">x</a>tail');
+  const [first, second] = extractAnchors(
+    '<a href="https://e.com/1"><b>T</b></a><p>Firma</p><p>Ort</p><a href="https://e.com/2">x</a>tail',
+  );
   expect(first.inner).toBe('<b>T</b>');
   expect(first.after).toBe('<p>Firma</p><p>Ort</p>');
   expect(second.after).toBe('tail');
@@ -120,7 +122,12 @@ test('glassdoor: a card that is one big link yields the bold title plus company 
 test('glassdoor: a plain title link without a card keeps its link text', async () => {
   const html = '<a href="https://www.glassdoor.de/partner/jobListing.htm?jobListingId=77">Dev (m/w/d)</a>';
   expect(await parseAlert('glassdoor', html)).toEqual([
-    { source: 'glassdoor', externalId: '77', title: 'Dev (m/w/d)', url: 'https://www.glassdoor.de/job-listing/index.htm?jl=77' },
+    {
+      source: 'glassdoor',
+      externalId: '77',
+      title: 'Dev (m/w/d)',
+      url: 'https://www.glassdoor.de/job-listing/index.htm?jl=77',
+    },
   ]);
 });
 
@@ -161,7 +168,10 @@ test('instaffo: a single top-match mail', async () => {
 
 test('instaffo: without a text part, or with job links on foreign hosts, there are no leads', async () => {
   expect(await parseAlert('instaffo', fixture('instaffo-top-match'))).toEqual([]);
-  const forged = fixture('instaffo-top-match', 'txt').replaceAll('https://app.instaffo.com/', 'https://app.instaffo.com.evil.example/');
+  const forged = fixture('instaffo-top-match', 'txt').replaceAll(
+    'https://app.instaffo.com/',
+    'https://app.instaffo.com.evil.example/',
+  );
   expect(await parseAlert('instaffo', fixture('instaffo-top-match'), forged)).toEqual([]);
 });
 
@@ -233,10 +243,16 @@ test('forwardedSource finds the platform in a hand-forwarded header block', () =
       '<blockquote><div><b>From:</b> Indeed &lt;donotreply@match.indeed.com&gt;<br><b>Subject:</b> Job</div></blockquote>',
   );
   expect(forwardedSource(iphone)).toBe('indeed');
-  expect(forwardedSource('---------- Forwarded message ---------\nVon: LinkedIn <jobs-noreply@linkedin.com>')).toBe('linkedin');
+  expect(forwardedSource('---------- Forwarded message ---------\nVon: LinkedIn <jobs-noreply@linkedin.com>')).toBe(
+    'linkedin',
+  );
   expect(forwardedSource('From: Friend <a@example.org>\nI like linkedin.com')).toBe(null);
   expect(forwardedSource('From: x@evil-linkedin.com')).toBe(null);
   // Everything on one line: each label counts with the address right after it.
-  expect(forwardedSource('Begin forwarded message: From: Me <me@icloud.com> Subject: WG: Job Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Di')).toBe('indeed');
+  expect(
+    forwardedSource(
+      'Begin forwarded message: From: Me <me@icloud.com> Subject: WG: Job Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Di',
+    ),
+  ).toBe('indeed');
   expect(forwardedSource('From: Me <me@icloud.com> I like linkedin.com and x@evil.example')).toBe(null);
 });

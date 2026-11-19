@@ -30,6 +30,9 @@ describe('check', () => {
   });
 
   it('leaves a message without a path as it is', () => {
-    expect(check(z.string({ error: 'Expected text.' }), 5, 'quoted')).toEqual({ ok: false, errors: ['Expected text.'] });
+    expect(check(z.string({ error: 'Expected text.' }), 5, 'quoted')).toEqual({
+      ok: false,
+      errors: ['Expected text.'],
+    });
   });
 });

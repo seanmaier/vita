@@ -38,8 +38,12 @@ const primaryButton =
 
 function sameBox(a: Box | null, b: Box | null): boolean {
   if (!a || !b) return a === b;
-  return Math.abs(a.top - b.top) < 0.5 && Math.abs(a.left - b.left) < 0.5 &&
-    Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5;
+  return (
+    Math.abs(a.top - b.top) < 0.5 &&
+    Math.abs(a.left - b.left) < 0.5 &&
+    Math.abs(a.width - b.width) < 0.5 &&
+    Math.abs(a.height - b.height) < 0.5
+  );
 }
 
 // A classic product tour: each step dims the page, cuts a spotlight around
@@ -86,7 +90,9 @@ export function Tour({ steps, onClose, navigate }: Props) {
       const timedOut = !measured && performance.now() - started > TARGET_TIMEOUT_MS;
       setBox((prev) => (measured ? (sameBox(prev, measured) ? prev : measured) : timedOut ? null : prev));
       setViewport((prev) =>
-        prev.vw === window.innerWidth && prev.vh === window.innerHeight ? prev : { vw: window.innerWidth, vh: window.innerHeight },
+        prev.vw === window.innerWidth && prev.vh === window.innerHeight
+          ? prev
+          : { vw: window.innerWidth, vh: window.innerHeight },
       );
       frame = requestAnimationFrame(tick);
     };
@@ -140,7 +146,9 @@ export function Tour({ steps, onClose, navigate }: Props) {
         />
       )}
       {/* The spotlit element stays visible but not clickable during the tour. */}
-      {spot && <div className="absolute" style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }} />}
+      {spot && (
+        <div className="absolute" style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }} />
+      )}
 
       <div
         ref={popoverRef}
@@ -154,7 +162,11 @@ export function Tour({ steps, onClose, navigate }: Props) {
           <span
             aria-hidden="true"
             className={`absolute w-3.5 h-3.5 rotate-45 bg-[#1a2236] border-rule ${ARROW_EDGE[layout.arrow.side]}`}
-            style={layout.arrow.side === 'top' || layout.arrow.side === 'bottom' ? { left: layout.arrow.offset } : { top: layout.arrow.offset }}
+            style={
+              layout.arrow.side === 'top' || layout.arrow.side === 'bottom'
+                ? { left: layout.arrow.offset }
+                : { top: layout.arrow.offset }
+            }
           />
         )}
 
@@ -167,7 +179,9 @@ export function Tour({ steps, onClose, navigate }: Props) {
         </button>
 
         <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.08em]">
-          <span className="bg-accent text-ink font-semibold rounded px-2 py-0.5">{isDemo ? t.badge.demo : t.badge.app}</span>
+          <span className="bg-accent text-ink font-semibold rounded px-2 py-0.5">
+            {isDemo ? t.badge.demo : t.badge.app}
+          </span>
           <span className="text-ink-2">{t.stepOf(index + 1, steps.length)}</span>
         </div>
 

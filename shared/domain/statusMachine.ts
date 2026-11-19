@@ -4,7 +4,13 @@
 // with "drafting" (or "evaluated" for a checked job). The current status is the last step, except that a "sent"
 // application without an answer for GHOSTED_AFTER_DAYS shows as "ghosted";
 // that is derived, never stored, so a late answer is an ordinary next step.
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, StatusTransition, StoredStatus } from '#shared/types.ts';
+import type {
+  AppLanguage,
+  ApplicationConfig,
+  ApplicationStatus,
+  StatusTransition,
+  StoredStatus,
+} from '#shared/types.ts';
 import { formatDateNumeric, numericDateToIso, toIsoDate } from '#shared/utils/date.ts';
 
 /** A sent application without any response for this many days counts as ghosted. */
@@ -81,7 +87,12 @@ function disallowed(from: ApplicationStatus, to: StoredStatus): string {
   return `Can't go from "${from}" to "${to}". From "${from}" it can go to ${options}.`;
 }
 
-export function appendTransition(history: StatusTransition[], to: StoredStatus, date: string, now: string): HistoryResult {
+export function appendTransition(
+  history: StatusTransition[],
+  to: StoredStatus,
+  date: string,
+  now: string,
+): HistoryResult {
   if (!isIsoDate(date)) return fail(`"date" must be a date like "2026-11-16".`);
   const from = history.at(-1)?.to ?? 'drafting';
   if (!canTransition(from, to)) return fail(disallowed(from, to));
@@ -143,11 +154,15 @@ export function validateHistory(value: unknown): HistoryResult {
   const history: StatusTransition[] = [];
   for (const [i, raw] of value.entries()) {
     const t = raw as Partial<StatusTransition> | null;
-    if (typeof t !== 'object' || t === null || !isStoredStatus(t.to)) return fail(`Step ${i} has no valid "to" status.`);
+    if (typeof t !== 'object' || t === null || !isStoredStatus(t.to))
+      return fail(`Step ${i} has no valid "to" status.`);
     if (t.date !== null && !isIsoDate(t.date)) return fail(`Step ${i} has an invalid "date".`);
-    if (t.recordedAt !== null && typeof t.recordedAt !== 'string') return fail(`Step ${i} has an invalid "recordedAt".`);
-    if (i === 0 && !INITIAL_STATUSES.includes(t.to)) return fail('A status history must start with "drafting" or "evaluated".');
-    if (i > 0 && !canTransition(history[i - 1].to, t.to)) return fail(`Step ${i}: ${disallowed(history[i - 1].to, t.to)}`);
+    if (t.recordedAt !== null && typeof t.recordedAt !== 'string')
+      return fail(`Step ${i} has an invalid "recordedAt".`);
+    if (i === 0 && !INITIAL_STATUSES.includes(t.to))
+      return fail('A status history must start with "drafting" or "evaluated".');
+    if (i > 0 && !canTransition(history[i - 1].to, t.to))
+      return fail(`Step ${i}: ${disallowed(history[i - 1].to, t.to)}`);
     history.push({ to: t.to, date: t.date ?? null, recordedAt: t.recordedAt ?? null });
   }
   return { ok: true, history };

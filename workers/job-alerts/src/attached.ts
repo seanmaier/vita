@@ -18,9 +18,7 @@ const isMail = (a: ParsedMail['attachments'][number]) =>
  * untouched. Only the outer mail is verified by SPF, so like a hand-forwarded quote, the
  * attachment only picks the parser and its content; the app's sender check still applies.
  */
-export async function attachedAlert(
-  parsed: ParsedMail,
-): Promise<{ mail: ParsedMail; source: JobLeadSource } | null> {
+export async function attachedAlert(parsed: ParsedMail): Promise<{ mail: ParsedMail; source: JobLeadSource } | null> {
   for (const attachment of parsed.attachments.filter(isMail).slice(0, MAX_ATTACHED_MAILS)) {
     try {
       const mail = await PostalMime.parse(attachment.content, PARSE_OPTIONS);

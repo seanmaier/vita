@@ -49,7 +49,11 @@ export function setStorageBackend(backend: Backend): void {
   send = backend;
 }
 
-async function sendToServer(set: Record<string, string>, remove: string[], messages: Record<string, string>): Promise<void> {
+async function sendToServer(
+  set: Record<string, string>,
+  remove: string[],
+  messages: Record<string, string>,
+): Promise<void> {
   const res = await client.api.data.$put({ json: { set, remove, ...(Object.keys(messages).length && { messages }) } });
   // The route's type doesn't list the 401: it comes from the requireUser
   // middleware, whose answers Hono's RPC types leave out.

@@ -11,8 +11,10 @@ interface Props {
   onClose: () => void;
 }
 
-const secondaryBtn = 'font-mono text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert';
-const primaryBtn = 'font-mono text-[11px] bg-accent text-ink border-none rounded px-4 py-[6px] cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40';
+const secondaryBtn =
+  'font-mono text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert';
+const primaryBtn =
+  'font-mono text-[11px] bg-accent text-ink border-none rounded px-4 py-[6px] cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40';
 
 // An application's notes: a composer for adding a new, separately timestamped
 // entry, and the growing list of everything added so far below it. Ctrl/Cmd+Enter
@@ -35,12 +37,17 @@ export function NotesDialog({ company, notes, language, onAdd, onDelete, onClose
     // bubbling up to it and navigating to the application.
     <div
       className="fixed inset-0 bg-[rgba(20,28,46,0.65)] flex items-center justify-center z-[100] p-3 sm:p-6 cursor-default"
-      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
     >
       <div
         className="bg-[#1a2236] rounded-lg w-full max-w-[640px] p-6 flex flex-col gap-4 outline-none shadow-[0_20px_60px_rgba(20,28,46,0.40)]"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
         tabIndex={-1}
         ref={dialogRef}
       >
@@ -56,11 +63,16 @@ export function NotesDialog({ company, notes, language, onAdd, onDelete, onClose
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(); }
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              addNote();
+            }
           }}
         />
         <div className="flex justify-end -mt-2">
-          <button className={primaryBtn} onClick={addNote} disabled={!draft.trim()}>+ Add note</button>
+          <button className={primaryBtn} onClick={addNote} disabled={!draft.trim()}>
+            + Add note
+          </button>
         </div>
 
         <div className="border-t border-rule pt-3 max-h-[40vh] overflow-y-auto">
@@ -68,10 +80,10 @@ export function NotesDialog({ company, notes, language, onAdd, onDelete, onClose
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[10.5px] text-ink-2">
-            Ctrl+Enter to add · Esc to close
-          </span>
-          <button className={secondaryBtn} onClick={onClose}>Close</button>
+          <span className="font-mono text-[10.5px] text-ink-2">Ctrl+Enter to add · Esc to close</span>
+          <button className={secondaryBtn} onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>

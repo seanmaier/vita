@@ -11,9 +11,10 @@ export interface Block {
 const PAGE_CONTENT_HEIGHT_PX = 1040;
 
 function samePages(a: string[][], b: string[][]): boolean {
-  return a.length === b.length && a.every((page, i) => (
-    page.length === b[i].length && page.every((key, j) => key === b[i][j])
-  ));
+  return (
+    a.length === b.length &&
+    a.every((page, i) => page.length === b[i].length && page.every((key, j) => key === b[i][j]))
+  );
 }
 
 /**

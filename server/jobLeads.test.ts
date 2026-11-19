@@ -32,7 +32,10 @@ test('a known lead takes the new title, url, company and location', async () => 
   const app = testApp(createTestUser());
   await post(app, { leads: [lead(1, { title: 'HanseCom 2.6 ★ Dev Hamburg 11T' }), lead(2)] });
   const res = await post(app, {
-    leads: [lead(1, { title: 'Dev', company: 'HanseCom', location: 'Hamburg', url: 'https://example.com/other' }), lead(2)],
+    leads: [
+      lead(1, { title: 'Dev', company: 'HanseCom', location: 'Hamburg', url: 'https://example.com/other' }),
+      lead(2),
+    ],
   });
   expect(await res.json()).toEqual({ created: 0, duplicates: 2, updated: 1 });
   const [, first] = await listLeads(app);
@@ -140,7 +143,10 @@ test('PATCH rates a lead and stamps ratedAt', async () => {
   expect(updated.verdict).toBe('Passt');
   expect(updated.status).toBe('rated');
   expect(typeof updated.ratedAt).toBe('string');
-  const cleared = (await (await patch(app, id, { score: null, applicationId: 'abc' })).json()) as Record<string, unknown>;
+  const cleared = (await (await patch(app, id, { score: null, applicationId: 'abc' })).json()) as Record<
+    string,
+    unknown
+  >;
   expect(cleared.score).toBe(null);
   expect(cleared.ratedAt).toBe(null);
   expect(cleared.applicationId).toBe('abc');
@@ -197,7 +203,9 @@ test('PATCH rejects a breakdown without a score, a broken breakdown, or an exclu
   const app = testApp(createTestUser());
   const id = await firstLeadId(app);
   expect((await patch(app, id, { criteria })).status).toBe(400);
-  expect((await patch(app, id, { score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] })).status).toBe(400);
+  expect((await patch(app, id, { score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] })).status).toBe(
+    400,
+  );
   expect((await patch(app, id, { score: 60, exclusion: 'Freelance' })).status).toBe(400);
   expect((await patch(app, id, { score: 60, criteria, exclusion: '' })).status).toBe(400);
 });

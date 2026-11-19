@@ -11,11 +11,19 @@ const optionClass = 'text-ink-invert bg-surface';
 export function StatusOptions({ status, canUndo }: { status: ApplicationStatus; canUndo: boolean }) {
   return (
     <>
-      <option value={status} className={optionClass}>{STATUS_LABELS[status]}</option>
+      <option value={status} className={optionClass}>
+        {STATUS_LABELS[status]}
+      </option>
       {allowedNext(status).map((next) => (
-        <option key={next} value={next} className={optionClass}>→ {STATUS_LABELS[next]}</option>
+        <option key={next} value={next} className={optionClass}>
+          → {STATUS_LABELS[next]}
+        </option>
       ))}
-      {canUndo && <option value="undo" className={optionClass}>↶ undo last step</option>}
+      {canUndo && (
+        <option value="undo" className={optionClass}>
+          ↶ undo last step
+        </option>
+      )}
     </>
   );
 }

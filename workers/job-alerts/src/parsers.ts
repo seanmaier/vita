@@ -168,7 +168,11 @@ const INSTAFFO_JOB_LINK =
   /\[((?:[^[\]\n]|\[[^[\]\n]*\])*)\]\(https:\/\/app\.instaffo\.com\/candidate\/job\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[?#][^)\s]*)?\)/g;
 const INSTAFFO_LOCATION = /\[Ort\]\s*([^\n[]+)/;
 // Text-part labels start with icon placeholders such as "[Logo]".
-const sameText = (value: string) => value.replace(/^(?:\s*\[[^\]]*\])+/, '').replace(/\s+/g, ' ').trim();
+const sameText = (value: string) =>
+  value
+    .replace(/^(?:\s*\[[^\]]*\])+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /**
  * Instaffo's HTML links are opaque click trackers (a different one per link), but the text part

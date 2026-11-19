@@ -40,7 +40,8 @@ function fail(message: string): never {
 
 function passwordOrGenerated(): { password: string; generated: boolean } {
   if (givenPassword) {
-    if (givenPassword.length < MIN_PASSWORD_LENGTH) fail(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (givenPassword.length < MIN_PASSWORD_LENGTH)
+      fail(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     return { password: givenPassword, generated: false };
   }
   return { password: randomBytes(15).toString('base64url'), generated: true };
@@ -110,7 +111,8 @@ switch (command) {
     if (!username) fail('Usage: token-list <username>');
     const tokens = listApiTokens(userIdOrFail(username));
     if (!tokens.length) console.log('No API tokens.');
-    for (const t of tokens) console.log(`${t.name}\t[${t.scope}]\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
+    for (const t of tokens)
+      console.log(`${t.name}\t[${t.scope}]\t(created ${t.created_at}, last used ${t.last_used_at ?? 'never'})`);
     break;
   }
   case 'token-revoke': {

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
 import {
-  getBaseProfiles, trashBaseProfile, trashConfirmMessage, applicationsUsingBaseProfile,
+  getBaseProfiles,
+  trashBaseProfile,
+  trashConfirmMessage,
+  applicationsUsingBaseProfile,
 } from '../utils/baseProfiles';
 import { countTrashed } from '../utils/trashCount';
 import type { BaseProfile } from '#shared/types.ts';
 import { CreateBaseProfileModal } from '../components/CreateBaseProfileModal';
-
 
 export function BaseProfilesPage() {
   const navigate = useNavigate();
@@ -53,9 +55,7 @@ export function BaseProfilesPage() {
 
       {/* Column headers */}
       <div className="hidden sm:flex items-center border-b border-rule pb-1.5">
-        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 flex-1">
-          name
-        </span>
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 flex-1">name</span>
         <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 w-[70px] shrink-0 text-right">
           lang
         </span>
@@ -66,9 +66,7 @@ export function BaseProfilesPage() {
       </div>
 
       {profiles.length === 0 ? (
-        <p className="font-mono text-[12px] text-ink-3 py-10">
-          no base profiles yet.
-        </p>
+        <p className="font-mono text-[12px] text-ink-3 py-10">no base profiles yet.</p>
       ) : (
         profiles.map((p) => {
           const usedBy = applicationsUsingBaseProfile(p.id);
@@ -82,7 +80,8 @@ export function BaseProfilesPage() {
                 <span className="block font-mono text-[12.5px] text-ink-invert truncate">{p.name}</span>
                 {/* Language and usage move under the name on phones, where their columns don't fit */}
                 <span className="sm:hidden block font-mono text-[11px] text-ink-3 mt-0.5">
-                  {LANG_FLAGS[p.language]} · {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : 'unused'}
+                  {LANG_FLAGS[p.language]} ·{' '}
+                  {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : 'unused'}
                 </span>
               </div>
               <span className="hidden sm:block text-[12px] w-[70px] shrink-0 text-right" title={p.language}>
@@ -101,7 +100,10 @@ export function BaseProfilesPage() {
                 </Link>
                 <button
                   className="font-mono text-[11px] text-ink-2 bg-transparent border border-rule rounded px-2.5 py-1 cursor-pointer transition-colors hover:text-status-rejected hover:border-status-rejected"
-                  onClick={(e) => { e.stopPropagation(); handleTrash(p); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTrash(p);
+                  }}
                   title="Move to trash"
                 >
                   delete

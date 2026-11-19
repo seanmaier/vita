@@ -32,7 +32,12 @@ describe('newApplicationConfig', () => {
   });
 
   it('addresses the cover letter to the company, with the role as subject unless another is given', () => {
-    const config = newApplicationConfig({ ...form, hasCoverLetter: true, dateISO: '2026-11-18', paragraphs: ['Hello', ''] });
+    const config = newApplicationConfig({
+      ...form,
+      hasCoverLetter: true,
+      dateISO: '2026-11-18',
+      paragraphs: ['Hello', ''],
+    });
     expect(config.coverLetter).toEqual({
       recipientOrg: 'Kaiwerk Studio',
       date: 'November 18, 2026',
