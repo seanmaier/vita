@@ -18,6 +18,7 @@ interface LeadRow {
   title: string;
   company: string | null;
   location: string | null;
+  snippet: string | null;
   url: string;
   received_at: string;
   status: JobLead['status'];
@@ -63,6 +64,7 @@ function toLead(r: LeadRow): JobLead {
   };
   if (r.company !== null) lead.company = r.company;
   if (r.location !== null) lead.location = r.location;
+  if (r.snippet !== null) lead.snippet = r.snippet;
   const rating = r.rating === null ? null : (JSON.parse(r.rating) as StoredRating);
   if (rating?.criteria) lead.criteria = rating.criteria;
   if (rating?.exclusion) lead.exclusion = rating.exclusion;
@@ -80,35 +82,46 @@ export interface InsertCounts {
   created: number;
   /** Leads that were already known (updated or not). */
   duplicates: number;
-  /** Known leads whose title, url, company or location changed. */
+  /** Known leads whose title, url, company, location or snippet changed. */
   updated: number;
 }
 
 /**
  * Stores leads for a user in one transaction. A known lead takes the new title and url, and the
- * new company and location where given, so a re-sent alert repairs what an older parser stored.
+ * new company, location and snippet where given, so a re-sent alert repairs what an older parser stored.
  * Status, score and rating stay as they are.
  */
 export function insertLeads(userId: number, leads: JobLeadInput[]): InsertCounts {
   const exists = db.prepare('SELECT 1 FROM job_leads WHERE user_id = ? AND source = ? AND external_id = ?');
   const upsert = db.prepare(
-    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, snippet, url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (user_id, source, external_id) DO UPDATE SET
        title = excluded.title,
        company = COALESCE(excluded.company, company),
        location = COALESCE(excluded.location, location),
+       snippet = COALESCE(excluded.snippet, snippet),
        url = excluded.url
      WHERE title IS NOT excluded.title
         OR url IS NOT excluded.url
         OR (excluded.company IS NOT NULL AND company IS NOT excluded.company)
-        OR (excluded.location IS NOT NULL AND location IS NOT excluded.location)`,
+        OR (excluded.location IS NOT NULL AND location IS NOT excluded.location)
+        OR (excluded.snippet IS NOT NULL AND snippet IS NOT excluded.snippet)`,
   );
   return transaction(() => {
     const counts: InsertCounts = { created: 0, duplicates: 0, updated: 0 };
     for (const l of leads) {
       const known = exists.get(userId, l.source, l.externalId) !== undefined;
-      const r = upsert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
+      const r = upsert.run(
+        userId,
+        l.source,
+        l.externalId,
+        l.title,
+        l.company ?? null,
+        l.location ?? null,
+        l.snippet ?? null,
+        l.url,
+      );
       if (!known) counts.created += 1;
       else {
         counts.duplicates += 1;

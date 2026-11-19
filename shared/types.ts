@@ -180,6 +180,8 @@ export interface JobLeadInput {
   title: string;
   company?: string;
   location?: string;
+  /** What the alert says about the job beyond title, company and location (salary, work model, age). */
+  snippet?: string;
   url: string;
 }
 
