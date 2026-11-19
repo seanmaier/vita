@@ -183,6 +183,9 @@ export interface JobLeadInput {
   url: string;
 }
 
+/** Whether a rating rests on the posting's text or only on title, company and location. */
+export type RatingBasis = 'read' | 'estimated';
+
 export interface JobLead extends JobLeadInput {
   id: number;
   receivedAt: string;
@@ -195,6 +198,8 @@ export interface JobLead extends JobLeadInput {
   criteria?: FitCriterion[];
   /** The exclusion criterion that applied, if any. */
   exclusion?: string;
+  /** What the rating rests on; missing for leads rated before it was recorded. */
+  basis?: RatingBasis;
 }
 
 export interface InboundEvent {
