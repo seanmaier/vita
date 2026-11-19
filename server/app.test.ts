@@ -109,12 +109,12 @@ describe('API tokens', () => {
     const user = await createUser();
     const cookie = await sessionCookie(user.username);
     const old = tokenFor(user.id, 'full');
-    const tokenName = `token-${counter}`;
+    const label = `token-${counter}`; // the name tokenFor() just gave it
     // A token can't rotate tokens, not even itself.
-    const byToken = await app.request(`/api/tokens/${tokenName}/rotate`, { method: 'POST', headers: { authorization: `Bearer ${old}`, ...sameOrigin } });
+    const byToken = await app.request(`/api/tokens/${label}/rotate`, { method: 'POST', headers: { authorization: `Bearer ${old}`, ...sameOrigin } });
     expect(byToken.status).toBe(401);
 
-    const res = await app.request(`/api/tokens/${tokenName}/rotate`, { method: 'POST', headers: { cookie, ...sameOrigin } });
+    const res = await app.request(`/api/tokens/${label}/rotate`, { method: 'POST', headers: { cookie, ...sameOrigin } });
     expect(res.status).toBe(200);
     const { token } = (await res.json()) as { token: string };
     expect((await app.request('/api/v1/me', { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
