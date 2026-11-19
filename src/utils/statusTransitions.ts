@@ -13,7 +13,7 @@ import {
   type HistoryResult,
 } from '#shared/domain/statusMachine.ts';
 import { isDemo } from '../demo/demoMode';
-import { errorFrom } from './api';
+import { client, errorFrom } from './apiClient';
 import { getConfigOverride } from './appStorage';
 import { todayIso } from '#shared/utils/date.ts';
 import { storage } from './storage';
@@ -46,17 +46,21 @@ export function statusOf(history: StatusTransition[]): ApplicationStatus {
   return currentStatus(history, todayIso());
 }
 
-async function request(appId: string, path: string, init: RequestInit): Promise<StatusTransition[]> {
-  const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/transitions${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json' },
-  });
+const transitions = client.api.v1.applications[':id'].transitions;
+
+/** Takes the server's answer to a transition request: the new history, or an error to show. */
+async function applied(
+  appId: string,
+  res: { ok: boolean; status: number; json(): Promise<unknown> },
+): Promise<StatusTransition[]> {
   if (!res.ok) throw await errorFrom(res, 'Changing the status failed');
-  const body = (await res.json()) as { statusHistory: StatusTransition[] };
+  const { statusHistory } = (await res.json()) as { statusHistory: StatusTransition[] };
   // The server already has it; only the in-memory copy needs updating.
-  storage.setLocal(historyKey(appId), JSON.stringify(body.statusHistory));
-  return body.statusHistory;
+  storage.setLocal(historyKey(appId), JSON.stringify(statusHistory));
+  return statusHistory;
 }
+
+const idParam = (appId: string) => ({ id: encodeURIComponent(appId) });
 
 function applyLocally(appId: string, result: HistoryResult): StatusTransition[] {
   if (!result.ok) throw new Error(result.error);
@@ -68,15 +72,19 @@ function applyLocally(appId: string, result: HistoryResult): StatusTransition[] 
 export function changeStatus(appId: string, history: StatusTransition[], action: StatusAction): Promise<StatusTransition[]> {
   if (action === 'undo') {
     if (isDemo) return Promise.resolve().then(() => applyLocally(appId, undoLast(history)));
-    return request(appId, '/last', { method: 'DELETE' });
+    return transitions.last.$delete({ param: idParam(appId) }).then((res) => applied(appId, res));
   }
   const date = todayIso();
   if (isDemo) return Promise.resolve().then(() => applyLocally(appId, appendTransition(history, action, date, new Date().toISOString())));
-  return request(appId, '', { method: 'POST', body: JSON.stringify({ to: action, date, expected: statusOf(history) }) });
+  return transitions
+    .$post({ param: idParam(appId), json: { to: action, date, expected: statusOf(history) } })
+    .then((res) => applied(appId, res));
 }
 
 /** Changes when step `index` of the history happened. */
 export function changeStepDate(appId: string, history: StatusTransition[], index: number, date: string): Promise<StatusTransition[]> {
   if (isDemo) return Promise.resolve().then(() => applyLocally(appId, setTransitionDate(history, index, date)));
-  return request(appId, `/${index}`, { method: 'PATCH', body: JSON.stringify({ date }) });
+  return transitions[':index']
+    .$patch({ param: { ...idParam(appId), index: String(index) }, json: { date } })
+    .then((res) => applied(appId, res));
 }
