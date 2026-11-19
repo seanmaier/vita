@@ -3,7 +3,9 @@ import { andSaved, createUser, logIn } from './users.ts';
 
 test('a wrong password is refused with a message', async ({ page }) => {
   const user = createUser();
-  await logIn(page, { ...user, password: 'not-the-password' });
+  // Derived from the real one, so it is certainly wrong.
+  const wrongPassword = user.password.split('').reverse().join('');
+  await logIn(page, { ...user, password: wrongPassword });
   await expect(page.getByText('Invalid username or password.')).toBeVisible();
 });
 

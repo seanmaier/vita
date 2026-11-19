@@ -13,7 +13,7 @@ export function createTestUser(name?: string): User {
   return { id: Number(result.lastInsertRowid), username: name };
 }
 
-/** A Hono app serving /api/v1 as the given user, without server/index.ts's side effects. */
+/** /api/v1 as the given user, skipping login and token checks (server/app.test.ts covers those through createApp). */
 export function testApp(user: User, options: { scope?: TokenScope } = {}): Hono {
   const app = new Hono<V1Env>();
   app.use('*', async (c, next) => {
