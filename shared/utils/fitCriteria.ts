@@ -1,7 +1,7 @@
 // The per-criterion breakdown of a job check (see /stellencheck), shared by
 // the application `fit` and the job leads so both validate it the same way.
 import { z } from 'zod';
-import type { FitCriterion } from '#shared/types.ts';
+import type { FitCriterion, JobFit } from '#shared/types.ts';
 import { check } from '#shared/validation/issues.ts';
 
 const MAX_CRITERIA = 20;
@@ -84,6 +84,11 @@ export function validateExclusion(value: unknown, field: string, errors: string[
 /** The points one criterion adds to the score: weight × fulfilled / 100, rounded. */
 export function criterionPoints(c: FitCriterion): number {
   return Math.round((c.weight * c.fulfilled) / 100);
+}
+
+/** The score that counts: after a cap from the priorities, if one applied. */
+export function fitScore(fit: JobFit): number {
+  return fit.cappedScore ?? fit.score;
 }
 
 /** The breakdown as plain lines, e.g. for a tooltip. */

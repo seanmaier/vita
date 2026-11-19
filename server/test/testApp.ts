@@ -7,7 +7,8 @@ import { v1 } from '../v1.ts';
 let counter = 0;
 
 /** Inserts a user with a dummy password hash. */
-export function createTestUser(name = `user-${++counter}`): User {
+export function createTestUser(name?: string): User {
+  name ??= `user-${++counter}`;
   const result = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(name, 'x');
   return { id: Number(result.lastInsertRowid), username: name };
 }

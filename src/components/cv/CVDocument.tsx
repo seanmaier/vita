@@ -61,10 +61,10 @@ export function CVDocument({ profile, application }: Props) {
         </div>
         <nav className="cv-contact" aria-label={t.contact}>
           {joinLines([
-            profile.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>,
-            profile.website && <a href={`https://${profile.website}`} target="_blank" rel="noopener">{profile.website}</a>,
-            profile.github && <a href={`https://${profile.github}`} target="_blank" rel="noopener">{profile.github}</a>,
-            profile.linkedin && <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener">{profile.linkedin}</a>,
+            profile.email && <a key="email" href={`mailto:${profile.email}`}>{profile.email}</a>,
+            profile.website && <a key="website" href={`https://${profile.website}`} target="_blank" rel="noopener">{profile.website}</a>,
+            profile.github && <a key="github" href={`https://${profile.github}`} target="_blank" rel="noopener">{profile.github}</a>,
+            profile.linkedin && <a key="linkedin" href={`https://${profile.linkedin}`} target="_blank" rel="noopener">{profile.linkedin}</a>,
             profile.city,
           ])}
         </nav>
