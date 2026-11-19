@@ -59,11 +59,11 @@ describe('typed API client', () => {
     expect(await res.json()).toEqual({ doc: 'priorities', content: 'Remote first' });
   });
 
-  it('stores data and moves an application through a transition', async () => {
+  it('saves an application and moves it through a transition', async () => {
     const { client } = await loggedInClient();
     const app = { id: 'acme gmbh', company: 'Acme GmbH', role: 'Dev', status: 'drafting' };
-    const put = await client.api.data.$put({ json: { set: { 'local-apps': JSON.stringify([app]) }, remove: [] } });
-    expect(put.status).toBe(204);
+    const put = await client.api.applications[':id'].$put({ param: { id: encodeURIComponent(app.id) }, json: app });
+    expect(put.status).toBe(200);
     const transitions = client.api.v1.applications[':id'].transitions;
     const sent = await transitions.$post({
       param: { id: encodeURIComponent(app.id) },
