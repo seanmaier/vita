@@ -5,11 +5,12 @@
 import { createContext, useContext } from 'react';
 import type { AppLanguage, ApplicationConfig, BaseProfile, Profile, StatusTransition } from '#shared/types.ts';
 import type { StoredApplication } from '../../server/routes/applications.ts';
+import type { Settings } from '../../server/routes/settings.ts';
 import { todayIso } from '#shared/utils/date.ts';
 import { client, errorFrom } from '../utils/apiClient';
 import { statusOf, type StatusAction } from '../utils/statusTransitions';
 
-export type { StoredApplication };
+export type { Settings, StoredApplication };
 export type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
 /** Every write answers with the whole list, trash included. */
@@ -48,10 +49,17 @@ export interface ApplicationsBackend {
   changeStepDate(id: string, history: StatusTransition[], index: number, date: string): Promise<StatusTransition[]>;
 }
 
+export interface SettingsBackend {
+  get(): Promise<Settings>;
+  /** Remembers that the guided tour was closed, so it doesn't open by itself again. */
+  markTourSeen(): Promise<Settings>;
+}
+
 export interface DataBackend {
   applications: ApplicationsBackend;
   baseProfiles: BaseProfilesBackend;
   profileOverrides: ProfileOverridesBackend;
+  settings: SettingsBackend;
 }
 
 // ---- Server -----------------------------------------------------------------------
@@ -62,6 +70,8 @@ async function ok<T>(
   failure: string,
 ): Promise<T> {
   const res = await request;
+  // The session expired (e.g. in a tab left open): the login screen is the only way forward.
+  if (res.status === 401) window.location.reload();
   if (!res.ok) throw await errorFrom(res, failure);
   return (await res.json()) as T;
 }
@@ -110,6 +120,10 @@ export const serverBackend: DataBackend = {
   },
   profileOverrides: {
     list: () => ok(client.api['profile-overrides'].$get(), 'Loading the profiles failed'),
+  },
+  settings: {
+    get: () => ok(client.api.settings.$get(), 'Loading the settings failed'),
+    markTourSeen: () => ok(client.api.settings['tour-seen'].$put(), 'Saving the settings failed'),
   },
 };
 

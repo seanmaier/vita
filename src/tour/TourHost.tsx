@@ -2,16 +2,14 @@ import { useEffect, useState } from 'react';
 import { Tour } from './Tour';
 import { buildTourSteps } from './tourSteps';
 import type { TourStep } from './tourSteps';
-import { storage } from '../utils/storage';
 import { useApplications } from '../api/applications';
+import { useMarkTourSeen, useSettings } from '../api/settings';
 import { isDemo } from '../demo/demoMode';
 import { onStartTour } from './tourControl';
-import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
-// Stored with the user's data, so the tour opens once per account rather
-// than once per device. In the demo that storage is the browser tab, so a
-// reset or a language switch brings the tour back.
-const SEEN_KEY = STORAGE_KEYS.tourSeen;
+// Whether it was closed is an account setting, so the tour opens once per
+// account rather than once per device. In the demo that setting lives in the
+// browser tab, so a reset or a language switch brings the tour back.
 
 // The tour shows the first application on the dashboard.
 const stepsFor = (firstId: string | undefined): TourStep[] => buildTourSteps(isDemo ? 'demo' : 'app', firstId);
@@ -24,14 +22,18 @@ interface Props {
 /** Owns when the tour is open: once by itself, then whenever startTour() is called. */
 export function TourHost({ navigate }: Props) {
   const records = useApplications().data;
-  const [open, setOpen] = useState(() => !storage.getItem(SEEN_KEY));
+  const settings = useSettings().data;
+  const markSeen = useMarkTourSeen();
+  // Set by a start or a close; until then the tour opens by itself if it was never closed.
+  const [shown, setShown] = useState<boolean | null>(null);
+  const open = shown ?? (settings ? !settings.tourSeen : false);
   // Bumped on every start, so a restart begins at step one even if the tour was open.
   const [run, setRun] = useState(0);
 
   useEffect(
     () =>
       onStartTour(() => {
-        setOpen(true);
+        setShown(true);
         setRun((r) => r + 1);
       }),
     [],
@@ -45,8 +47,8 @@ export function TourHost({ navigate }: Props) {
       steps={stepsFor(records.find((r) => !r.app.deletedAt)?.app.id)}
       navigate={navigate}
       onClose={() => {
-        storage.setItem(SEEN_KEY, '1');
-        setOpen(false);
+        setShown(false);
+        if (!settings?.tourSeen) markSeen.mutate();
       }}
     />
   );

@@ -7,7 +7,7 @@ import { LANGUAGES } from '#shared/utils/language.ts';
 import { KEY_PREFIXES, STORAGE_KEYS } from '#shared/storageKeys.ts';
 import { storage } from '../utils/storage';
 import { applyAction, applyStepDate } from '../utils/statusTransitions';
-import type { DataBackend, ProfileOverrides, StoredApplication, StoredConfig } from './backend';
+import type { DataBackend, ProfileOverrides, Settings, StoredApplication, StoredConfig } from './backend';
 
 function readJson<T>(key: string): T | null {
   try {
@@ -35,6 +35,8 @@ function withoutDeletedAt<T extends { deletedAt?: string }>(item: T): T {
   const { deletedAt: _deletedAt, ...rest } = item;
   return rest as T;
 }
+
+const settings = (): Settings => ({ tourSeen: storage.getItem(STORAGE_KEYS.tourSeen) !== null });
 
 // ---- Applications -----------------------------------------------------------------
 
@@ -163,6 +165,13 @@ export const localBackend: DataBackend = {
         if (profile) overrides[language] = profile;
       }
       return Promise.resolve(overrides);
+    },
+  },
+  settings: {
+    get: () => Promise.resolve(settings()),
+    markTourSeen: () => {
+      storage.setItem(STORAGE_KEYS.tourSeen, '1');
+      return Promise.resolve(settings());
     },
   },
 };

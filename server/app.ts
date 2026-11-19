@@ -12,6 +12,7 @@ import { applicationRoutes } from './routes/applications.ts';
 import { authRoutes } from './routes/auth.ts';
 import { baseProfileRoutes } from './routes/baseProfiles.ts';
 import { profileOverrideRoutes } from './routes/profileOverrides.ts';
+import { settingsRoutes } from './routes/settings.ts';
 import { dataRoutes } from './routes/data.ts';
 import { tokenRoutes } from './routes/tokens.ts';
 import { requireUserOrToken } from './session.ts';
@@ -70,6 +71,7 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
     .route('/api/applications', applicationRoutes)
     .route('/api/base-profiles', baseProfileRoutes)
     .route('/api/profile-overrides', profileOverrideRoutes)
+    .route('/api/settings', settingsRoutes)
     .route('/api', dataRoutes)
     .route('/api/v1', v1);
 

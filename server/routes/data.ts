@@ -19,7 +19,7 @@ import { allValues, getJson, KEYS, parseJson, removeValue, setValue } from '../s
  * rather than as raw storage. Refused here, so a tab still running the
  * previous version can't overwrite them with its stale copy.
  */
-const MOVED_KEYS: readonly string[] = [KEYS.localApps, KEYS.baseProfiles];
+const MOVED_KEYS: readonly string[] = [KEYS.localApps, KEYS.baseProfiles, KEYS.tourSeen];
 // status- also covers status-history-.
 const MOVED_PREFIXES: readonly string[] = [KEYS.appConfig(''), KEYS.status(''), KEYS.profileOverride('')];
 const isMoved = (key: string) => MOVED_KEYS.includes(key) || MOVED_PREFIXES.some((prefix) => key.startsWith(prefix));
