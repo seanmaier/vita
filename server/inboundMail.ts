@@ -2,7 +2,7 @@
 // service token (scope `inbound:deliver`); the target user comes only from the
 // recipient address, never from the token's owner.
 import { Hono } from 'hono';
-import type { JobLeadInput } from '../src/types.ts';
+import type { JobLeadInput } from '#shared/types.ts';
 import { db } from './db.ts';
 import { inboundDomain, sameMailbox } from './emailAddress.ts';
 import { invalid, readBody, type V1Env } from './http.ts';
@@ -15,8 +15,6 @@ const MAX_DETAIL = 2000;
 const GOOGLE_CONFIRMATION_SENDER = 'forwarding-noreply@google.com';
 const KINDS = ['leads', 'confirmation', 'failed'] as const;
 type Kind = (typeof KINDS)[number];
-
-export const inboundMail = new Hono<V1Env>();
 
 /** Housekeeping: delivery events are only a short-lived diagnostic log. */
 export function purgeOldInboundEvents(): number {
@@ -38,7 +36,7 @@ function findRecipient(raw: string): { userId: number; forwardingFrom: string | 
 
 const clipped = (v: unknown, max: number): string | null => (typeof v === 'string' ? v.slice(0, max) : null);
 
-inboundMail.post('/', async (c) => {
+export const inboundMail = new Hono<V1Env>().post('/', async (c) => {
   if (c.get('tokenScope') !== 'inbound:deliver') {
     return c.json({ error: 'This endpoint is for the mail worker only.' }, 403);
   }

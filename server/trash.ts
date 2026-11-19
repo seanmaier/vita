@@ -1,4 +1,4 @@
-import { isPurgeDue } from '../src/utils/trash.ts';
+import { isPurgeDue } from '#shared/utils/trash.ts';
 import { db, transaction } from './db.ts';
 import { deleteVersions } from './history.ts';
 import { KEYS, removeValue, setJson } from './store.ts';

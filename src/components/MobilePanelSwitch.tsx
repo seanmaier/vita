@@ -10,17 +10,15 @@ export function MobilePanelSwitch<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="lg:hidden shrink-0 bg-[color:var(--ink)] px-4 pb-2">
+    <div className="lg:hidden shrink-0 bg-ink px-4 pb-2">
       <div className="flex gap-1 bg-white/5 rounded p-0.5" role="tablist" aria-label="Panel">
         {options.map((option) => (
           <button
             key={option.value}
             role="tab"
             aria-selected={value === option.value}
-            className={`flex-1 [font-family:var(--font-mono)] text-[11px] tracking-[0.06em] rounded px-3 py-1.5 border-none cursor-pointer transition-colors ${
-              value === option.value
-                ? 'bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold'
-                : 'bg-transparent text-[#8896AB]'
+            className={`flex-1 font-mono text-[11px] tracking-[0.06em] rounded px-3 py-1.5 border-none cursor-pointer transition-colors ${
+              value === option.value ? 'bg-accent text-ink font-semibold' : 'bg-transparent text-[#8896AB]'
             }`}
             onClick={() => onChange(option.value)}
           >

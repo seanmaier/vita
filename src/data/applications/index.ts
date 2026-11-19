@@ -1,4 +1,4 @@
-import type { ApplicationConfig } from '../../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { isDemo } from '../../demo/demoMode';
 import { demoApplications } from '../../demo/applications';
 

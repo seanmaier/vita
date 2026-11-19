@@ -1,9 +1,11 @@
 // Pure validation for job leads, shared by the POST and PATCH routes.
-import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '../src/types.ts';
-import { criteriaScore, validateCriteria, validateExclusion } from '../src/utils/fitCriteria.ts';
-import { isPlainObject, type Body, type Validated } from './http.ts';
+import { z } from 'zod';
+import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '#shared/types.ts';
+import { criteriaScore, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
+import { check } from '#shared/validation/issues.ts';
+import type { Body, Validated } from './http.ts';
 
-export const LEAD_SOURCES: readonly JobLeadSource[] = [
+export const LEAD_SOURCES = [
   'linkedin',
   'stepstone',
   'indeed',
@@ -11,47 +13,53 @@ export const LEAD_SOURCES: readonly JobLeadSource[] = [
   'instaffo',
   'arbeitsagentur',
   'other',
-];
-export const LEAD_STATUSES: readonly JobLeadStatus[] = ['new', 'rated', 'dismissed', 'applied'];
+] as const satisfies readonly JobLeadSource[];
+export const LEAD_STATUSES = ['new', 'rated', 'dismissed', 'applied'] as const satisfies readonly JobLeadStatus[];
 
-const LEAD_FIELDS = ['source', 'externalId', 'title', 'company', 'location', 'url'];
+/** A trimmed string of min–max characters. */
+const trimmed = (min: number, max: number) =>
+  z
+    .string({ error: 'must be a string' })
+    .trim()
+    .refine((s) => s.length >= min && s.length <= max, { error: `must be ${min}-${max} characters` });
 
-function trimmed(input: Body, field: string, min: number, max: number, errors: string[]): string {
-  const v = input[field];
-  if (typeof v !== 'string') {
-    errors.push(`${field}: must be a string`);
-    return '';
-  }
-  const t = v.trim();
-  if (t.length < min || t.length > max) errors.push(`${field}: must be ${min}-${max} characters`);
-  return t;
-}
+/** An optional text: missing, null and blank all mean "not given". */
+const optionalText = trimmed(0, 200)
+  .nullish()
+  .transform((s) => s || undefined);
 
-function optional(input: Body, field: string, errors: string[]): string | undefined {
-  if (input[field] === undefined || input[field] === null) return undefined;
-  return trimmed(input, field, 0, 200, errors) || undefined;
-}
+const leadSchema: z.ZodType<JobLeadInput> = z
+  .strictObject(
+    {
+      source: z.enum(LEAD_SOURCES, { error: `must be one of ${LEAD_SOURCES.join(', ')}` }),
+      externalId: trimmed(1, 200),
+      title: trimmed(1, 300),
+      company: optionalText,
+      location: optionalText,
+      url: z.preprocess(
+        (v) => (typeof v === 'string' ? v.trim() : ''),
+        z
+          .string()
+          .startsWith('https://', { error: 'must start with https://', abort: true })
+          .refine((url) => URL.canParse(url), { error: 'must be a valid URL' }),
+      ),
+    },
+    {
+      error: (issue) =>
+        issue.code === 'unrecognized_keys' ? `unknown field(s): ${issue.keys.join(', ')}` : 'must be an object',
+    },
+  )
+  .transform(({ source, externalId, title, company, location, url }) => ({
+    source,
+    externalId,
+    title,
+    url,
+    ...(company && { company }),
+    ...(location && { location }),
+  }));
 
 export function validateLeadInput(input: unknown): Validated<JobLeadInput> {
-  if (!isPlainObject(input)) return { ok: false, errors: ['must be an object'] };
-  const errors: string[] = [];
-  const unknown = Object.keys(input).filter((k) => !LEAD_FIELDS.includes(k));
-  if (unknown.length) errors.push(`unknown field(s): ${unknown.join(', ')}`);
-  if (!LEAD_SOURCES.includes(input.source as JobLeadSource)) {
-    errors.push(`source: must be one of ${LEAD_SOURCES.join(', ')}`);
-  }
-  const externalId = trimmed(input, 'externalId', 1, 200, errors);
-  const title = trimmed(input, 'title', 1, 300, errors);
-  const company = optional(input, 'company', errors);
-  const location = optional(input, 'location', errors);
-  const url = typeof input.url === 'string' ? input.url.trim() : '';
-  if (!url.startsWith('https://')) errors.push('url: must start with https://');
-  else if (!URL.canParse(url)) errors.push('url: must be a valid URL');
-  if (errors.length) return { ok: false, errors };
-  const value: JobLeadInput = { source: input.source as JobLeadSource, externalId, title, url };
-  if (company) value.company = company;
-  if (location) value.location = location;
-  return { ok: true, value };
+  return check(leadSchema, input, 'colon');
 }
 
 export interface LeadPatch {
@@ -64,30 +72,43 @@ export interface LeadPatch {
   exclusion?: string | null;
 }
 
-export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'];
+export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'] as const;
+
+// The plain fields of a patch; criteria and exclusion depend on each other
+// and on the score, so validateRating checks those.
+const patchSchema = z.object({
+  status: z.enum(LEAD_STATUSES, { error: `must be one of ${LEAD_STATUSES.join(', ')}` }).optional(),
+  score: z
+    .number({ error: 'must be an integer 0-100 or null' })
+    .refine((n) => Number.isInteger(n) && n >= 0 && n <= 100, { error: 'must be an integer 0-100 or null' })
+    .nullable()
+    .optional(),
+  verdict: z
+    .string({ error: 'must be a string of at most 1000 characters or null' })
+    .max(1000, { error: 'must be a string of at most 1000 characters or null' })
+    .nullable()
+    .optional(),
+  applicationId: z
+    .string({ error: 'must be a string of 1-200 characters or null' })
+    .refine((s) => s.length >= 1 && s.length <= 200, { error: 'must be a string of 1-200 characters or null' })
+    .nullable()
+    .optional(),
+});
 
 export function validatePatch(body: Body): Validated<LeadPatch> {
-  const errors: string[] = [];
-  const patch: LeadPatch = {};
   if (!Object.keys(body).length) return { ok: false, errors: [`Provide at least one of: ${PATCH_FIELDS.join(', ')}.`] };
-  if ('status' in body) {
-    if (LEAD_STATUSES.includes(body.status as JobLeadStatus)) patch.status = body.status as JobLeadStatus;
-    else errors.push(`status: must be one of ${LEAD_STATUSES.join(', ')}`);
-  }
-  if ('score' in body) {
-    const s = body.score;
-    if (s === null || (typeof s === 'number' && Number.isInteger(s) && s >= 0 && s <= 100)) patch.score = s;
-    else errors.push('score: must be an integer 0-100 or null');
-  }
-  if ('verdict' in body) {
-    const v = body.verdict;
-    if (v === null || (typeof v === 'string' && v.length <= 1000)) patch.verdict = v;
-    else errors.push('verdict: must be a string of at most 1000 characters or null');
-  }
-  if ('applicationId' in body) {
-    const a = body.applicationId;
-    if (a === null || (typeof a === 'string' && a.length >= 1 && a.length <= 200)) patch.applicationId = a;
-    else errors.push('applicationId: must be a string of 1-200 characters or null');
+  const errors: string[] = [];
+  const plain = check(patchSchema, body, 'colon');
+  // Only the fields that were sent and are valid, so validateRating still sees a valid score.
+  const patch: LeadPatch = {};
+  if (plain.ok) {
+    for (const key of ['status', 'score', 'verdict', 'applicationId'] as const) {
+      if (key in body) Object.assign(patch, { [key]: plain.value[key] });
+    }
+  } else {
+    errors.push(...plain.errors);
+    const score = patchSchema.shape.score.safeParse(body.score);
+    if ('score' in body && score.success) patch.score = score.data;
   }
   validateRating(body, patch, errors);
   return errors.length ? { ok: false, errors } : { ok: true, value: patch };

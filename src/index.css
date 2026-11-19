@@ -1,5 +1,36 @@
 @import 'tailwindcss';
 
+/* The palette of styles/tokens.css as Tailwind colours: text-accent, bg-surface,
+ border-rule, text-status-rejected … `inline` makes each utility read the CSS
+ variable itself, so the seasonal themes (which redefine the variables) still
+ apply. font-sans and font-mono already read --font-sans/--font-mono, which
+ tokens.css sets. */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-invert: var(--ink-invert);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-rule: var(--rule);
+  --color-ph-bg: var(--ph-bg);
+  --color-ph-ink: var(--ph-ink);
+  --color-status-drafting: var(--status-drafting);
+  --color-status-ready: var(--status-ready);
+  --color-status-sent: var(--status-sent);
+  --color-status-interview: var(--status-interview);
+  --color-status-offer: var(--status-offer);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-ghosted: var(--status-ghosted);
+  --color-status-withdrawn: var(--status-withdrawn);
+  --color-status-accepted: var(--status-accepted);
+  --color-status-declined: var(--status-declined);
+  --color-status-evaluated: var(--status-evaluated);
+  --color-status-skipped: var(--status-skipped);
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--ink);

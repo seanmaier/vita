@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { login } from '../utils/api';
-import type { SessionUser } from '../utils/api';
 import { nafInput, nafLabel, nafSection } from '../styles/formStyles';
 import { AppLogo } from '../components/AppLogo';
 
-export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => void }) {
+export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +15,8 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => v
     setBusy(true);
     setError(null);
     try {
-      onLoggedIn(await login(username, password));
+      await login(username, password);
+      onLoggedIn();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed.');
       setBusy(false);
@@ -24,14 +24,14 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => v
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] flex items-center justify-center px-4">
-      <form className="w-full max-w-[340px] flex flex-col gap-5 bg-[color:var(--ink)] p-7 rounded-md" onSubmit={submit}>
-        <div className="flex items-center gap-2.5 [font-family:var(--font-mono)] text-[15px]">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+      <form className="w-full max-w-[340px] flex flex-col gap-5 bg-ink p-7 rounded-md" onSubmit={submit}>
+        <div className="flex items-center gap-2.5 font-mono text-[15px]">
           <AppLogo />
           <span>
-            <span className="text-[color:var(--ink-3)]">~/</span>
-            <span className="text-[color:var(--accent)]">login</span>
-            <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+            <span className="text-ink-3">~/</span>
+            <span className="text-accent">login</span>
+            <span className="text-ink-3 animate-pulse"> _</span>
           </span>
         </div>
         <label className={nafSection}>
@@ -56,9 +56,9 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => v
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
+        {error && <p className="text-[12px] text-status-rejected">{error}</p>}
         <button
-          className="[font-family:var(--font-mono)] text-[12px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-2 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-60 disabled:cursor-default"
+          className="font-mono text-[12px] bg-accent text-ink font-semibold border-none rounded px-4 py-2 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-60 disabled:cursor-default"
           type="submit"
           disabled={busy}
         >
@@ -66,7 +66,7 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (user: SessionUser) => v
         </button>
         {/* A full page load, not a router link: demo mode is decided at load. */}
         <a
-          className="[font-family:var(--font-mono)] text-[11px] text-center text-[color:var(--ink-2)] hover:text-[color:var(--accent)] transition-colors duration-150"
+          className="font-mono text-[11px] text-center text-ink-2 hover:text-accent transition-colors duration-150"
           href="/demo"
         >
           no account? try the demo →

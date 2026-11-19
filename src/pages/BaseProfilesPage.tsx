@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LANG_FLAGS } from '../utils/language';
+import { LANG_FLAGS } from '#shared/utils/language.ts';
 import {
   getBaseProfiles,
   trashBaseProfile,
@@ -8,7 +8,7 @@ import {
   applicationsUsingBaseProfile,
 } from '../utils/baseProfiles';
 import { countTrashed } from '../utils/trashCount';
-import type { BaseProfile } from '../types';
+import type { BaseProfile } from '#shared/types.ts';
 import { CreateBaseProfileModal } from '../components/CreateBaseProfileModal';
 
 export function BaseProfilesPage() {
@@ -25,30 +25,27 @@ export function BaseProfilesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
+    <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
       <header className="mb-6 sm:mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="[font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link
-            className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
-            to="/"
-          >
+        <div className="font-mono text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
+          <Link className="text-[11px] text-ink-3 no-underline hover:text-ink-invert" to="/">
             ← Dashboard
           </Link>
           <span>
-            <span className="text-[color:var(--ink-3)]">~/</span>
-            <span className="text-[color:var(--accent)] whitespace-nowrap">base-profiles</span>
-            <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+            <span className="text-ink-3">~/</span>
+            <span className="text-accent whitespace-nowrap">base-profiles</span>
+            <span className="text-ink-3 animate-pulse"> _</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] no-underline border border-[color:var(--rule)] px-3 py-1.5 hover:text-[color:var(--ink-invert)] hover:border-[color:var(--ink-2)] transition-colors duration-150"
+            className="font-mono text-[11px] text-ink-3 no-underline border border-rule px-3 py-1.5 hover:text-ink-invert hover:border-ink-2 transition-colors duration-150"
             to="/trash"
           >
             trash{trashCount > 0 ? ` (${trashCount})` : ''}
           </Link>
           <button
-            className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] bg-transparent border border-[color:var(--rule)] px-3 py-1.5 cursor-pointer hover:text-[color:var(--accent)] hover:border-[color:var(--accent)] transition-colors duration-150"
+            className="font-mono text-[11px] text-ink-3 bg-transparent border border-rule px-3 py-1.5 cursor-pointer hover:text-accent hover:border-accent transition-colors duration-150"
             onClick={() => setCreateOpen(true)}
           >
             + new base profile
@@ -57,38 +54,32 @@ export function BaseProfilesPage() {
       </header>
 
       {/* Column headers */}
-      <div className="hidden sm:flex items-center border-b border-[color:var(--rule)] pb-1.5">
-        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] flex-1">
-          name
-        </span>
-        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] w-[70px] shrink-0 text-right">
+      <div className="hidden sm:flex items-center border-b border-rule pb-1.5">
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 flex-1">name</span>
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 w-[70px] shrink-0 text-right">
           lang
         </span>
-        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] w-[130px] shrink-0 text-right">
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 w-[130px] shrink-0 text-right">
           used by
         </span>
         <span className="w-[130px] shrink-0" />
       </div>
 
       {profiles.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
-          no base profiles yet.
-        </p>
+        <p className="font-mono text-[12px] text-ink-3 py-10">no base profiles yet.</p>
       ) : (
         profiles.map((p) => {
           const usedBy = applicationsUsingBaseProfile(p.id);
           return (
             <div
               key={p.id}
-              className="group flex items-center border-b border-[color:var(--rule)] py-2.5 cursor-pointer transition-colors duration-100 hover:bg-[color:var(--surface)]"
+              className="group flex items-center border-b border-rule py-2.5 cursor-pointer transition-colors duration-100 hover:bg-surface"
               onClick={() => navigate(`/profiles/${p.id}`)}
             >
               <div className="flex-1 min-w-0">
-                <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">
-                  {p.name}
-                </span>
+                <span className="block font-mono text-[12.5px] text-ink-invert truncate">{p.name}</span>
                 {/* Language and usage move under the name on phones, where their columns don't fit */}
-                <span className="sm:hidden block [font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] mt-0.5">
+                <span className="sm:hidden block font-mono text-[11px] text-ink-3 mt-0.5">
                   {LANG_FLAGS[p.language]} ·{' '}
                   {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : 'unused'}
                 </span>
@@ -96,19 +87,19 @@ export function BaseProfilesPage() {
               <span className="hidden sm:block text-[12px] w-[70px] shrink-0 text-right" title={p.language}>
                 {LANG_FLAGS[p.language]}
               </span>
-              <span className="hidden sm:block [font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] w-[130px] shrink-0 text-right truncate">
+              <span className="hidden sm:block font-mono text-[11px] text-ink-3 w-[130px] shrink-0 text-right truncate">
                 {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : '—'}
               </span>
               <div className="shrink-0 flex items-center justify-end gap-2 pl-3 sm:w-[130px]">
                 <Link
-                  className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] no-underline border border-[color:var(--rule)] rounded px-2.5 py-1 transition-colors hover:text-[color:var(--ink-invert)] hover:border-[color:var(--ink-2)]"
+                  className="font-mono text-[11px] text-ink-2 no-underline border border-rule rounded px-2.5 py-1 transition-colors hover:text-ink-invert hover:border-ink-2"
                   to={`/profiles/${p.id}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   edit
                 </Link>
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded px-2.5 py-1 cursor-pointer transition-colors hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)]"
+                  className="font-mono text-[11px] text-ink-2 bg-transparent border border-rule rounded px-2.5 py-1 cursor-pointer transition-colors hover:text-status-rejected hover:border-status-rejected"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleTrash(p);

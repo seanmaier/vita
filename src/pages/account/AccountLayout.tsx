@@ -26,29 +26,26 @@ export function AccountLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
-      <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link
-          className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
-          to="/"
-        >
+    <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
+      <header className="mb-6 sm:mb-8 font-mono text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
+        <Link className="text-[11px] text-ink-3 no-underline hover:text-ink-invert" to="/">
           ← Dashboard
         </Link>
         <span>
-          <span className="text-[color:var(--ink-3)]">~/</span>
-          <span className="text-[color:var(--accent)]">account</span>
-          <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+          <span className="text-ink-3">~/</span>
+          <span className="text-accent">account</span>
+          <span className="text-ink-3 animate-pulse"> _</span>
         </span>
       </header>
 
       {username && (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] mb-6">
-          Logged in as <span className="text-[color:var(--ink-invert)]">{username}</span>
-          {admin && <span className="text-[color:var(--ink-3)]"> · admin</span>}
+        <p className="font-mono text-[12px] text-ink-2 mb-6">
+          Logged in as <span className="text-ink-invert">{username}</span>
+          {admin && <span className="text-ink-3"> · admin</span>}
         </p>
       )}
 
-      <nav aria-label="Account sections" className="flex flex-wrap border-b border-[color:var(--rule)] mb-6">
+      <nav aria-label="Account sections" className="flex flex-wrap border-b border-rule mb-6">
         {SECTIONS.map((s) => (
           <NavLink key={s.to} to={s.to} end={s.end} className={({ isActive }) => `${tabClass(isActive)} no-underline`}>
             {s.label}

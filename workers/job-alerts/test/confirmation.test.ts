@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 import { extractConfirmation } from '../src/confirmation.ts';
 
 test('extracts code and url from an English confirmation mail', () => {
@@ -9,7 +8,7 @@ test('extracts code and url from an English confirmation mail', () => {
     'To allow user@example.org to automatically forward mail to your address, please click the link below to confirm the request:',
     'https://mail-settings.google.com/mail/vf-%5BANGjdJ%5D-abc',
   ].join('\n');
-  assert.deepEqual(extractConfirmation(text), {
+  expect(extractConfirmation(text)).toEqual({
     code: '123456',
     url: 'https://mail-settings.google.com/mail/vf-%5BANGjdJ%5D-abc',
   });
@@ -21,9 +20,9 @@ test('extracts code and url from a German confirmation mail', () => {
     'Klicken Sie auf den folgenden Link, um die Anfrage zu bestätigen:',
     'https://mail.google.com/mail/vf-xyz?x=1&y=2 ',
   ].join('\n');
-  assert.deepEqual(extractConfirmation(text), { code: '987654', url: 'https://mail.google.com/mail/vf-xyz?x=1&y=2' });
+  expect(extractConfirmation(text)).toEqual({ code: '987654', url: 'https://mail.google.com/mail/vf-xyz?x=1&y=2' });
 });
 
 test('returns an empty object when nothing is found and ignores foreign links', () => {
-  assert.deepEqual(extractConfirmation('hello https://evil.example/mail.google.com/x'), {});
+  expect(extractConfirmation('hello https://evil.example/mail.google.com/x')).toEqual({});
 });

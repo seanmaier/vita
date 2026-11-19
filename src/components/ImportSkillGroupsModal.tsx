@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ApplicationConfig, Profile, SkillGroup } from '../types';
-import { parseSkillGroups } from '../utils/parseSkillGroups';
+import type { ApplicationConfig, Profile, SkillGroup } from '#shared/types.ts';
+import { parseSkillGroups } from '#shared/validation/parseSkillGroups.ts';
 import { CVDocument } from './cv/CVDocument';
 
 interface Props {
@@ -62,20 +62,20 @@ export function ImportSkillGroupsModal({ application, profile, onApply, onClose 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center py-3 px-5 border-b border-white/7 shrink-0 gap-4">
-          <span className="[font-family:var(--font-mono)] text-[11px] font-semibold text-[color:var(--ink-invert)] tracking-[0.08em] uppercase shrink-0">
+          <span className="font-mono text-[11px] font-semibold text-ink-invert tracking-[0.08em] uppercase shrink-0">
             {previewGroups ? 'Preview skill groups' : 'Import skill groups JSON'}
           </span>
           <div className="flex items-center gap-2.5 shrink-0">
             {previewGroups ? (
               <>
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-[color:var(--ink-invert)]"
+                  className="font-mono text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-ink-invert"
                   onClick={backToEdit}
                 >
                   Back to edit
                 </button>
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
+                  className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
                   onClick={handleApply}
                 >
                   Apply
@@ -83,14 +83,14 @@ export function ImportSkillGroupsModal({ application, profile, onApply, onClose 
               </>
             ) : (
               <button
-                className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
+                className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
                 onClick={handlePreview}
               >
                 Preview
               </button>
             )}
             <button
-              className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-[color:var(--ink-invert)]"
+              className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-ink-invert"
               onClick={onClose}
             >
               ✕
@@ -99,7 +99,7 @@ export function ImportSkillGroupsModal({ application, profile, onApply, onClose 
         </div>
 
         {errors.length > 0 && (
-          <div className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-rejected)] bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1">
+          <div className="font-mono text-[11px] text-status-rejected bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1">
             {errors.map((e, i) => (
               <div key={i}>{e}</div>
             ))}
@@ -115,7 +115,7 @@ export function ImportSkillGroupsModal({ application, profile, onApply, onClose 
         ) : (
           <textarea
             ref={textareaRef}
-            className="flex-1 [font-family:var(--font-mono)] text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre [overflow-wrap:normal] overflow-auto"
+            className="flex-1 font-mono text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre [overflow-wrap:normal] overflow-auto"
             value={text}
             onChange={(e) => {
               setText(e.target.value);

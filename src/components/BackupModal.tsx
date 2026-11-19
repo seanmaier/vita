@@ -76,11 +76,11 @@ export function BackupModal({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center py-3 px-5 border-b border-white/7 gap-4">
-          <span className="[font-family:var(--font-mono)] text-[11px] font-semibold text-[color:var(--ink-invert)] tracking-[0.08em] uppercase">
+          <span className="font-mono text-[11px] font-semibold text-ink-invert tracking-[0.08em] uppercase">
             Backup &amp; restore
           </span>
           <button
-            className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-[color:var(--ink-invert)]"
+            className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-ink-invert"
             onClick={onClose}
           >
             ✕
@@ -89,15 +89,13 @@ export function BackupModal({ onClose }: Props) {
 
         <div className="p-5 flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-3)]">
-              Export
-            </span>
-            <p className="text-[12.5px] text-[color:var(--ink-2)] leading-[1.5] m-0">
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">Export</span>
+            <p className="text-[12.5px] text-ink-2 leading-[1.5] m-0">
               Downloads every application, its status history and notes, your base profiles, and any profile
               customizations stored in your account as one JSON file — for moving data between accounts or as a backup.
             </p>
             <button
-              className="self-start [font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
+              className="self-start font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
               onClick={handleExport}
             >
               Download backup (.json)
@@ -107,10 +105,8 @@ export function BackupModal({ onClose }: Props) {
           <div className="h-px bg-white/7" />
 
           <div className="flex flex-col gap-2">
-            <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-3)]">
-              Import
-            </span>
-            <p className="text-[12.5px] text-[color:var(--ink-2)] leading-[1.5] m-0">
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">Import</span>
+            <p className="text-[12.5px] text-ink-2 leading-[1.5] m-0">
               Adds what's missing from a backup file exported above: applications and base profiles your account doesn't
               have yet. Nothing that already exists is changed; those are skipped.
             </p>
@@ -118,22 +114,18 @@ export function BackupModal({ onClose }: Props) {
               ref={fileInputRef}
               type="file"
               accept="application/json"
-              className="self-start [font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] cursor-pointer file:cursor-pointer file:[font-family:var(--font-mono)] file:text-[11px] file:bg-[color:var(--accent)] file:text-[color:var(--ink)] file:font-semibold file:border-none file:rounded file:px-4 file:py-1.5 file:mr-3 file:transition-[filter] file:duration-150 hover:file:brightness-110"
+              className="self-start font-mono text-[11px] text-ink-2 cursor-pointer file:cursor-pointer file:font-mono file:text-[11px] file:bg-accent file:text-ink file:font-semibold file:border-none file:rounded file:px-4 file:py-1.5 file:mr-3 file:transition-[filter] file:duration-150 hover:file:brightness-110"
               onChange={handleFileChange}
             />
             {fileName && pendingBackup && !error && (
-              <span className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)]">
+              <span className="font-mono text-[11px] text-ink-3">
                 {pendingBackup.localApps.length} application{pendingBackup.localApps.length === 1 ? '' : 's'}, exported{' '}
                 {new Date(pendingBackup.exportedAt).toLocaleString()}
               </span>
             )}
-            {error && (
-              <span className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-rejected)]">
-                {error}
-              </span>
-            )}
+            {error && <span className="font-mono text-[11px] text-status-rejected">{error}</span>}
             <button
-              className="self-start [font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--accent)] border border-[color:var(--accent)] rounded px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-[color:var(--accent)] hover:text-[color:var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[color:var(--accent)]"
+              className="self-start font-mono text-[11px] bg-transparent text-accent border border-accent rounded px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-accent hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-accent"
               disabled={!pendingBackup || importing}
               onClick={handleImport}
             >

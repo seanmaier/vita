@@ -1,18 +1,10 @@
 import { db } from './db.ts';
-import type { KnowledgeDoc } from './knowledge.ts';
 
-// Typed access to the per-user kv rows the frontend writes. Keys and value
-// formats must stay in sync with src/utils/{localApplications,appStorage,
-// baseProfiles}.ts and src/utils/statusTransitions.ts.
-export const KEYS = {
-  localApps: 'local-apps',
-  baseProfiles: 'base-profiles',
-  appConfig: (id: string) => `app-config-${id}`,
-  /** Legacy single status; read only when no history exists (see server/statusHistory.ts). */
-  status: (id: string) => `status-${id}`,
-  statusHistory: (id: string) => `status-history-${id}`,
-  knowledge: (doc: KnowledgeDoc) => `knowledge-${doc}`,
-};
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
+
+// Typed access to the per-user kv rows the frontend writes; the keys are
+// defined once in shared/storageKeys.ts.
+export const KEYS = STORAGE_KEYS;
 
 export function getValue(userId: number, key: string): string | null {
   const row = db.prepare('SELECT value FROM kv WHERE user_id = ? AND key = ?').get(userId, key) as

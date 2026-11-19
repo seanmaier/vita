@@ -5,21 +5,20 @@ import { StatusOptions } from '../StatusOptions';
 import { FitBadge } from './FitBadge';
 import type { StatusAction } from '../../utils/statusTransitions';
 import { NotesDialog } from '../NotesDialog';
-import { LANGUAGE_LABELS } from '../../utils/language';
-import { summarizeNotes } from '../../utils/notes';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '../../types';
+import { LANGUAGE_LABELS } from '#shared/utils/language.ts';
+import { summarizeNotes } from '#shared/utils/notes.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '#shared/types.ts';
 
-const dateCellClass =
-  '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] w-[88px] shrink-0 text-right truncate ml-2';
+const dateCellClass = 'font-mono text-[11px] text-ink-3 w-[88px] shrink-0 text-right truncate ml-2';
 
 const langBadgeClass =
-  '[font-family:var(--font-mono)] uppercase tracking-[0.06em] leading-none shrink-0 text-[color:var(--ink-2)] border border-[color:var(--rule)] rounded px-1 py-[3px]';
+  'font-mono uppercase tracking-[0.06em] leading-none shrink-0 text-ink-2 border border-rule rounded px-1 py-[3px]';
 
 // Card layout (below lg): dates sit in a labelled 3-column grid instead of
 // fixed-width table cells. They follow the status history; to change one,
 // edit its step on the application's timeline.
-const cardLabelClass = '[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-[color:var(--ink-3)]';
-const cardDateClass = '[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] block truncate py-1';
+const cardLabelClass = 'font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3';
+const cardDateClass = 'font-mono text-[12px] text-ink-2 block truncate py-1';
 
 interface Props {
   application: ApplicationConfig;
@@ -80,23 +79,19 @@ export function ApplicationCard({
     <>
       {/* ── Card (below lg) ── */}
       <div
-        className="lg:hidden flex flex-col gap-3 border border-[color:var(--rule)] rounded-md p-3.5 cursor-pointer transition-colors duration-100 active:bg-[color:var(--surface)]"
+        className="lg:hidden flex flex-col gap-3 border border-rule rounded-md p-3.5 cursor-pointer transition-colors duration-100 active:bg-surface"
         onClick={open}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="[font-family:var(--font-mono)] text-[13.5px] text-[color:var(--ink-invert)] truncate">
-                {application.company}
-              </span>
+              <span className="font-mono text-[13.5px] text-ink-invert truncate">{application.company}</span>
               <span className={`${langBadgeClass} text-[10px]`} title={LANGUAGE_LABELS[language]}>
                 {language}
               </span>
               {application.fit && <FitBadge fit={application.fit} className="text-[11px] shrink-0" />}
             </div>
-            <div className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] mt-1 line-clamp-2">
-              {application.role}
-            </div>
+            <div className="font-mono text-[12px] text-ink-2 mt-1 line-clamp-2">{application.role}</div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {application.url && (
@@ -104,7 +99,7 @@ export function ApplicationCard({
                 href={application.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="[font-family:var(--font-mono)] text-[13px] text-[color:var(--ink-3)] no-underline border border-[color:var(--rule)] rounded w-8 h-8 flex items-center justify-center"
+                className="font-mono text-[13px] text-ink-3 no-underline border border-rule rounded w-8 h-8 flex items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
                 title={application.url}
                 aria-label="Open job posting"
@@ -114,7 +109,7 @@ export function ApplicationCard({
             )}
             {onDelete && (
               <button
-                className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded w-8 h-8 cursor-pointer leading-none"
+                className="font-mono text-[12px] text-ink-2 bg-transparent border border-rule rounded w-8 h-8 cursor-pointer leading-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
@@ -131,7 +126,7 @@ export function ApplicationCard({
         {/* Always a select here: there's no hover on touch, and a native picker is easier to hit than a tap-to-edit label */}
         <select
           data-tour="status"
-          className="self-start [font-family:var(--font-mono)] text-[12px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-2 py-1.5 cursor-pointer"
+          className="self-start font-mono text-[12px] bg-surface border border-rule rounded px-2 py-1.5 cursor-pointer"
           value={status}
           style={{ color: STATUS_COLORS[status] }}
           onChange={(e) => onStatusChange(e.target.value as StatusAction)}
@@ -151,7 +146,7 @@ export function ApplicationCard({
         </div>
 
         <div
-          className="border-t border-[color:var(--rule)] pt-2.5"
+          className="border-t border-rule pt-2.5"
           onClick={(e) => {
             e.stopPropagation();
             setNotesOpen(true);
@@ -159,7 +154,7 @@ export function ApplicationCard({
         >
           <div className={cardLabelClass}>notes</div>
           <p
-            className={`[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] mt-1 line-clamp-2 whitespace-pre-line ${notes?.length ? '' : 'opacity-40'}`}
+            className={`font-mono text-[12px] text-ink-2 mt-1 line-clamp-2 whitespace-pre-line ${notes?.length ? '' : 'opacity-40'}`}
           >
             {notes?.length ? summarizeNotes(notes) : 'tap to add notes'}
           </p>
@@ -168,18 +163,16 @@ export function ApplicationCard({
 
       {/* ── Table row (lg and up) ── */}
       <div
-        className="group hidden lg:flex items-center border-b border-[color:var(--rule)] py-2.5 cursor-pointer transition-colors duration-100 hover:bg-[color:var(--surface)]"
+        className="group hidden lg:flex items-center border-b border-rule py-2.5 cursor-pointer transition-colors duration-100 hover:bg-surface"
         onClick={open}
       >
         {/* Company */}
-        <div className="w-[190px] shrink-0 min-w-0 [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">
+        <div className="w-[190px] shrink-0 min-w-0 font-mono text-[12.5px] text-ink-invert truncate">
           {application.company}
         </div>
 
         {/* Role */}
-        <div className="flex-1 [font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] truncate min-w-[120px]">
-          {application.role}
-        </div>
+        <div className="flex-1 font-mono text-[12px] text-ink-2 truncate min-w-[120px]">{application.role}</div>
 
         {/* URL icon */}
         <div className="w-[28px] shrink-0 flex items-center justify-center">
@@ -188,7 +181,7 @@ export function ApplicationCard({
               href={application.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--accent)] transition-colors duration-100"
+              className="font-mono text-[12px] text-ink-3 no-underline hover:text-accent transition-colors duration-100"
               onClick={(e) => e.stopPropagation()}
               title={application.url}
             >
@@ -214,7 +207,7 @@ export function ApplicationCard({
           {editingStatus ? (
             <select
               autoFocus
-              className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-1.5 py-0.5 cursor-pointer w-full"
+              className="font-mono text-[11px] bg-surface border border-rule rounded px-1.5 py-0.5 cursor-pointer w-full"
               value={status}
               style={{ color: STATUS_COLORS[status] }}
               onChange={handleStatusChange}
@@ -225,7 +218,7 @@ export function ApplicationCard({
             </select>
           ) : (
             <span
-              className="[font-family:var(--font-mono)] text-[11px] cursor-pointer hover:opacity-70 transition-opacity"
+              className="font-mono text-[11px] cursor-pointer hover:opacity-70 transition-opacity"
               style={{ color: STATUS_COLORS[status] }}
               onClick={handleStatusClick}
               title="Click to change status"
@@ -244,7 +237,7 @@ export function ApplicationCard({
 
         {/* Notes — the cell only previews; adding/viewing happens in a dialog */}
         <span
-          className={`[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] w-[170px] shrink-0 pl-3 truncate cursor-pointer hover:opacity-70 transition-opacity ${notes?.length ? '' : 'opacity-40'}`}
+          className={`font-mono text-[11px] text-ink-2 w-[170px] shrink-0 pl-3 truncate cursor-pointer hover:opacity-70 transition-opacity ${notes?.length ? '' : 'opacity-40'}`}
           onClick={(e) => {
             e.stopPropagation();
             setNotesOpen(true);
@@ -256,10 +249,10 @@ export function ApplicationCard({
 
         {/* Delete (local apps only) — pinned to the right edge so it stays in
           view even when the row is wider than the window and scrolls. */}
-        <div className="sticky right-0 w-[36px] shrink-0 self-stretch flex items-center justify-center bg-[color:var(--bg)] group-hover:bg-[color:var(--surface)] transition-colors duration-100">
+        <div className="sticky right-0 w-[36px] shrink-0 self-stretch flex items-center justify-center bg-bg group-hover:bg-surface transition-colors duration-100">
           {onDelete && (
             <button
-              className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded w-[24px] h-[22px] cursor-pointer leading-none hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)] transition-colors"
+              className="font-mono text-[11px] text-ink-2 bg-transparent border border-rule rounded w-[24px] h-[22px] cursor-pointer leading-none hover:text-status-rejected hover:border-status-rejected transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();

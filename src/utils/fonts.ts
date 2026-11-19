@@ -1,4 +1,4 @@
-import type { AppFont } from '../types';
+import type { AppFont } from '#shared/types.ts';
 
 export const FONT_STACKS: Record<AppFont, string> = {
   sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",

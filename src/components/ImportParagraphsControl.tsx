@@ -62,7 +62,7 @@ export function ImportParagraphsControl({ onImport }: Props) {
           setError(null);
         }}
       />
-      {error && <span className="text-[11px] text-[color:var(--status-rejected)]">{error}</span>}
+      {error && <span className="text-[11px] text-status-rejected">{error}</span>}
       <div className="flex gap-2">
         <button className={editSaveBtn} onClick={handleApply}>
           Apply

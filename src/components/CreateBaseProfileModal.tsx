@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { AppLanguage, BaseProfile, Profile } from '../types';
+import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
 import { getStaticProfile } from '../data/profiles';
 import { blankProfile, saveBaseProfile, uniqueBaseProfileId } from '../utils/baseProfiles';
-import { parseProfile } from '../utils/parseProfile';
+import { parseProfile } from '#shared/validation/parseProfile.ts';
 import { JsonFileButton } from './JsonFileButton';
 import { nafSection, nafLabel, nafInput, nafAddBtn } from '../styles/formStyles';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../utils/language';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 
 type StartFrom = 'blank' | 'language-default' | 'json' | `duplicate:${string}`;
 
@@ -59,7 +59,7 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
         className={`bg-[#1a2236] rounded-lg w-full ${startFrom === 'json' ? 'max-w-[600px]' : 'max-w-[440px]'} p-6 flex flex-col gap-4 shadow-[0_20px_60px_rgba(20,28,46,0.40)]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="[font-family:var(--font-mono)] text-[12px] font-semibold tracking-[0.04em] uppercase text-[color:var(--ink-invert)]">
+        <div className="font-mono text-[12px] font-semibold tracking-[0.04em] uppercase text-ink-invert">
           New base profile
         </div>
 
@@ -118,7 +118,7 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
             <textarea
               className={
                 nafInput +
-                ' [font-family:var(--font-mono)] text-[11.5px] leading-[1.55] h-[220px] resize-none whitespace-pre [overflow-wrap:normal] overflow-auto'
+                ' font-mono text-[11.5px] leading-[1.55] h-[220px] resize-none whitespace-pre [overflow-wrap:normal] overflow-auto'
               }
               placeholder={'{\n  "name": "...",\n  "role": "...",\n  ...\n}'}
               spellCheck={false}
@@ -129,7 +129,7 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
               }}
             />
             {jsonErrors.length > 0 && (
-              <div className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-rejected)] flex flex-col gap-1 max-h-[120px] overflow-y-auto">
+              <div className="font-mono text-[11px] text-status-rejected flex flex-col gap-1 max-h-[120px] overflow-y-auto">
                 <span className="font-semibold">This doesn't look like a profile:</span>
                 {jsonErrors.map((err, i) => (
                   <div key={i}>{err}</div>
@@ -141,13 +141,13 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
 
         <div className="flex justify-end gap-2 mt-1">
           <button
-            className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-3)] border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-[color:var(--ink-invert)]"
+            className="font-mono text-[11px] bg-transparent text-ink-3 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert"
             onClick={onClose}
           >
             Cancel
           </button>
           <button
-            className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-[6px] cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-[6px] cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={handleCreate}
             disabled={!canCreate}
           >

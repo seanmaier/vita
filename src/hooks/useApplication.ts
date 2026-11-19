@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { getConfigOverride, setConfigOverride, clearConfigOverride, hasConfigOverride } from '../utils/appStorage';
 import { setChangeMessage } from '../utils/storage';
 

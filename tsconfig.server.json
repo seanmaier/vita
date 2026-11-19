@@ -6,12 +6,17 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Node runs these files directly via type stripping, so tsc only checks */
+    /* Node runs these files directly via type stripping. tsc only checks them
+       and writes declarations, which the frontend reads for the API client's
+       types (tsconfig.app.json references this project) without type-checking
+       server code itself. */
     "module": "nodenext",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./node_modules/.tmp/server-types",
 
     /* Linting */
     "strict": true,
@@ -20,5 +25,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "scripts", "src/**/*.test.ts"]
+  "include": ["server", "scripts", "shared"]
 }

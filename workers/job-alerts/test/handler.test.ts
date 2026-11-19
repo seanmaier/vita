@@ -1,7 +1,6 @@
-import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { assert, expect, test, vi } from 'vitest';
 import { gzipSync } from 'node:zlib';
 import { handleEmail, sanitize, type Env } from '../src/handler.ts';
 
@@ -84,48 +83,48 @@ test('Gmail confirmation is posted with kind confirmation and the code', async (
   );
   const m = fakeMessage('Forwarding-NoReply@Google.com', raw);
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(f.calls[0].url, 'https://app.test/api/v1/inbound-mail');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(f.calls[0].url).toBe('https://app.test/api/v1/inbound-mail');
   const body = bodyOf(f);
-  assert.equal(body.kind, 'confirmation');
-  assert.equal(body.recipient, RECIPIENT);
-  assert.equal(body.envelopeFrom, 'Forwarding-NoReply@Google.com');
-  assert.equal(body.detail, 'code: 123456\nurl: https://mail.google.com/mail/vf-abc');
-  assert.equal(body.leads, undefined);
+  expect(body.kind).toBe('confirmation');
+  expect(body.recipient).toBe(RECIPIENT);
+  expect(body.envelopeFrom).toBe('Forwarding-NoReply@Google.com');
+  expect(body.detail).toBe('code: 123456\nurl: https://mail.google.com/mail/vf-abc');
+  expect(body.leads).toBe(undefined);
 });
 
 test('confirmation without a code still posts with a fallback detail', async () => {
   const m = fakeMessage('forwarding-noreply@google.com', rawMail('x@google.com', 'hello', 'text/plain'));
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'confirmation');
-  assert.equal(bodyOf(f).detail, 'no code found');
+  expect(bodyOf(f).kind).toBe('confirmation');
+  expect(bodyOf(f).detail).toBe('no code found');
 });
 
 test('looser google.com senders are not treated as confirmation', async () => {
   const m = fakeMessage('evil-forwarding-noreply@google.com', rawMail('x@google.com', 'code'));
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'failed');
+  expect(bodyOf(f).kind).toBe('failed');
 });
 
 test('valid LinkedIn alert is posted as leads with recipient and bearer token', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(f.calls.length, 1);
-  assert.equal(f.calls[0].url, 'https://app.test/api/v1/inbound-mail');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(f.calls.length).toBe(1);
+  expect(f.calls[0].url).toBe('https://app.test/api/v1/inbound-mail');
   const headers = f.calls[0].init.headers as Record<string, string>;
-  assert.equal(headers.Authorization, 'Bearer tok-123');
-  assert.equal(headers['CF-Access-Client-Id'], undefined);
+  expect(headers.Authorization).toBe('Bearer tok-123');
+  expect(headers['CF-Access-Client-Id']).toBe(undefined);
   const body = bodyOf(f);
-  assert.equal(body.kind, 'leads');
-  assert.equal(body.recipient, RECIPIENT);
-  assert.equal(body.envelopeFrom, GMAIL_ENVELOPE);
-  assert.equal(body.subject, 'Neue Jobs');
-  assert.equal(body.sender, 'LinkedIn <jobalerts-noreply@linkedin.com>');
-  assert.ok(body.leads.length > 0);
-  assert.equal(body.leads[0].source, 'linkedin');
+  expect(body.kind).toBe('leads');
+  expect(body.recipient).toBe(RECIPIENT);
+  expect(body.envelopeFrom).toBe(GMAIL_ENVELOPE);
+  expect(body.subject).toBe('Neue Jobs');
+  expect(body.sender).toBe('LinkedIn <jobalerts-noreply@linkedin.com>');
+  expect(body.leads.length).toBeGreaterThan(0);
+  expect(body.leads[0].source).toBe('linkedin');
 });
 
 test('an Instaffo mail (html + text part) is posted as leads built from both parts', async () => {
@@ -144,8 +143,8 @@ test('an Instaffo mail (html + text part) is posted as leads built from both par
   const raw = rawMail('Instaffo <notifications@app.instaffo.com>', multipart, 'multipart/alternative; boundary="b1"');
   const m = fakeMessage(GMAIL_ENVELOPE, raw);
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.deepEqual(bodyOf(f).leads, [
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(bodyOf(f).leads).toEqual([
     {
       source: 'instaffo',
       externalId: '0adc31c6-604b-41c1-9ae0-caa338763987',
@@ -161,25 +160,25 @@ test('Cloudflare Access headers are sent when configured', async () => {
   const f = fakeFetch(201);
   await handleEmail(m.message, { ...env, CF_ACCESS_CLIENT_ID: 'id', CF_ACCESS_CLIENT_SECRET: 'sec' }, f.impl, noSleep);
   const headers = f.calls[0].init.headers as Record<string, string>;
-  assert.equal(headers['CF-Access-Client-Id'], 'id');
-  assert.equal(headers['CF-Access-Client-Secret'], 'sec');
+  expect(headers['CF-Access-Client-Id']).toBe('id');
+  expect(headers['CF-Access-Client-Secret']).toBe('sec');
 });
 
 test('unknown alert sender is posted as failed', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('news@unknown.example', linkedinHtml));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(bodyOf(f).kind, 'failed');
-  assert.equal(bodyOf(f).detail, 'unknown alert sender');
-  assert.equal(bodyOf(f).leads, undefined);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(bodyOf(f).kind).toBe('failed');
+  expect(bodyOf(f).detail).toBe('unknown alert sender');
+  expect(bodyOf(f).leads).toBe(undefined);
 });
 
 test('mail without leads is posted as failed', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', '<p>nothing</p>'));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(bodyOf(f).kind, 'failed');
-  assert.equal(bodyOf(f).detail, 'no leads found');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(bodyOf(f).kind).toBe('failed');
+  expect(bodyOf(f).detail).toBe('no leads found');
 });
 
 test('subject and sender are truncated to 300 chars', async () => {
@@ -194,23 +193,23 @@ test('subject and sender are truncated to 300 chars', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, raw);
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).subject.length, 300);
-  assert.equal(bodyOf(f).sender.length, 300);
+  expect(bodyOf(f).subject.length).toBe(300);
+  expect(bodyOf(f).sender.length).toBe(300);
 });
 
 test('404 from the app rejects the mail and is not retried', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(404);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'rejected');
-  assert.equal(f.calls.length, 1);
-  assert.deepEqual(m.rejects, ['not accepted']);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('rejected');
+  expect(f.calls.length).toBe(1);
+  expect(m.rejects).toEqual(['not accepted']);
 });
 
 test('403 and 400 from the app reject the mail', async () => {
   for (const status of [403, 400]) {
     const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
-    assert.equal(await handleEmail(m.message, env, fakeFetch(status).impl, noSleep), 'rejected');
-    assert.deepEqual(m.rejects, ['not accepted']);
+    expect(await handleEmail(m.message, env, fakeFetch(status).impl, noSleep)).toBe('rejected');
+    expect(m.rejects).toEqual(['not accepted']);
   }
 });
 
@@ -219,10 +218,10 @@ test("a rejection logs the app's error message, so the three 403 causes can be t
   const impl = (async () =>
     Response.json({ error: 'This endpoint is for the mail worker only.' }, { status: 403 })) as unknown as typeof fetch;
   const logs = await captureLogs(() => handleEmail(m.message, env, impl, noSleep));
-  assert.ok(
+  expect(
     logs.some((l) => l.includes('status=403') && l.includes('reason="This endpoint is for the mail worker only."')),
     logs.join('\n'),
-  );
+  ).toBeTruthy();
 });
 
 test('a rejection without a JSON error (e.g. an HTML page) logs no reason', async () => {
@@ -230,7 +229,7 @@ test('a rejection without a JSON error (e.g. an HTML page) logs no reason', asyn
   const impl = (async () => new Response('<html>Forbidden</html>', { status: 403 })) as unknown as typeof fetch;
   const logs = await captureLogs(() => handleEmail(m.message, env, impl, noSleep));
   const line = logs.find((l) => l.includes('status=403'));
-  assert.ok(line && !line.includes('reason='), logs.join('\n'));
+  expect(line && !line.includes('reason='), logs.join('\n')).toBeTruthy();
 });
 
 test('two 502s lead to a temporary rejection after one retry', async () => {
@@ -240,31 +239,31 @@ test('two 502s lead to a temporary rejection after one retry', async () => {
   const result = await handleEmail(m.message, env, f.impl, async (ms) => {
     slept = ms;
   });
-  assert.equal(result, 'unavailable');
-  assert.equal(f.calls.length, 2);
-  assert.equal(slept, 2000);
-  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+  expect(result).toBe('unavailable');
+  expect(f.calls.length).toBe(2);
+  expect(slept).toBe(2000);
+  expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('a network error followed by success is delivered', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(new Error('boom'), 201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(f.calls.length, 2);
-  assert.deepEqual(m.rejects, []);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(f.calls.length).toBe(2);
+  expect(m.rejects).toEqual([]);
 });
 
 test('a redirect is no success and ends temporarily rejected', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(302);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
-  assert.equal((f.calls[0].init as RequestInit).redirect, 'manual');
-  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('unavailable');
+  expect((f.calls[0].init as RequestInit).redirect).toBe('manual');
+  expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('a 200 response (e.g. login page) is not treated as delivered', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
-  assert.equal(await handleEmail(m.message, env, fakeFetch(200).impl, noSleep), 'unavailable');
+  expect(await handleEmail(m.message, env, fakeFetch(200).impl, noSleep)).toBe('unavailable');
 });
 
 test('leads are capped at 100 per batch and titles at 300 chars', async () => {
@@ -274,10 +273,10 @@ test('leads are capped at 100 per batch and titles at 300 chars', async () => {
   ).join('\n');
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', anchors));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
   const body = bodyOf(f);
-  assert.equal(body.leads.length, 100);
-  assert.ok(body.leads.every((l: { title: string }) => l.title.length <= 300));
+  expect(body.leads.length).toBe(100);
+  expect(body.leads.every((l: { title: string }) => l.title.length <= 300)).toBeTruthy();
 });
 
 test('sanitize drops https urls that do not parse', () => {
@@ -287,17 +286,14 @@ test('sanitize drops https urls that do not parse', () => {
     lead('https://exa mple.com/x'),
     lead('https://www.linkedin.com/jobs/view/1/'),
   ]);
-  assert.deepEqual(
-    clean.map((l) => l.url),
-    ['https://www.linkedin.com/jobs/view/1/'],
-  );
+  expect(clean.map((l) => l.url)).toEqual(['https://www.linkedin.com/jobs/view/1/']);
 });
 
 test('APP_URL with trailing slashes does not produce a double slash', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(201);
   await handleEmail(m.message, { ...env, APP_URL: 'https://app.test//' }, f.impl, noSleep);
-  assert.equal(f.calls[0].url, 'https://app.test/api/v1/inbound-mail');
+  expect(f.calls[0].url).toBe('https://app.test/api/v1/inbound-mail');
 });
 
 test('a raw stream that errors ends in a temporary rejection', async () => {
@@ -308,9 +304,9 @@ test('a raw stream that errors ends in a temporary rejection', async () => {
     },
   });
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
-  assert.equal(f.calls.length, 0);
-  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('unavailable');
+  expect(f.calls.length).toBe(0);
+  expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('an unexpected error while building the payload ends in a temporary rejection', async () => {
@@ -321,25 +317,25 @@ test('an unexpected error while building the payload ends in a temporary rejecti
     },
   });
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'unavailable');
-  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('unavailable');
+  expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('the app call has a timeout signal and an abort is retried like a network error', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const abort = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
   const f = fakeFetch(abort as unknown as Error, 201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(f.calls.length, 2);
-  assert.ok(f.calls[0].init.signal instanceof AbortSignal);
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(f.calls.length).toBe(2);
+  expect(f.calls[0].init.signal).toBeInstanceOf(AbortSignal);
 });
 
 test('a missing APP_URL secret calls nothing and ends temporarily rejected', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, { ...env, APP_URL: '' }, f.impl, noSleep), 'unavailable');
-  assert.equal(f.calls.length, 0);
-  assert.deepEqual(m.rejects, ['Vita is unavailable right now; please forward this mail again later']);
+  expect(await handleEmail(m.message, { ...env, APP_URL: '' }, f.impl, noSleep)).toBe('unavailable');
+  expect(f.calls.length).toBe(0);
+  expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
 test('a mail forwarded by hand from iCloud is parsed by the platform in the quoted header', async () => {
@@ -350,11 +346,11 @@ test('a mail forwarded by hand from iCloud is parsed by the platform in the quot
     `<b>Subject:</b> Job</div></blockquote><blockquote type="cite"><a href="https://cts.indeed.com/v3/${token}/sig">Backend Dev</a></blockquote>`;
   const m = fakeMessage('me@icloud.com', rawMail('Me <me@icloud.com>', html));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
   const body = bodyOf(f);
-  assert.equal(body.kind, 'leads');
-  assert.equal(body.envelopeFrom, 'me@icloud.com');
-  assert.deepEqual(body.leads, [
+  expect(body.kind).toBe('leads');
+  expect(body.envelopeFrom).toBe('me@icloud.com');
+  expect(body.leads).toEqual([
     { source: 'indeed', externalId: jk, title: 'Backend Dev', url: `https://de.indeed.com/viewjob?jk=${jk}` },
   ]);
 });
@@ -384,9 +380,9 @@ test('a forward whose text part is one long line (iCloud after Outlook) still fi
     rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'),
   );
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
-  assert.equal(bodyOf(f).kind, 'leads');
-  assert.equal(bodyOf(f).leads[0].externalId, 'abcdefabcdef0123');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
+  expect(bodyOf(f).kind).toBe('leads');
+  expect(bodyOf(f).leads[0].externalId).toBe('abcdefabcdef0123');
 });
 
 /** A mail as Outlook sends it with "forward as attachment": a note from the user plus the original as .eml. */
@@ -432,16 +428,15 @@ test('a mail forwarded as attachment is read from the attached original, text pa
   for (const disposition of ['attachment; filename="Neue Jobs.eml"', 'inline']) {
     const m = fakeMessage('me@outlook.example', forwardedAsAttachment(instaffoOriginal(), disposition));
     const f = fakeFetch(201);
-    assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+    expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
     const body = bodyOf(f);
-    assert.equal(body.kind, 'leads', disposition);
-    assert.equal(body.envelopeFrom, 'me@outlook.example');
-    assert.equal(body.subject, 'Neuer Top-Match');
-    assert.equal(body.sender, 'Instaffo <notifications@app.instaffo.com>');
-    assert.deepEqual(
-      body.leads.map((l: { externalId: string }) => l.externalId),
-      ['0adc31c6-604b-41c1-9ae0-caa338763987'],
-    );
+    expect(body.kind, disposition).toBe('leads');
+    expect(body.envelopeFrom).toBe('me@outlook.example');
+    expect(body.subject).toBe('Neuer Top-Match');
+    expect(body.sender).toBe('Instaffo <notifications@app.instaffo.com>');
+    expect(body.leads.map((l: { externalId: string }) => l.externalId)).toEqual([
+      '0adc31c6-604b-41c1-9ae0-caa338763987',
+    ]);
   }
 });
 
@@ -450,38 +445,42 @@ test('an attached mail from an unknown sender is ignored, and the outer mail dec
   const m = fakeMessage('me@outlook.example', forwardedAsAttachment(stranger));
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'failed');
-  assert.equal(bodyOf(f).detail, 'unknown alert sender');
+  expect(bodyOf(f).kind).toBe('failed');
+  expect(bodyOf(f).detail).toBe('unknown alert sender');
 });
 
 test('an attached alert is not read when the outer mail fails SPF', async () => {
   const m = fakeMessage('me@outlook.example', forwardedAsAttachment(instaffoOriginal()), { spf: false });
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'failed');
-  assert.equal(bodyOf(f).detail, 'sender not verified (SPF)');
+  expect(bodyOf(f).kind).toBe('failed');
+  expect(bodyOf(f).detail).toBe('sender not verified (SPF)');
 });
 
-test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async (t) => {
+test('LOG_HEADERS=1 logs the header diagnostics, and delivery still happens', async () => {
   const logs: string[] = [];
-  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  vi.spyOn(console, 'log').mockImplementation((line: string) => {
+    logs.push(line);
+  });
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, { ...env, LOG_HEADERS: '1' }, f.impl, noSleep), 'delivered');
+  expect(await handleEmail(m.message, { ...env, LOG_HEADERS: '1' }, f.impl, noSleep)).toBe('delivered');
   const line = logs.find((l) => l.startsWith('job-alerts: headers '));
-  assert.ok(line, 'expected a headers log line');
+  assert(line, 'expected a headers log line');
   const d = JSON.parse(line.slice('job-alerts: headers '.length));
-  assert.equal(d.envelopeFrom, GMAIL_ENVELOPE);
-  assert.equal(d.from, 'jobalerts-noreply@linkedin.com');
-  assert.ok(!line.includes('Neue Jobs'), 'must not log the subject');
+  expect(d.envelopeFrom).toBe(GMAIL_ENVELOPE);
+  expect(d.from).toBe('jobalerts-noreply@linkedin.com');
+  expect(line, 'must not log the subject').not.toContain('Neue Jobs');
 });
 
-test('without LOG_HEADERS no header diagnostics are logged', async (t) => {
+test('without LOG_HEADERS no header diagnostics are logged', async () => {
   const logs: string[] = [];
-  t.mock.method(console, 'log', (line: string) => logs.push(line));
+  vi.spyOn(console, 'log').mockImplementation((line: string) => {
+    logs.push(line);
+  });
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   await handleEmail(m.message, env, fakeFetch(201).impl, noSleep);
-  assert.ok(!logs.some((l) => l.startsWith('job-alerts: headers ')));
+  expect(logs).not.toContainEqual(expect.stringMatching(/^job-alerts: headers /));
 });
 
 test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as leads', async () => {
@@ -489,14 +488,14 @@ test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as l
     spf: false,
   });
   const f = fakeFetch(201);
-  assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
+  expect(await handleEmail(m.message, env, f.impl, noSleep)).toBe('delivered');
   const body = bodyOf(f);
-  assert.equal(body.kind, 'failed');
-  assert.equal(body.detail, 'sender not verified (SPF)');
-  assert.equal(body.leads, undefined);
+  expect(body.kind).toBe('failed');
+  expect(body.detail).toBe('sender not verified (SPF)');
+  expect(body.leads).toBe(undefined);
   // An unverified sender chooses these freely, so they are not stored.
-  assert.equal(body.subject, undefined);
-  assert.equal(body.sender, undefined);
+  expect(body.subject).toBe(undefined);
+  expect(body.sender).toBe(undefined);
 });
 
 test('a Gmail confirmation without SPF pass is posted as failed and carries no code', async () => {
@@ -504,9 +503,9 @@ test('a Gmail confirmation without SPF pass is posted as failed and carries no c
   const m = fakeMessage('forwarding-noreply@google.com', raw, { spf: false });
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'failed');
-  assert.equal(bodyOf(f).detail, 'sender not verified (SPF)');
-  assert.ok(!(f.calls[0].init.body as string).includes('123456'));
+  expect(bodyOf(f).kind).toBe('failed');
+  expect(bodyOf(f).detail).toBe('sender not verified (SPF)');
+  expect(f.calls[0].init.body as string).not.toContain('123456');
 });
 
 test('an Outlook-redirected LinkedIn alert with SPF pass is posted as leads', async () => {
@@ -519,6 +518,6 @@ test('an Outlook-redirected LinkedIn alert with SPF pass is posted as leads', as
   const m = fakeMessage(envelope, raw, { spf: false });
   const f = fakeFetch(201);
   await handleEmail(m.message, env, f.impl, noSleep);
-  assert.equal(bodyOf(f).kind, 'leads');
-  assert.equal(bodyOf(f).envelopeFrom, envelope);
+  expect(bodyOf(f).kind).toBe('leads');
+  expect(bodyOf(f).envelopeFrom).toBe(envelope);
 });

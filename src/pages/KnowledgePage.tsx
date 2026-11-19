@@ -147,7 +147,7 @@ export function KnowledgePage() {
         Background about you that the AI assistant reads for applications and job checks.
       </p>
 
-      <div className="flex border-b border-[color:var(--rule)] mb-5" role="tablist">
+      <div className="flex border-b border-rule mb-5" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.doc}
@@ -164,7 +164,7 @@ export function KnowledgePage() {
       </div>
 
       {loadError ? (
-        <p className="text-[12px] text-[color:var(--status-rejected)]">{loadError}</p>
+        <p className="text-[12px] text-status-rejected">{loadError}</p>
       ) : saved === null ? (
         <DocumentTextSkeleton />
       ) : (
@@ -175,7 +175,7 @@ export function KnowledgePage() {
                 <span className={nafLabel}>{TABS.find((t) => t.doc === doc)?.label} (Markdown)</span>
                 <AutoTextarea
                   extraLines={3}
-                  className="[font-family:var(--font-mono)] text-[12.5px] bg-[color:var(--surface)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] py-2 px-[11px] text-[color:var(--ink-invert)] w-full min-h-[120px] leading-[1.55] focus:outline-none focus:border-[color:var(--accent)]"
+                  className="font-mono text-[12.5px] bg-surface border-[1.5px] border-rule rounded-[5px] py-2 px-[11px] text-ink-invert w-full min-h-[120px] leading-[1.55] focus:outline-none focus:border-accent"
                   value={content}
                   onChange={(e) => {
                     setContent(e.target.value);
@@ -184,7 +184,7 @@ export function KnowledgePage() {
                 />
               </label>
 
-              {saveError && <p className="text-[12px] text-[color:var(--status-rejected)]">{saveError}</p>}
+              {saveError && <p className="text-[12px] text-status-rejected">{saveError}</p>}
 
               <div className="flex gap-2">
                 <button className={primaryButton} type="button" disabled={busy || !dirty} onClick={() => void save()}>
@@ -198,15 +198,13 @@ export function KnowledgePage() {
           ) : (
             <>
               {saved === '' ? (
-                <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)]">
-                  Nothing here yet.
-                </p>
+                <p className="font-mono text-[12px] text-ink-2">Nothing here yet.</p>
               ) : (
                 <MarkdownView source={saved} />
               )}
 
-              {saveError && <p className="text-[12px] text-[color:var(--status-rejected)]">{saveError}</p>}
-              {justSaved && <p className="text-[12px] text-[color:var(--status-offer)]">Saved.</p>}
+              {saveError && <p className="text-[12px] text-status-rejected">{saveError}</p>}
+              {justSaved && <p className="text-[12px] text-status-offer">Saved.</p>}
 
               <button
                 className={primaryButton}

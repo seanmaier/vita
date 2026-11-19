@@ -114,10 +114,10 @@ export function ApiTokensSection() {
           {tokens.map((t) => (
             <li
               key={t.name}
-              className="flex items-center justify-between gap-3 border border-[color:var(--rule)] rounded-[5px] px-3 py-2"
+              className="flex items-center justify-between gap-3 border border-rule rounded-[5px] px-3 py-2"
             >
               <div className="min-w-0">
-                <div className="text-[13px] text-[color:var(--ink-invert)] truncate">
+                <div className="text-[13px] text-ink-invert truncate">
                   {t.name}
                   <span className={`${hint} ml-2`}>{TOKEN_SCOPE_INFO[t.scope]?.label ?? t.scope}</span>
                 </div>
@@ -141,13 +141,11 @@ export function ApiTokensSection() {
       {tokens && tokens.length === 0 && <p className={hint}>No tokens yet.</p>}
 
       {created && (
-        <div className="flex flex-col gap-2 border-[1.5px] border-[color:var(--accent)] rounded-[5px] p-3">
-          <span className="text-[12px] text-[color:var(--ink-invert)]">
+        <div className="flex flex-col gap-2 border-[1.5px] border-accent rounded-[5px] p-3">
+          <span className="text-[12px] text-ink-invert">
             Token "{created.name}" {created.rotated ? 'rotated' : 'created'}. Copy it now: it won't be shown again.
           </span>
-          <code className="[font-family:var(--font-mono)] text-[11.5px] break-all text-[color:var(--ink-2)] select-all">
-            {created.token}
-          </code>
+          <code className="font-mono text-[11.5px] break-all text-ink-2 select-all">{created.token}</code>
           <button className={primaryButton} type="button" onClick={() => void copy()}>
             {copied ? 'copied' : 'copy token'}
           </button>
@@ -186,7 +184,7 @@ export function ApiTokensSection() {
       </form>
       <p className={hint}>{TOKEN_SCOPE_INFO[scope].description}</p>
 
-      {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
+      {error && <p className="text-[12px] text-status-rejected">{error}</p>}
     </section>
   );
 }

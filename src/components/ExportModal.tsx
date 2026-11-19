@@ -29,33 +29,31 @@ export function ExportModal({ text, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-[color:var(--surface)] rounded-lg w-full max-w-[740px] max-h-[84vh] flex flex-col shadow-[0_16px_48px_rgba(20,28,46,0.24)] overflow-hidden"
+        className="bg-surface rounded-lg w-full max-w-[740px] max-h-[84vh] flex flex-col shadow-[0_16px_48px_rgba(20,28,46,0.24)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center py-3.5 px-5 border-b border-[color:var(--rule)] shrink-0 gap-3">
-          <span className="[font-family:var(--font-mono)] text-[12px] font-semibold text-[color:var(--ink)] tracking-[0.06em] uppercase">
-            LLM Export
-          </span>
+        <div className="flex justify-between items-center py-3.5 px-5 border-b border-rule shrink-0 gap-3">
+          <span className="font-mono text-[12px] font-semibold text-ink tracking-[0.06em] uppercase">LLM Export</span>
           <div className="flex gap-2 items-center">
             <button
               className={
                 copied
-                  ? '[font-family:var(--font-mono)] text-[11px] bg-[#059669] text-[color:var(--ink)] font-semibold border-none rounded px-3.5 py-1.5 cursor-pointer tracking-[0.02em] hover:bg-[#059669]'
-                  : '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-3.5 py-1.5 cursor-pointer transition-[filter] duration-150 tracking-[0.02em] hover:brightness-110'
+                  ? 'font-mono text-[11px] bg-[#059669] text-ink font-semibold border-none rounded px-3.5 py-1.5 cursor-pointer tracking-[0.02em] hover:bg-[#059669]'
+                  : 'font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-3.5 py-1.5 cursor-pointer transition-[filter] duration-150 tracking-[0.02em] hover:brightness-110'
               }
               onClick={handleCopy}
             >
               {copied ? 'Copied!' : 'Copy to clipboard'}
             </button>
             <button
-              className="text-[14px] bg-transparent border-none text-[color:var(--ink-3)] cursor-pointer py-1 px-2 rounded leading-none hover:bg-[color:var(--bg)] hover:text-[color:var(--ink)]"
+              className="text-[14px] bg-transparent border-none text-ink-3 cursor-pointer py-1 px-2 rounded leading-none hover:bg-bg hover:text-ink"
               onClick={onClose}
             >
               ✕
             </button>
           </div>
         </div>
-        <pre className="[font-family:var(--font-mono)] text-[11.5px] leading-[1.65] text-[color:var(--ink-2)] py-5 px-6 overflow-y-auto whitespace-pre-wrap break-words flex-1">
+        <pre className="font-mono text-[11.5px] leading-[1.65] text-ink-2 py-5 px-6 overflow-y-auto whitespace-pre-wrap break-words flex-1">
           {text}
         </pre>
       </div>

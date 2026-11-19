@@ -1,48 +1,30 @@
+import type { InferResponseType } from 'hono/client';
 import { flush, hydrate, localWriteCount } from './storage';
-import type { InboundEvent, JobAlertsConfig, JobLead, JobLeadStatus } from '../types';
-import type { AppVersion } from './versionDiff';
+import type { JobLead, JobLeadStatus } from '#shared/types.ts';
+import { client, detailedErrorFrom, errorFrom } from './apiClient';
 
-export interface SessionUser {
-  id: number;
-  username: string;
-  /** Only from /api/me; decides which token scopes the account page offers. */
-  admin?: boolean;
-}
-
-/** The server's `{ error }` message for a failed response, or a generic one with the status. */
-export async function errorFrom(res: Response, fallback: string): Promise<Error> {
-  const body: { error?: unknown } = await res.json().catch(() => ({}));
-  return new Error(typeof body.error === 'string' ? body.error : `${fallback} (HTTP ${res.status}).`);
-}
+/** The logged-in user; `admin` decides which token scopes the account page offers. */
+export type SessionUser = InferResponseType<typeof client.api.me.$get, 200>;
 
 export async function fetchCurrentUser(): Promise<SessionUser | null> {
-  const res = await fetch('/api/me');
+  const res = await client.api.me.$get();
   if (res.status === 401) return null;
   if (!res.ok) throw new Error(`Server unreachable (HTTP ${res.status}).`);
   return res.json();
 }
 
-export async function login(username: string, password: string): Promise<SessionUser> {
-  const res = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
+export async function login(username: string, password: string): Promise<void> {
+  const res = await client.api.login.$post({ json: { username, password } });
   if (!res.ok) throw await errorFrom(res, 'Login failed');
-  return res.json();
 }
 
 export async function logout(): Promise<void> {
-  await fetch('/api/logout', { method: 'POST' });
+  await client.api.logout.$post();
 }
 
 /** Changes the logged-in user's password; throws with the server's message if it was refused. */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  const res = await fetch('/api/password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
+  const res = await client.api.password.$post({ json: { currentPassword, newPassword } });
   if (!res.ok) throw await errorFrom(res, 'Changing the password failed');
 }
 
@@ -81,46 +63,35 @@ export const TOKEN_SCOPE_INFO: Record<string, { label: string; description: stri
   },
 };
 
-export interface ApiToken {
-  name: string;
-  scope: string;
-  created_at: string;
-  last_used_at: string | null;
-}
+export type ApiToken = InferResponseType<typeof client.api.tokens.$get, 200>[number];
 
 export async function fetchApiTokens(): Promise<ApiToken[]> {
-  const res = await fetch('/api/tokens');
+  const res = await client.api.tokens.$get();
   if (!res.ok) throw await errorFrom(res, 'Loading API tokens failed');
   return res.json();
 }
 
 /** Creates a token and returns its secret, which the server never shows again. */
 export async function createApiToken(name: string, scope: UserTokenScope = 'full'): Promise<string> {
-  const res = await fetch('/api/tokens', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, scope }),
-  });
-  if (!res.ok) throw await errorFrom(res, 'Creating the token failed');
-  const body: { token: string } = await res.json();
-  return body.token;
+  const res = await client.api.tokens.$post({ json: { name, scope } });
+  if (res.status !== 201) throw await errorFrom(res, 'Creating the token failed');
+  return (await res.json()).token;
 }
 
 export async function revokeApiToken(name: string): Promise<void> {
-  const res = await fetch(`/api/tokens/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  const res = await client.api.tokens[':name'].$delete({ param: { name: encodeURIComponent(name) } });
   if (!res.ok) throw await errorFrom(res, 'Revoking the token failed');
 }
 
 /** Gives a token a new secret, keeping its name and scope; the old secret stops working at once. */
 export async function rotateApiToken(name: string): Promise<string> {
-  const res = await fetch(`/api/tokens/${encodeURIComponent(name)}/rotate`, { method: 'POST' });
+  const res = await client.api.tokens[':name'].rotate.$post({ param: { name: encodeURIComponent(name) } });
   if (!res.ok) throw await errorFrom(res, 'Rotating the token failed');
-  const body: { token: string } = await res.json();
-  return body.token;
+  return (await res.json()).token;
 }
 
 export async function fetchUserData(): Promise<Record<string, string>> {
-  const res = await fetch('/api/data');
+  const res = await client.api.data.$get();
   if (!res.ok) throw new Error(`Loading data failed (HTTP ${res.status}).`);
   return res.json();
 }
@@ -138,10 +109,12 @@ export async function refreshUserData(): Promise<void> {
   if (localWriteCount() === before) hydrate(entries);
 }
 
+const applicationRoutes = client.api.v1.applications[':id'];
+
 /** An application's version history, newest first. */
-export async function fetchVersions(appId: string): Promise<AppVersion[]> {
+export async function fetchVersions(appId: string) {
   await flush();
-  const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/versions`);
+  const res = await applicationRoutes.versions.$get({ param: { id: encodeURIComponent(appId) } });
   if (!res.ok) throw await errorFrom(res, 'Loading the history failed');
   return res.json();
 }
@@ -149,8 +122,8 @@ export async function fetchVersions(appId: string): Promise<AppVersion[]> {
 /** Makes an older version the application's current content (itself recorded as a new version). */
 export async function restoreVersion(appId: string, versionId: number): Promise<void> {
   await flush();
-  const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/versions/${versionId}/restore`, {
-    method: 'POST',
+  const res = await applicationRoutes.versions[':versionId'].restore.$post({
+    param: { id: encodeURIComponent(appId), versionId: String(versionId) },
   });
   if (!res.ok) throw await errorFrom(res, 'Restoring the version failed');
   await refreshUserData();
@@ -167,36 +140,21 @@ export type KnowledgeDoc = 'about-me' | 'priorities';
 
 /** The knowledge document's text, or null if it hasn't been written yet. */
 export async function fetchKnowledge(doc: KnowledgeDoc): Promise<string | null> {
-  const res = await fetch(`/api/v1/knowledge/${doc}`);
+  const res = await client.api.v1.knowledge[':doc'].$get({ param: { doc } });
   if (res.status === 404) return null;
   if (!res.ok) throw await errorFrom(res, 'Loading the document failed');
-  const body: { content: string } = await res.json();
-  return body.content;
+  return (await res.json()).content;
 }
 
 /** Replaces the knowledge document; throws with the server's message if it was refused. */
 export async function saveKnowledge(doc: KnowledgeDoc, content: string): Promise<void> {
-  const res = await fetch(`/api/v1/knowledge/${doc}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
-  });
-  if (!res.ok) {
-    // Validation errors carry the useful part (e.g. "too long") in `details`.
-    const body: { error?: unknown; details?: unknown } = await res
-      .clone()
-      .json()
-      .catch(() => ({}));
-    if (Array.isArray(body.details) && body.details.length > 0) throw new Error(body.details.join(' '));
-    throw await errorFrom(res, 'Saving the document failed');
-  }
+  const res = await client.api.v1.knowledge[':doc'].$put({ param: { doc }, json: { content } });
+  if (!res.ok) throw await detailedErrorFrom(res, 'Saving the document failed');
 }
 
 /** Job leads, newest first; filtered by status if given (up to 200). */
 export async function fetchLeads(status?: JobLeadStatus): Promise<JobLead[]> {
-  const query = new URLSearchParams({ limit: '200' });
-  if (status) query.set('status', status);
-  const res = await fetch(`/api/v1/job-leads?${query}`);
+  const res = await client.api.v1['job-leads'].$get({ query: { limit: '200', ...(status && { status }) } });
   if (!res.ok) throw await errorFrom(res, 'Loading the job leads failed');
   return res.json();
 }
@@ -205,43 +163,31 @@ export async function updateLead(
   id: number,
   patch: Partial<Pick<JobLead, 'status' | 'applicationId'>>,
 ): Promise<JobLead> {
-  const res = await fetch(`/api/v1/job-leads/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
-  });
+  const res = await client.api.v1['job-leads'][':id'].$patch({ param: { id: String(id) }, json: patch });
   if (!res.ok) throw await errorFrom(res, 'Updating the job lead failed');
   return res.json();
 }
 
+const jobAlertRoutes = client.api.v1['job-alerts'];
+
+export type JobAlertsConfig = InferResponseType<typeof jobAlertRoutes.$get, 200>;
+
 export async function fetchJobAlerts(): Promise<JobAlertsConfig> {
-  const res = await fetch('/api/v1/job-alerts');
+  const res = await jobAlertRoutes.$get();
   if (!res.ok) throw await errorFrom(res, 'Loading the job alert settings failed');
   return res.json();
 }
 
 /** Creates the user's alert address, or replaces it (the old one stops working at once). */
 export async function createJobAlertAddress(): Promise<JobAlertsConfig> {
-  const res = await fetch('/api/v1/job-alerts/address', { method: 'POST' });
+  const res = await jobAlertRoutes.address.$post();
   if (!res.ok) throw await errorFrom(res, 'Creating the alert address failed');
   return res.json();
 }
 
 export async function saveForwardingFrom(value: string | null): Promise<JobAlertsConfig> {
-  const res = await fetch('/api/v1/job-alerts', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ forwardingFrom: value }),
-  });
-  if (!res.ok) {
-    const body: { details?: unknown } = await res
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const details = Array.isArray(body.details) ? body.details.filter((d) => typeof d === 'string') : [];
-    if (details.length > 0) throw new Error(details.join(' '));
-    throw await errorFrom(res, 'Saving the forwarding address failed');
-  }
+  const res = await jobAlertRoutes.$put({ json: { forwardingFrom: value } });
+  if (!res.ok) throw await detailedErrorFrom(res, 'Saving the forwarding address failed');
   return res.json();
 }
 
@@ -249,8 +195,8 @@ export async function saveForwardingFrom(value: string | null): Promise<JobAlert
 export const JOB_ALERT_EVENTS_LIMIT = 20;
 
 /** The most recent inbound mails for the user's alert address, newest first. */
-export async function fetchJobAlertEvents(): Promise<InboundEvent[]> {
-  const res = await fetch(`/api/v1/job-alerts/events?limit=${JOB_ALERT_EVENTS_LIMIT}`);
+export async function fetchJobAlertEvents() {
+  const res = await jobAlertRoutes.events.$get({ query: { limit: String(JOB_ALERT_EVENTS_LIMIT) } });
   if (!res.ok) throw await errorFrom(res, 'Loading the alert activity failed');
   return res.json();
 }

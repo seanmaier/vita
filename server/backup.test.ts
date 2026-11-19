@@ -1,12 +1,11 @@
 // Runs server/backup.ts as the container does, against a throwaway database
 // and backup directory.
-import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 
 function setup() {
   const dir = mkdtempSync(join(tmpdir(), 'vita-backup-'));
@@ -29,8 +28,8 @@ test('two backups right after each other are both kept, named with their time', 
   run('create');
   run('create');
   const files = readdirSync(backupDir).sort();
-  assert.equal(files.length, 2, files.join(', '));
-  for (const file of files) assert.match(file, /^vita-\d{4}-\d{2}-\d{2}-\d{6}\.db$/);
+  expect(files.length, files.join(', ')).toBe(2);
+  for (const file of files) expect(file).toMatch(/^vita-\d{4}-\d{2}-\d{2}-\d{6}\.db$/);
 });
 
 test('backups named before timestamps are still listed, ordered and pruned', () => {
@@ -42,9 +41,9 @@ test('backups named before timestamps are still listed, ordered and pruned', () 
   copyFileSync(join(backupDir, current), join(backupDir, legacy));
   utimesSync(join(backupDir, legacy), new Date('2020-01-01'), new Date('2020-01-01'));
   const listed = run('list');
-  assert.ok(listed.indexOf(legacy) < listed.indexOf(current), listed);
+  expect(listed.indexOf(legacy) < listed.indexOf(current), listed).toBeTruthy();
   run('create');
-  assert.ok(!readdirSync(backupDir).includes(legacy), 'the old backup is pruned');
+  expect(readdirSync(backupDir), 'the old backup is pruned').not.toContain(legacy);
 });
 
 test('a legacy backup from today sorts before a timestamped one from today', () => {
@@ -54,5 +53,5 @@ test('a legacy backup from today sorts before a timestamped one from today', () 
   const legacy = `${current.slice(0, 'vita-YYYY-MM-DD'.length)}.db`;
   copyFileSync(join(backupDir, current), join(backupDir, legacy));
   const lines = run('list').trim().split('\n');
-  assert.ok(lines[0].startsWith(legacy) && lines[1].startsWith(current), lines.join('\n'));
+  expect(lines[0].startsWith(legacy) && lines[1].startsWith(current), lines.join('\n')).toBeTruthy();
 });

@@ -1,5 +1,5 @@
-import type { AppLanguage } from '../types';
-import { isAppLanguage } from './language';
+import type { AppLanguage } from '#shared/types.ts';
+import { isAppLanguage } from '#shared/utils/language.ts';
 
 /** The first of the browser's preferred languages the app speaks, else English. */
 export function browserLanguage(): AppLanguage {

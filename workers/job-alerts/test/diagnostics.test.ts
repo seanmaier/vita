@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'vitest';
 import PostalMime from 'postal-mime';
 import { headerDiagnostics } from '../src/diagnostics.ts';
 
@@ -24,33 +23,31 @@ test('collects envelope, From and authentication headers, but no subject, body o
     parsed,
   );
 
-  assert.equal(d.envelopeFrom, 'SRS0=x=linkedin.com=jobalerts@outlook.com');
-  assert.equal(d.envelopeTo, 'jobs-k7x2@alerts.example.org');
-  assert.equal(d.from, 'jobalerts-noreply@linkedin.com');
-  assert.deepEqual(d.authenticationResults, [
-    'mx.cloudflare.net; dkim=pass header.d=linkedin.com header.s=proddkim1024',
-  ]);
-  assert.equal(d.arcAuthenticationResults.length, 1);
-  assert.equal(d.receivedSpf.length, 1);
-  assert.deepEqual(d.dkimSignatures, [
+  expect(d.envelopeFrom).toBe('SRS0=x=linkedin.com=jobalerts@outlook.com');
+  expect(d.envelopeTo).toBe('jobs-k7x2@alerts.example.org');
+  expect(d.from).toBe('jobalerts-noreply@linkedin.com');
+  expect(d.authenticationResults).toEqual(['mx.cloudflare.net; dkim=pass header.d=linkedin.com header.s=proddkim1024']);
+  expect(d.arcAuthenticationResults.length).toBe(1);
+  expect(d.receivedSpf.length).toBe(1);
+  expect(d.dkimSignatures).toEqual([
     { d: 'linkedin.com', s: 'proddkim1024' },
     { d: 'outlook.com', s: 'selector1' },
   ]);
 
   const text = JSON.stringify(d);
   for (const secret of ['Private subject line', 'Private body text', 'SECRETSIGNATURE', 'OTHERSIGNATURE']) {
-    assert.ok(!text.includes(secret), `must not log ${secret}`);
+    expect(text, `must not log ${secret}`).not.toContain(secret);
   }
 });
 
 test('works without a parsed mail', () => {
   const d = headerDiagnostics({ from: 'a@b.example', to: 'c@d.example' }, null);
-  assert.equal(d.from, null);
-  assert.deepEqual(d.dkimSignatures, []);
+  expect(d.from).toBe(null);
+  expect(d.dkimSignatures).toEqual([]);
 });
 
 test('long header values are truncated', async () => {
   const parsed = await PostalMime.parse(`Authentication-Results: ${'x'.repeat(5000)}\r\nFrom: a@b.example\r\n\r\nbody`);
   const d = headerDiagnostics({ from: 'a@b.example', to: 'c@d.example' }, parsed);
-  assert.ok(d.authenticationResults[0].length <= 1000);
+  expect(d.authenticationResults[0].length).toBeLessThanOrEqual(1000);
 });

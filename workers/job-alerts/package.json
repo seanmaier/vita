@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/**/*.test.ts\"",
+    "test": "node ../../scripts/vitest.ts run",
     "typecheck": "tsc --noEmit -p .",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"
@@ -16,6 +16,7 @@
     "@cloudflare/workers-types": "5.20261116.1",
     "@types/node": "24.10.1",
     "typescript": "6.0.3",
+    "vitest": "^5.1.1",
     "wrangler": "4.162.0"
   }
 }

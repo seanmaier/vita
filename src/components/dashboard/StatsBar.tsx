@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ApplicationConfig } from '../../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { STATUS_COLORS } from '../../utils/status';
 import { countStat, type StatKey } from '../../utils/applicationStats';
 
@@ -49,19 +49,14 @@ export function StatsBar({ applications, activeFilter, onSelect }: Props) {
             onClick={() => onSelect(stat.key)}
             className={`flex-1 min-w-[108px] border rounded px-3 py-2 text-left cursor-pointer transition-colors ${
               isActive
-                ? 'border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent)_12%,transparent)]'
-                : 'border-[color:var(--rule)] hover:border-[color:var(--ink-2)]'
+                ? 'border-accent bg-[color:color-mix(in_srgb,var(--accent)_12%,transparent)]'
+                : 'border-rule hover:border-ink-2'
             }`}
           >
-            <div
-              className="[font-family:var(--font-mono)] text-[20px] leading-none"
-              style={{ color: stat.color ?? 'var(--ink-invert)' }}
-            >
+            <div className="font-mono text-[20px] leading-none" style={{ color: stat.color ?? 'var(--ink-invert)' }}>
               {stat.value}
             </div>
-            <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] mt-1">
-              {stat.label}
-            </div>
+            <div className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 mt-1">{stat.label}</div>
           </button>
         );
       })}

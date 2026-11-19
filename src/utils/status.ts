@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from '../types';
+import type { ApplicationStatus } from '#shared/types.ts';
 
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   drafting: 'drafting',

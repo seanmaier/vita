@@ -1,6 +1,4 @@
-import './test/env.ts';
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, onTestFinished, test } from 'vitest';
 import { db } from './db.ts';
 import { purgeOldInboundEvents } from './inboundMail.ts';
 import { createTestUser, testApp } from './test/testApp.ts';
@@ -46,8 +44,8 @@ test('an unknown recipient is 404', async () => {
     envelopeFrom: 'a@gmail.com',
     kind: 'failed',
   });
-  assert.equal(res.status, 404);
-  assert.deepEqual(await res.json(), { error: 'Unknown recipient.' });
+  expect(res.status).toBe(404);
+  expect(await res.json()).toEqual({ error: 'Unknown recipient.' });
 });
 
 test('a wrong domain is 404', async () => {
@@ -57,14 +55,14 @@ test('a wrong domain is 404', async () => {
     envelopeFrom: 'owner.name@gmail.com',
     kind: 'failed',
   });
-  assert.equal(res.status, 404);
+  expect(res.status).toBe(404);
 });
 
 test('a regenerated address invalidates the old one', async () => {
   const { app, address } = await setup();
   await app.request('/api/v1/job-alerts/address', { method: 'POST' });
   const res = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
-  assert.equal(res.status, 404);
+  expect(res.status).toBe(404);
 });
 
 test('leads from the matching gmail land at the recipient user only', async () => {
@@ -76,12 +74,12 @@ test('leads from the matching gmail land at the recipient user only', async () =
     kind: 'leads',
     leads: [lead(1), lead(2)],
   });
-  assert.equal(res.status, 201);
-  assert.deepEqual(await res.json(), { created: 2, duplicates: 0, updated: 0 });
-  assert.equal((await leadsOf(owner.app)).length, 2);
-  assert.equal((await leadsOf(other.app)).length, 0);
-  assert.equal((await eventsOf(owner.app))[0].kind, 'leads');
-  assert.equal((await eventsOf(owner.app))[0].detail, '2 neu, 0 doppelt');
+  expect(res.status).toBe(201);
+  expect(await res.json()).toEqual({ created: 2, duplicates: 0, updated: 0 });
+  expect((await leadsOf(owner.app)).length).toBe(2);
+  expect((await leadsOf(other.app)).length).toBe(0);
+  expect((await eventsOf(owner.app))[0].kind).toBe('leads');
+  expect((await eventsOf(owner.app))[0].detail).toBe('2 neu, 0 doppelt');
 });
 
 test('a re-forwarded alert repairs the leads it already created', async () => {
@@ -90,8 +88,8 @@ test('a re-forwarded alert repairs the leads it already created', async () => {
     deliver({ recipient: owner.address, envelopeFrom: 'owner.name@gmail.com', kind: 'leads', leads });
   await send([lead(1), lead(2)]);
   const res = await send([{ ...lead(1), title: 'Fixed title', company: 'Firma' }, lead(2), lead(3)]);
-  assert.deepEqual(await res.json(), { created: 1, duplicates: 2, updated: 1 });
-  assert.equal((await eventsOf(owner.app))[0].detail, '1 neu, 2 doppelt, davon 1 aktualisiert');
+  expect(await res.json()).toEqual({ created: 1, duplicates: 2, updated: 1 });
+  expect((await eventsOf(owner.app))[0].detail).toBe('1 neu, 2 doppelt, davon 1 aktualisiert');
 });
 
 test('leads from a foreign sender are refused and store nothing', async () => {
@@ -102,24 +100,24 @@ test('leads from a foreign sender are refused and store nothing', async () => {
     kind: 'leads',
     leads: [lead(1)],
   });
-  assert.equal(res.status, 403);
-  assert.equal((await leadsOf(app)).length, 0);
+  expect(res.status).toBe(403);
+  expect((await leadsOf(app)).length).toBe(0);
 });
 
 test('leads and failed need a registered forwarding address', async () => {
   const { address } = await setup(null);
   for (const kind of ['leads', 'failed']) {
     const res = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind, leads: [lead(1)] });
-    assert.equal(res.status, 403);
+    expect(res.status).toBe(403);
   }
 });
 
 test('leads with no usable leads are 400', async () => {
   const { address } = await setup();
   const base = { recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'leads' };
-  assert.equal((await deliver({ ...base, leads: [] })).status, 400);
-  assert.equal((await deliver({ ...base, leads: [{ title: 'x' }] })).status, 400);
-  assert.equal((await deliver(base)).status, 400);
+  expect((await deliver({ ...base, leads: [] })).status).toBe(400);
+  expect((await deliver({ ...base, leads: [{ title: 'x' }] })).status).toBe(400);
+  expect((await deliver(base)).status).toBe(400);
 });
 
 test('failed stores an event and truncates long fields', async () => {
@@ -132,17 +130,17 @@ test('failed stores an event and truncates long fields', async () => {
     sender: 'x'.repeat(500),
     detail: 'd'.repeat(3000),
   });
-  assert.equal(res.status, 201);
+  expect(res.status).toBe(201);
   const events = (await (await app.request('/api/v1/job-alerts/events')).json()) as {
     kind: string;
     subject: string;
     sender: string;
     detail: string;
   }[];
-  assert.equal(events[0].kind, 'failed');
-  assert.equal(events[0].subject.length, 300);
-  assert.equal(events[0].sender.length, 300);
-  assert.equal(events[0].detail.length, 2000);
+  expect(events[0].kind).toBe('failed');
+  expect(events[0].subject.length).toBe(300);
+  expect(events[0].sender.length).toBe(300);
+  expect(events[0].detail.length).toBe(2000);
 });
 
 test('a confirmation needs no registered gmail, only the Google sender', async () => {
@@ -153,18 +151,18 @@ test('a confirmation needs no registered gmail, only the Google sender', async (
     kind: 'confirmation',
     subject: 'Confirm',
   });
-  assert.equal(res.status, 201);
-  assert.equal((await eventsOf(app))[0].kind, 'confirmation');
+  expect(res.status).toBe(201);
+  expect((await eventsOf(app))[0].kind).toBe('confirmation');
   const bad = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'confirmation' });
-  assert.equal(bad.status, 403);
+  expect(bad.status).toBe(403);
 });
 
 test('only the inbound:deliver scope may deliver', async () => {
   const { address } = await setup();
   const body = { recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'failed' };
-  assert.equal((await deliver(body, 'full')).status, 403);
-  assert.equal((await deliver(body, 'cookie')).status, 403);
-  assert.equal((await deliver(body, 'inbound:deliver')).status, 201);
+  expect((await deliver(body, 'full')).status).toBe(403);
+  expect((await deliver(body, 'cookie')).status).toBe(403);
+  expect((await deliver(body, 'inbound:deliver')).status).toBe(201);
 });
 
 test('purgeOldInboundEvents deletes events older than 30 days only', async () => {
@@ -174,18 +172,18 @@ test('purgeOldInboundEvents deletes events older than 30 days only', async () =>
   );
   insert.run(user.id, '-31 days');
   insert.run(user.id, '-1 days');
-  assert.equal(purgeOldInboundEvents(), 1);
+  expect(purgeOldInboundEvents()).toBe(1);
   const left = db.prepare('SELECT COUNT(*) AS n FROM inbound_events WHERE user_id = ?').get(user.id) as { n: number };
-  assert.equal(left.n, 1);
+  expect(left.n).toBe(1);
 });
 
-test('without INBOUND_DOMAIN every recipient is unknown', async (t) => {
+test('without INBOUND_DOMAIN every recipient is unknown', async () => {
   const { address } = await setup();
   const saved = process.env.INBOUND_DOMAIN;
   delete process.env.INBOUND_DOMAIN;
-  t.after(() => {
+  onTestFinished(() => {
     process.env.INBOUND_DOMAIN = saved;
   });
   const res = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
-  assert.equal(res.status, 404);
+  expect(res.status).toBe(404);
 });

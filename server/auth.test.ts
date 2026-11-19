@@ -1,6 +1,4 @@
-import './test/env.ts';
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { assert, expect, test } from 'vitest';
 import { db } from './db.ts';
 import {
   createApiToken,
@@ -15,59 +13,59 @@ import {
 import { createTestUser } from './test/testApp.ts';
 
 test('an ingest token may only POST /api/v1/job-leads', () => {
-  assert.equal(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads'), true);
-  assert.equal(tokenAllows('job-leads:ingest', 'post', '/api/v1/job-leads'), true);
-  assert.equal(tokenAllows('job-leads:ingest', 'GET', '/api/v1/job-leads'), false);
-  assert.equal(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads/1'), false);
-  assert.equal(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads/'), false);
-  assert.equal(tokenAllows('job-leads:ingest', 'GET', '/api/v1/knowledge/about-me'), false);
+  expect(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads')).toBe(true);
+  expect(tokenAllows('job-leads:ingest', 'post', '/api/v1/job-leads')).toBe(true);
+  expect(tokenAllows('job-leads:ingest', 'GET', '/api/v1/job-leads')).toBe(false);
+  expect(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads/1')).toBe(false);
+  expect(tokenAllows('job-leads:ingest', 'POST', '/api/v1/job-leads/')).toBe(false);
+  expect(tokenAllows('job-leads:ingest', 'GET', '/api/v1/knowledge/about-me')).toBe(false);
 });
 
 test('a delivery token may only POST /api/v1/inbound-mail', () => {
-  assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail'), true);
-  assert.equal(tokenAllows('inbound:deliver', 'GET', '/api/v1/job-leads'), false);
-  assert.equal(tokenAllows('inbound:deliver', 'PUT', '/api/v1/job-alerts'), false);
-  assert.equal(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x'), false);
+  expect(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail')).toBe(true);
+  expect(tokenAllows('inbound:deliver', 'GET', '/api/v1/job-leads')).toBe(false);
+  expect(tokenAllows('inbound:deliver', 'PUT', '/api/v1/job-alerts')).toBe(false);
+  expect(tokenAllows('inbound:deliver', 'POST', '/api/v1/inbound-mail/x')).toBe(false);
 });
 
 test('a radar token may only touch job leads and read the knowledge it rates against', () => {
   const allows = (method: string, path: string) => tokenAllows('job-leads:radar', method, path);
-  assert.equal(allows('POST', '/api/v1/job-leads'), true);
-  assert.equal(allows('GET', '/api/v1/job-leads'), true);
-  assert.equal(allows('PATCH', '/api/v1/job-leads/42'), true);
-  assert.equal(allows('patch', '/api/v1/job-leads/7'), true);
-  assert.equal(allows('GET', '/api/v1/knowledge/priorities'), true);
-  assert.equal(allows('GET', '/api/v1/knowledge/about-me'), true);
+  expect(allows('POST', '/api/v1/job-leads')).toBe(true);
+  expect(allows('GET', '/api/v1/job-leads')).toBe(true);
+  expect(allows('PATCH', '/api/v1/job-leads/42')).toBe(true);
+  expect(allows('patch', '/api/v1/job-leads/7')).toBe(true);
+  expect(allows('GET', '/api/v1/knowledge/priorities')).toBe(true);
+  expect(allows('GET', '/api/v1/knowledge/about-me')).toBe(true);
 
-  assert.equal(allows('DELETE', '/api/v1/job-leads/42'), false);
-  assert.equal(allows('PATCH', '/api/v1/job-leads'), false);
-  assert.equal(allows('PATCH', '/api/v1/job-leads/42/x'), false);
-  assert.equal(allows('PATCH', '/api/v1/job-leads/abc'), false);
-  assert.equal(allows('GET', '/api/v1/job-leads/42'), false);
-  assert.equal(allows('PUT', '/api/v1/knowledge/priorities'), false);
-  assert.equal(allows('PUT', '/api/v1/knowledge/about-me'), false);
-  assert.equal(allows('GET', '/api/v1/knowledge'), false);
-  assert.equal(allows('GET', '/api/v1/applications'), false);
-  assert.equal(allows('POST', '/api/v1/applications'), false);
+  expect(allows('DELETE', '/api/v1/job-leads/42')).toBe(false);
+  expect(allows('PATCH', '/api/v1/job-leads')).toBe(false);
+  expect(allows('PATCH', '/api/v1/job-leads/42/x')).toBe(false);
+  expect(allows('PATCH', '/api/v1/job-leads/abc')).toBe(false);
+  expect(allows('GET', '/api/v1/job-leads/42')).toBe(false);
+  expect(allows('PUT', '/api/v1/knowledge/priorities')).toBe(false);
+  expect(allows('PUT', '/api/v1/knowledge/about-me')).toBe(false);
+  expect(allows('GET', '/api/v1/knowledge')).toBe(false);
+  expect(allows('GET', '/api/v1/applications')).toBe(false);
+  expect(allows('POST', '/api/v1/applications')).toBe(false);
 });
 
 test('a full token may call anything under /api/v1', () => {
-  assert.equal(tokenAllows('full', 'GET', '/api/v1/knowledge/about-me'), true);
-  assert.equal(tokenAllows('full', 'DELETE', '/api/v1/applications/1'), true);
+  expect(tokenAllows('full', 'GET', '/api/v1/knowledge/about-me')).toBe(true);
+  expect(tokenAllows('full', 'DELETE', '/api/v1/applications/1')).toBe(true);
 });
 
 test('createApiToken stores the scope and defaults to full', () => {
   const user = createTestUser();
   const scoped = createApiToken(user.id, 'worker', 'job-leads:ingest');
   const plain = createApiToken(user.id, 'laptop');
-  assert.ok(scoped.ok && plain.ok);
-  assert.equal(getApiToken(scoped.token)?.scope, 'job-leads:ingest');
-  assert.equal(getApiToken(plain.token)?.scope, 'full');
-  assert.equal(getApiToken(plain.token)?.user.id, user.id);
-  assert.equal(getApiToken(plain.token)?.tokenName, 'laptop');
-  assert.equal(getApiToken('jat_unknown'), null);
+  assert(scoped.ok && plain.ok);
+  expect(getApiToken(scoped.token)?.scope).toBe('job-leads:ingest');
+  expect(getApiToken(plain.token)?.scope).toBe('full');
+  expect(getApiToken(plain.token)?.user.id).toBe(user.id);
+  expect(getApiToken(plain.token)?.tokenName).toBe('laptop');
+  expect(getApiToken('jat_unknown')).toBe(null);
   // created_at has 1 s precision, so the list order isn't stable here.
-  assert.deepEqual(Object.fromEntries(listApiTokens(user.id).map((t) => [t.name, t.scope])), {
+  expect(Object.fromEntries(listApiTokens(user.id).map((t) => [t.name, t.scope]))).toEqual({
     worker: 'job-leads:ingest',
     laptop: 'full',
   });
@@ -76,93 +74,93 @@ test('createApiToken stores the scope and defaults to full', () => {
 test('createApiToken rejects an unknown scope', () => {
   const user = createTestUser();
   const result = createApiToken(user.id, 'x', 'admin' as never);
-  assert.equal(result.ok, false);
-  assert.equal(!result.ok && result.status, 400);
+  expect(result.ok).toBe(false);
+  expect(!result.ok && result.status).toBe(400);
 });
 
 test('getApiToken still records last use', () => {
   const user = createTestUser();
   const created = createApiToken(user.id, 'used');
-  assert.ok(created.ok);
-  assert.equal(listApiTokens(user.id)[0].last_used_at, null);
+  assert(created.ok);
+  expect(listApiTokens(user.id)[0].last_used_at).toBe(null);
   getApiToken(created.token);
-  assert.notEqual(listApiTokens(user.id)[0].last_used_at, null);
+  expect(listApiTokens(user.id)[0].last_used_at).not.toBe(null);
 });
 
 test('a token with an unknown stored scope is rejected', () => {
   const user = createTestUser();
   const created = createApiToken(user.id, 'tampered');
-  assert.ok(created.ok);
+  assert(created.ok);
   db.prepare("UPDATE api_tokens SET scope = 'admin' WHERE user_id = ?").run(user.id);
-  assert.equal(getApiToken(created.token), null);
-  assert.equal(tokenAllows('admin' as never, 'GET', '/api/v1/x'), false);
+  expect(getApiToken(created.token)).toBe(null);
+  expect(tokenAllows('admin' as never, 'GET', '/api/v1/x')).toBe(false);
 });
 
 test('parseUserTokenScope gives regular users only full and radar', () => {
-  assert.deepEqual(parseUserTokenScope(undefined, false), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('full', false), { ok: true, scope: 'full' });
-  assert.deepEqual(parseUserTokenScope('job-leads:radar', false), { ok: true, scope: 'job-leads:radar' });
+  expect(parseUserTokenScope(undefined, false)).toEqual({ ok: true, scope: 'full' });
+  expect(parseUserTokenScope('full', false)).toEqual({ ok: true, scope: 'full' });
+  expect(parseUserTokenScope('job-leads:radar', false)).toEqual({ ok: true, scope: 'job-leads:radar' });
   for (const bad of ['job-leads:ingest', 'inbound:deliver', 'admin', '', null, 42]) {
-    assert.equal(parseUserTokenScope(bad, false).ok, false);
+    expect(parseUserTokenScope(bad, false).ok).toBe(false);
   }
 });
 
 test('parseUserTokenScope lets admins create the worker scopes too', () => {
   for (const scope of ['full', 'job-leads:radar', 'job-leads:ingest', 'inbound:deliver']) {
-    assert.deepEqual(parseUserTokenScope(scope, true), { ok: true, scope });
+    expect(parseUserTokenScope(scope, true)).toEqual({ ok: true, scope });
   }
   for (const bad of ['admin', '', null, 42]) {
-    assert.equal(parseUserTokenScope(bad, true).ok, false);
+    expect(parseUserTokenScope(bad, true).ok).toBe(false);
   }
 });
 
 test('isAdmin follows the role column, set only from the CLI', () => {
   const user = createTestUser();
-  assert.equal(isAdmin(user.id), false);
-  assert.equal(setAdmin(user.username, true), true);
-  assert.equal(isAdmin(user.id), true);
-  assert.equal(setAdmin(user.username, false), true);
-  assert.equal(isAdmin(user.id), false);
-  assert.equal(setAdmin('no-such-user', true), false);
-  assert.equal(isAdmin(999_999), false);
+  expect(isAdmin(user.id)).toBe(false);
+  expect(setAdmin(user.username, true)).toBe(true);
+  expect(isAdmin(user.id)).toBe(true);
+  expect(setAdmin(user.username, false)).toBe(true);
+  expect(isAdmin(user.id)).toBe(false);
+  expect(setAdmin('no-such-user', true)).toBe(false);
+  expect(isAdmin(999_999)).toBe(false);
 });
 
 test('the role column only accepts user and admin', () => {
   const user = createTestUser();
-  assert.throws(() => db.prepare("UPDATE users SET role = 'root' WHERE id = ?").run(user.id));
+  expect(() => db.prepare("UPDATE users SET role = 'root' WHERE id = ?").run(user.id)).toThrow();
 });
 
 test('rotating a token replaces its secret but keeps name and scope', () => {
   const user = createTestUser();
   const created = createApiToken(user.id, 'worker', 'inbound:deliver');
-  assert.ok(created.ok);
+  assert(created.ok);
   getApiToken(created.token);
   const rotated = rotateApiToken(user.id, 'worker');
-  assert.ok(rotated.ok);
-  assert.notEqual(rotated.token, created.token);
-  assert.ok(rotated.token.startsWith('jat_'));
-  assert.equal(getApiToken(created.token), null);
-  assert.equal(getApiToken(rotated.token)?.scope, 'inbound:deliver');
+  assert(rotated.ok);
+  expect(rotated.token).not.toBe(created.token);
+  expect(rotated.token.startsWith('jat_')).toBeTruthy();
+  expect(getApiToken(created.token)).toBe(null);
+  expect(getApiToken(rotated.token)?.scope).toBe('inbound:deliver');
   const tokens = listApiTokens(user.id);
-  assert.equal(tokens.length, 1);
-  assert.equal(tokens[0].name, 'worker');
+  expect(tokens.length).toBe(1);
+  expect(tokens[0].name).toBe('worker');
 });
 
 test('rotating resets last use', () => {
   const user = createTestUser();
   const created = createApiToken(user.id, 'used');
-  assert.ok(created.ok);
+  assert(created.ok);
   getApiToken(created.token);
-  assert.ok(rotateApiToken(user.id, 'used').ok);
-  assert.equal(listApiTokens(user.id)[0].last_used_at, null);
+  expect(rotateApiToken(user.id, 'used').ok).toBeTruthy();
+  expect(listApiTokens(user.id)[0].last_used_at).toBe(null);
 });
 
 test('rotating an unknown or foreign token fails and changes nothing', () => {
   const owner = createTestUser();
   const other = createTestUser();
   const created = createApiToken(owner.id, 'mine');
-  assert.ok(created.ok);
-  assert.deepEqual(rotateApiToken(other.id, 'mine'), { ok: false, status: 404, error: 'No such token.' });
-  assert.deepEqual(rotateApiToken(owner.id, 'missing'), { ok: false, status: 404, error: 'No such token.' });
-  assert.equal(getApiToken(created.token)?.user.id, owner.id);
+  assert(created.ok);
+  expect(rotateApiToken(other.id, 'mine')).toEqual({ ok: false, status: 404, error: 'No such token.' });
+  expect(rotateApiToken(owner.id, 'missing')).toEqual({ ok: false, status: 404, error: 'No such token.' });
+  expect(getApiToken(created.token)?.user.id).toBe(owner.id);
 });

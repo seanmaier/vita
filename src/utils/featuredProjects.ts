@@ -1,4 +1,4 @@
-import type { ApplicationConfig, Profile, Project } from '../types';
+import type { ApplicationConfig, Profile, Project } from '#shared/types.ts';
 
 // The projects shown on an application's CV, in the order the application
 // lists them in featuredProjectIds (falling back to the profile's own order).

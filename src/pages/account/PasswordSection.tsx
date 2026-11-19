@@ -81,11 +81,9 @@ export function PasswordSection() {
         />
       </label>
 
-      {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
+      {error && <p className="text-[12px] text-status-rejected">{error}</p>}
       {success && (
-        <p className="text-[12px] text-[color:var(--status-offer)]">
-          Password changed. You've been logged out on all other devices.
-        </p>
+        <p className="text-[12px] text-status-offer">Password changed. You've been logged out on all other devices.</p>
       )}
 
       <button className={primaryButton} type="submit" disabled={busy}>

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { STATUS_COLORS, STATUS_LABELS } from '../utils/status';
-import { GHOSTED_AFTER_DAYS, ghostedOn } from '../domain/statusMachine';
-import { formatDateNumeric, formatDateTime, todayIso, toIsoDate } from '../utils/date';
+import { GHOSTED_AFTER_DAYS, ghostedOn } from '#shared/domain/statusMachine.ts';
+import { formatDateNumeric, formatDateTime, todayIso, toIsoDate } from '#shared/utils/date.ts';
 import { linkify } from '../utils/linkify';
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, StatusTransition } from '../types';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, StatusTransition } from '#shared/types.ts';
 
 interface Props {
   app: ApplicationConfig;
@@ -103,7 +103,7 @@ function buildTimeline(
 }
 
 const actionClass =
-  '[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)] bg-transparent border-none cursor-pointer opacity-0 group-hover/event:opacity-100 focus:opacity-100 transition-opacity';
+  'font-mono text-[10px] text-ink-3 bg-transparent border-none cursor-pointer opacity-0 group-hover/event:opacity-100 focus:opacity-100 transition-opacity';
 
 /** A step's date with an inline date picker to correct it. */
 function StepDate({ event, onChange }: { event: TimelineEvent; onChange: (date: string) => void }) {
@@ -114,7 +114,7 @@ function StepDate({ event, onChange }: { event: TimelineEvent; onChange: (date: 
         type="date"
         autoFocus
         defaultValue={event.stepDate ?? ''}
-        className="[font-family:var(--font-mono)] text-[10px] bg-[color:var(--surface)] border border-[color:var(--rule)] rounded px-1 text-[color:var(--ink-invert)] [color-scheme:dark]"
+        className="font-mono text-[10px] bg-surface border border-rule rounded px-1 text-ink-invert [color-scheme:dark]"
         onChange={(e) => e.target.value && onChange(e.target.value)}
         onBlur={() => setEditing(false)}
         onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
@@ -140,9 +140,7 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
   const events = buildTimeline(app, history, status, language);
 
   if (events.length === 0) {
-    return (
-      <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] italic m-0">No notes yet.</p>
-    );
+    return <p className="font-mono text-[12px] text-ink-2 italic m-0">No notes yet.</p>;
   }
 
   return (
@@ -150,7 +148,7 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
       {events.map((event, i) => (
         <li key={event.key} className="group/event relative pl-5 pb-4 last:pb-0">
           {i < events.length - 1 && (
-            <span aria-hidden className="absolute left-[4px] top-[12px] bottom-[-2px] w-px bg-[color:var(--rule)]" />
+            <span aria-hidden className="absolute left-[4px] top-[12px] bottom-[-2px] w-px bg-rule" />
           )}
           <span
             aria-hidden
@@ -159,12 +157,10 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
           />
           <div className="flex items-baseline justify-between gap-2">
             <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
-              <span className="[font-family:var(--font-mono)] text-[11px] font-semibold" style={{ color: event.color }}>
+              <span className="font-mono text-[11px] font-semibold" style={{ color: event.color }}>
                 {event.label}
               </span>
-              <span className="[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)]">
-                {event.dateLabel}
-              </span>
+              <span className="font-mono text-[10px] text-ink-3">{event.dateLabel}</span>
             </div>
             {event.stepIndex !== undefined && (
               <StepDate event={event} onChange={(date) => onChangeDate(event.stepIndex!, date)} />
@@ -172,7 +168,7 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
             {event.noteId && (
               <button
                 type="button"
-                className={`${actionClass} hover:text-[color:var(--status-rejected)]`}
+                className={`${actionClass} hover:text-status-rejected`}
                 onClick={() => onDeleteNote(event.noteId!)}
                 aria-label="Delete note"
               >
@@ -181,7 +177,7 @@ export function ApplicationTimeline({ app, history, status, language, onDeleteNo
             )}
           </div>
           {event.text && (
-            <div className="[font-family:var(--font-mono)] text-[12.5px] leading-[1.6] text-[color:var(--ink-invert)] whitespace-pre-wrap [overflow-wrap:anywhere] mt-1">
+            <div className="font-mono text-[12.5px] leading-[1.6] text-ink-invert whitespace-pre-wrap [overflow-wrap:anywhere] mt-1">
               {linkify(event.text)}
             </div>
           )}

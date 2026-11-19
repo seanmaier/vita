@@ -40,3 +40,10 @@ dist-ssr
 
 # Superpowers implementation plans are working files; specs in docs/superpowers/specs are committed
 docs/superpowers/plans/
+
+# Vitest coverage reports (npm run test:coverage)
+coverage
+
+# Playwright output (npm run test:e2e)
+test-results
+playwright-report

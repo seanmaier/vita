@@ -7,7 +7,7 @@ import {
   JOB_ALERT_EVENTS_LIMIT,
   saveForwardingFrom,
 } from '../utils/api';
-import type { InboundEvent, JobAlertsConfig } from '../types';
+import type { InboundEvent, JobAlertsConfig } from '#shared/types.ts';
 import { hintText, nafInput, nafLabel, primaryButton } from '../styles/formStyles';
 import { JOB_ALERT_SOURCES } from '../data/jobAlertSources';
 import { AlertEventsSkeleton, JobAlertsSkeleton, Spinner } from './Skeleton';
@@ -57,7 +57,7 @@ const supportedSites = (
     <ul className={`${hint} list-disc pl-4 m-0 flex flex-col gap-0.5`}>
       {JOB_ALERT_SOURCES.map((source) => (
         <li key={source.label}>
-          <span className="text-[color:var(--ink-invert)]">{source.label}</span> ·{' '}
+          <span className="text-ink-invert">{source.label}</span> ·{' '}
           {source.domains.map((domain, i) => (
             <span key={domain}>
               {i > 0 && ', '}
@@ -283,7 +283,7 @@ export function JobAlertsSection() {
           {config.address ? (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <code className="[font-family:var(--font-mono)] text-[12px] break-all text-[color:var(--ink-invert)] select-all min-w-0">
+                <code className="font-mono text-[12px] break-all text-ink-invert select-all min-w-0">
                   {config.address}
                 </code>
                 <button className={`${primaryButton} shrink-0`} type="button" onClick={() => void copy()}>
@@ -338,7 +338,7 @@ export function JobAlertsSection() {
               </form>
 
               {!config.forwardingFrom && (
-                <p className="text-[12px] text-[color:var(--status-rejected)]">
+                <p className="text-[12px] text-status-rejected">
                   Alerts will be bounced until the address you forward from is saved (Gmail confirmation codes still
                   arrive).
                 </p>
@@ -358,7 +358,7 @@ export function JobAlertsSection() {
                 {latestLeads.detail && <p className={hint}>{latestLeads.detail}</p>}
                 <p className={hint}>Alerts in the last 7 days: {alertsLast7Days}</p>
                 {failedCount > 0 && (
-                  <p className="[font-family:var(--font-mono)] text-[10.5px] leading-[1.6] text-[color:var(--status-rejected)]">
+                  <p className="font-mono text-[10.5px] leading-[1.6] text-status-rejected">
                     Failed in the last 7 days: {failedLast7Days}
                   </p>
                 )}
@@ -377,11 +377,9 @@ export function JobAlertsSection() {
           )}
 
           {config.address && freshCode && (
-            <div className="flex flex-col gap-1 border-[1.5px] border-[color:var(--accent)] rounded-[5px] p-3">
-              <span className="text-[12px] text-[color:var(--ink-invert)]">Gmail confirmation code</span>
-              <code className="[font-family:var(--font-mono)] text-[20px] tracking-[0.15em] text-[color:var(--ink-invert)] select-all">
-                {freshCode}
-              </code>
+            <div className="flex flex-col gap-1 border-[1.5px] border-accent rounded-[5px] p-3">
+              <span className="text-[12px] text-ink-invert">Gmail confirmation code</span>
+              <code className="font-mono text-[20px] tracking-[0.15em] text-ink-invert select-all">{freshCode}</code>
               <span className={hint}>{unverified}</span>
             </div>
           )}
@@ -402,13 +400,11 @@ export function JobAlertsSection() {
               ) : (
                 <ul className="flex flex-col gap-2 list-none p-0 m-0">
                   {events.map((ev) => (
-                    <li key={ev.id} className="border border-[color:var(--rule)] rounded-[5px] px-3 py-2">
+                    <li key={ev.id} className="border border-rule rounded-[5px] px-3 py-2">
                       <div className={hint}>
                         {kindLabel[ev.kind]} · {formatTimestamp(ev.receivedAt)}
                       </div>
-                      {ev.subject && (
-                        <div className="text-[13px] text-[color:var(--ink-invert)] break-words">{ev.subject}</div>
-                      )}
+                      {ev.subject && <div className="text-[13px] text-ink-invert break-words">{ev.subject}</div>}
                       {ev.sender && <div className={`${hint} break-all`}>{ev.sender}</div>}
                       {ev.detail && <div className={`${hint} whitespace-pre-wrap break-all`}>{ev.detail}</div>}
                       {ev.kind === 'failed' && ev.detail === UNKNOWN_SENDER && (
@@ -424,7 +420,7 @@ export function JobAlertsSection() {
         </>
       )}
 
-      {error && <p className="text-[12px] text-[color:var(--status-rejected)]">{error}</p>}
+      {error && <p className="text-[12px] text-status-rejected">{error}</p>}
     </section>
   );
 }

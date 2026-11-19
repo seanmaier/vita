@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Fragment } from 'react';
-import type { ApplicationConfig, CoverLetter, Profile } from '../../types';
+import type { ApplicationConfig, CoverLetter, Profile } from '#shared/types.ts';
 import { FONT_STACKS } from '../../utils/fonts';
 import { usePagedBlocks } from './usePagedBlocks';
 import type { Block } from './usePagedBlocks';
@@ -51,14 +51,18 @@ export function CoverLetterDocument({ profile, application, paginate = false }: 
           </div>
           <nav className="cl-contact-right" aria-label={t.contact}>
             {joinLines([
-              profile.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>,
+              profile.email && (
+                <a key="email" href={`mailto:${profile.email}`}>
+                  {profile.email}
+                </a>
+              ),
               profile.website && (
-                <a href={`https://${profile.website}`} target="_blank" rel="noopener">
+                <a key="website" href={`https://${profile.website}`} target="_blank" rel="noopener">
                   {profile.website}
                 </a>
               ),
               profile.github && (
-                <a href={`https://${profile.github}`} target="_blank" rel="noopener">
+                <a key="github" href={`https://${profile.github}`} target="_blank" rel="noopener">
                   {profile.github}
                 </a>
               ),

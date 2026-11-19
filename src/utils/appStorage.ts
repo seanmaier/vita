@@ -1,10 +1,11 @@
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { storage } from './storage';
-import { normalizeNotes } from './notes';
+import { normalizeNotes } from '#shared/utils/notes.ts';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
-const key = (id: string) => `app-config-${id}`;
+const key = STORAGE_KEYS.appConfig;
 
 export function getConfigOverride(id: string): StoredConfig | null {
   try {
