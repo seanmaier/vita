@@ -16,6 +16,7 @@
     "test": "node scripts/vitest.ts run",
     "test:watch": "node scripts/vitest.ts",
     "test:coverage": "node scripts/vitest.ts run --coverage",
+    "test:e2e": "vite build && playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
