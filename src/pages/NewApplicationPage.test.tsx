@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { hydrate, setStorageBackend } from '../utils/storage';
 import { getAllLocalApplications } from '../utils/localApplications';
 import { NewApplicationPage } from './NewApplicationPage';
+import { withData } from '../test/withData';
 
 function Opened() {
   return <p>opened {useParams().id}</p>;
@@ -13,14 +14,17 @@ function Opened() {
 /** Opens the page and takes the English default profile on its first step. */
 async function renderPage() {
   render(
-    <MemoryRouter initialEntries={['/application/new']}>
-      <Routes>
-        <Route path="/application/new" element={<NewApplicationPage />} />
-        <Route path="/application/:id" element={<Opened />} />
-      </Routes>
-    </MemoryRouter>,
+    withData(
+      <MemoryRouter initialEntries={['/application/new']}>
+        <Routes>
+          <Route path="/application/new" element={<NewApplicationPage />} />
+          <Route path="/application/:id" element={<Opened />} />
+        </Routes>
+      </MemoryRouter>,
+    ),
   );
-  await userEvent.click(screen.getByRole('button', { name: /English \(default\)$/ }));
+  // The base profiles load first (and are seeded on a fresh account).
+  await userEvent.click(await screen.findByRole('button', { name: /English \(default\)$/ }));
 }
 
 describe('NewApplicationPage', () => {

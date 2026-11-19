@@ -2,12 +2,9 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
-import {
-  applicationsUsingBaseProfile,
-  deleteBaseProfilePermanently,
-  getDeletedBaseProfiles,
-  restoreBaseProfile,
-} from '../utils/baseProfiles';
+import { applicationsUsingBaseProfile } from '../utils/baseProfiles';
+import { useBaseProfileMutations, useDeletedBaseProfiles } from '../api/baseProfiles';
+import { QueryState } from '../components/QueryState';
 import {
   deleteLocalApplicationPermanently,
   getDeletedLocalApplications,
@@ -76,11 +73,10 @@ function Section({ label, empty, children }: { label: string; empty: boolean; ch
 /** Soft-deleted applications and base profiles: restore them, or delete them for good before the server purges them. */
 export function TrashPage() {
   const [applications, setApplications] = useState(() => newestFirst(getDeletedLocalApplications()));
-  const [profiles, setProfiles] = useState(() => newestFirst(getDeletedBaseProfiles()));
-  const reload = () => {
-    setApplications(newestFirst(getDeletedLocalApplications()));
-    setProfiles(newestFirst(getDeletedBaseProfiles()));
-  };
+  const profilesQuery = useDeletedBaseProfiles();
+  const { restore: restoreProfile, remove: removeProfile } = useBaseProfileMutations();
+  const showError = { onError: (e: Error) => alert(e.message) };
+  const reload = () => setApplications(newestFirst(getDeletedLocalApplications()));
 
   const deleteApplication = (app: ApplicationConfig) => {
     if (
@@ -101,8 +97,7 @@ export function TrashPage() {
           'will fall back to the language default profile.'
         : '';
     if (!confirm(`Delete "${profile.name}" permanently? This cannot be undone.${fallback}`)) return;
-    deleteBaseProfilePermanently(profile.id);
-    reload();
+    removeProfile.mutate(profile.id, showError);
   };
 
   return (
@@ -138,24 +133,25 @@ export function TrashPage() {
         ))}
       </Section>
 
-      <Section label="base profiles" empty={profiles.length === 0}>
-        {profiles.map((p) => {
-          const usedBy = applicationsUsingBaseProfile(p.id).length;
-          return (
-            <TrashRow
-              key={p.id}
-              title={`${LANG_FLAGS[p.language]} ${p.name}`}
-              deletedAt={p.deletedAt!}
-              extra={usedBy > 0 ? `used by ${plural(usedBy, 'application')}` : undefined}
-              onRestore={() => {
-                restoreBaseProfile(p.id);
-                reload();
-              }}
-              onDeletePermanently={() => deleteProfile(p)}
-            />
-          );
-        })}
-      </Section>
+      <QueryState query={profilesQuery}>
+        {(trashed) => (
+          <Section label="base profiles" empty={trashed.length === 0}>
+            {newestFirst(trashed).map((p) => {
+              const usedBy = applicationsUsingBaseProfile(p.id).length;
+              return (
+                <TrashRow
+                  key={p.id}
+                  title={`${LANG_FLAGS[p.language]} ${p.name}`}
+                  deletedAt={p.deletedAt!}
+                  extra={usedBy > 0 ? `used by ${plural(usedBy, 'application')}` : undefined}
+                  onRestore={() => restoreProfile.mutate(p.id, showError)}
+                  onDeletePermanently={() => deleteProfile(p)}
+                />
+              );
+            })}
+          </Section>
+        )}
+      </QueryState>
     </div>
   );
 }

@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { applications } from '../data/applications';
 import { getProfile } from '../data/profiles';
 import { getAllLocalApplications } from '../utils/localApplications';
-import { getBaseProfiles } from '../utils/baseProfiles';
+import { useBaseProfiles } from '../api/baseProfiles';
+import { QueryState } from '../components/QueryState';
 import type { DiffNames } from '../utils/versionDiff';
-import type { ApplicationConfig } from '#shared/types.ts';
+import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
 import { useApplication } from '../hooks/useApplication';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { isDemo } from '../demo/demoMode';
@@ -23,10 +24,17 @@ import { EditPreviewPanel } from './editApplication/EditPreviewPanel';
 
 // Inner component — staticApp is guaranteed to exist. onReload remounts it
 // so the form picks up a config saved outside the form (the JSON editor).
-function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; onReload: () => void }) {
+function EditContent({
+  staticApp,
+  baseProfiles,
+  onReload,
+}: {
+  staticApp: ApplicationConfig;
+  baseProfiles: BaseProfile[];
+  onReload: () => void;
+}) {
   const { app, save, reset, isDirty } = useApplication(staticApp);
   const navigate = useNavigate();
-  const [baseProfiles] = useState(() => getBaseProfiles());
   const profileFor = (form: Pick<EditForm, 'baseProfileId' | 'language'>) =>
     (form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId)?.profile : undefined) ??
     getProfile(form.language);
@@ -177,6 +185,7 @@ export function EditApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const staticApp = id ? [...applications, ...getAllLocalApplications()].find((a) => a.id === id) : undefined;
   const [formVersion, setFormVersion] = useState(0);
+  const baseProfiles = useBaseProfiles();
 
   if (!staticApp) {
     return (
@@ -191,5 +200,17 @@ export function EditApplicationPage() {
 
   if (staticApp.deletedAt) return <TrashedNotice name={`${staticApp.company} – ${staticApp.role}`} />;
 
-  return <EditContent key={formVersion} staticApp={staticApp} onReload={() => setFormVersion((v) => v + 1)} />;
+  // The form starts from the profiles as loaded; they don't change while it's open.
+  return (
+    <QueryState query={baseProfiles}>
+      {(profiles) => (
+        <EditContent
+          key={formVersion}
+          staticApp={staticApp}
+          baseProfiles={profiles}
+          onReload={() => setFormVersion((v) => v + 1)}
+        />
+      )}
+    </QueryState>
+  );
 }

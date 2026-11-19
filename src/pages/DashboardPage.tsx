@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { applications as staticApps } from '../data/applications';
 import { getLocalApplications, trashLocalApplication } from '../utils/localApplications';
-import { countTrashed } from '../utils/trashCount';
+import { useTrashCount } from '../utils/trashCount';
 import { TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
 import { getConfigOverride, setConfigOverride } from '../utils/appStorage';
 import { STATUS_LABELS } from '../utils/status';
@@ -99,14 +99,13 @@ export function DashboardPage() {
     setNotes((prev) => ({ ...prev, [id]: updated.length ? updated : undefined }));
   };
 
-  const [trashSize, setTrashSize] = useState(countTrashed);
+  const trashSize = useTrashCount();
 
   const handleDelete = (app: ApplicationConfig) => {
     const message = `Move "${app.company} – ${app.role}" to the trash? You can restore it there for ${TRASH_RETENTION_DAYS} days.`;
     if (!confirm(message)) return;
     trashLocalApplication(app.id);
     setLocalApps(getLocalApplications());
-    setTrashSize(countTrashed());
   };
 
   const statsApps = allApps.map((app) => {

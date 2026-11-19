@@ -4,6 +4,8 @@ import { applications } from '../data/applications';
 import { getAllLocalApplications } from '../utils/localApplications';
 import { TrashedNotice } from '../components/TrashedNotice';
 import { resolveApplicationProfile } from '../utils/baseProfiles';
+import { useAllBaseProfiles } from '../api/baseProfiles';
+import { QueryState } from '../components/QueryState';
 import { CVDocument } from '../components/cv/CVDocument';
 import { FitToWidth } from '../components/FitToWidth';
 import { CoverLetterDocument } from '../components/cover-letter/CoverLetterDocument';
@@ -28,11 +30,12 @@ import {
   ensureExportFolderPermission,
 } from '../utils/exportFolder';
 import { LANGUAGE_LABELS, languageOf } from '#shared/utils/language.ts';
-import type { ApplicationConfig, AppFont, CoverLetter } from '#shared/types.ts';
+import type { ApplicationConfig, AppFont, BaseProfile, CoverLetter } from '#shared/types.ts';
 
 export function ApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const staticApp = id ? [...applications, ...getAllLocalApplications()].find((a) => a.id === id) : undefined;
+  const baseProfiles = useAllBaseProfiles();
 
   if (!staticApp) {
     return (
@@ -47,10 +50,20 @@ export function ApplicationPage() {
 
   if (staticApp.deletedAt) return <TrashedNotice name={`${staticApp.company} – ${staticApp.role}`} />;
 
-  return <ApplicationContent staticApp={staticApp} />;
+  return (
+    <QueryState query={baseProfiles}>
+      {(profiles) => <ApplicationContent staticApp={staticApp} baseProfiles={profiles} />}
+    </QueryState>
+  );
 }
 
-function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
+function ApplicationContent({
+  staticApp,
+  baseProfiles,
+}: {
+  staticApp: ApplicationConfig;
+  baseProfiles: BaseProfile[];
+}) {
   const { app, save, isDirty } = useApplication(staticApp);
   const { history, status, act, changeDate } = useApplicationStatus(staticApp);
   const [exportOpen, setExportOpen] = useState(false);
@@ -62,7 +75,7 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
   const cvExportRef = useRef<HTMLDivElement>(null);
   const clExportRef = useRef<HTMLDivElement>(null);
 
-  const profile = resolveApplicationProfile(app);
+  const profile = resolveApplicationProfile(app, baseProfiles);
   const language = languageOf(app);
   const fsaSupported = isFileSystemAccessSupported();
 
