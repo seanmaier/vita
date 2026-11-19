@@ -13,7 +13,7 @@ data, and use it to manage your own applications.
 - Dashboard listing all applications with status tracking
 - Applications still marked as sent 30 days after applying move to **ghosted** automatically
 - Each application's notes and status dates read as one timeline on its page, next to a link to the job posting
-- Print-optimized CV and cover letter documents in English, German or Swedish (clean 2-page PDF export)
+- Print-optimized CV and cover letter documents in English, German or Swedish (clean 2-page PDF export with real, selectable text and clickable links, so applicant tracking systems can read it)
 - A login-free demo at `/demo` for showing the app to others
 - A guided tour that opens once for every user (and in the demo) and can be restarted via **tour** on the dashboard
 - Plain-text export for pasting into LLMs or application forms
