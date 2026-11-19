@@ -290,3 +290,28 @@ test('leads rated before basis existed get it from their breakdown or the unread
   const basis = Object.fromEntries(leads.map((l) => [l.externalId, l.basis]));
   expect(basis).toEqual({ 'ext-1': 'read', 'ext-2': 'estimated', 'ext-3': undefined });
 });
+
+test('a lead keeps the snippet of its alert, and a repeat fills in or refreshes it', async () => {
+  const app = testApp(createTestUser());
+  await post(app, { leads: [lead(1), lead(2, { snippet: '  65.000 € pro Jahr · Vor 1 Tag ' })] });
+  const listed = async () =>
+    Object.fromEntries(
+      ((await (await app.request('/api/v1/job-leads')).json()) as Record<string, unknown>[]).map((l) => [
+        l.externalId,
+        l.snippet,
+      ]),
+    );
+  expect(await listed()).toEqual({ 'ext-1': undefined, 'ext-2': '65.000 € pro Jahr · Vor 1 Tag' });
+  const res = (await (await post(app, { leads: [lead(1, { snippet: 'Remote: Hybrid' }), lead(2)] })).json()) as Record<
+    string,
+    number
+  >;
+  expect(res).toMatchObject({ created: 0, duplicates: 2, updated: 1 });
+  expect(await listed()).toEqual({ 'ext-1': 'Remote: Hybrid', 'ext-2': '65.000 € pro Jahr · Vor 1 Tag' });
+});
+
+test('a snippet longer than 500 characters is rejected', async () => {
+  const app = testApp(createTestUser());
+  const res = await post(app, { leads: [lead(1, { snippet: 'x'.repeat(501) })] });
+  expect(res.status).toBe(400);
+});

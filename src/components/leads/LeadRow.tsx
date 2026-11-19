@@ -65,6 +65,12 @@ export function LeadRow({
           </p>
         </div>
       </div>
+      {lead.snippet && (
+        <p className="font-mono text-[11px] text-ink-2 break-words m-0" title="From the alert mail">
+          <span className="text-ink-3">mail: </span>
+          {lead.snippet}
+        </p>
+      )}
       {lead.verdict && <p className="text-[12.5px] leading-[1.5] text-ink-2 m-0 line-clamp-2">{lead.verdict}</p>}
       {lead.exclusion && !lead.criteria?.length && (
         <p className="font-mono text-[11px] text-status-rejected m-0">Excluded: {lead.exclusion}</p>

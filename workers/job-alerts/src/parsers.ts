@@ -41,12 +41,22 @@ export function forwardedSource(text: string): JobLeadSource | null {
 }
 
 type Match = { externalId: string; url: string } | null;
-type Details = Partial<Pick<JobLeadInput, 'title' | 'company' | 'location'>>;
+type Details = Partial<Pick<JobLeadInput, 'title' | 'company' | 'location' | 'snippet'>>;
+
+/** The app's limit for a lead's snippet (server/jobLeadsValidation.ts); a test keeps both in sync. */
+export const MAX_SNIPPET = 500;
+
+/** The extra pieces of a job card as one line, cut to the app's limit; undefined if there are none. */
+export function snippetOf(parts: (string | undefined)[]): string | undefined {
+  const line = parts.filter(Boolean).join(' · ');
+  if (!line) return undefined;
+  return line.length > MAX_SNIPPET ? `${line.slice(0, MAX_SNIPPET - 1)}…` : line;
+}
 
 interface PlatformRule {
   /** Returns the external id and normalized URL for a link, or null if it is not a job link. */
   match: (href: string) => Match | Promise<Match>;
-  /** Title, company and location from the markup around a job link, where the mail's layout gives them. */
+  /** Title, company, location and snippet from the markup around a job link, where the mail's layout gives them. */
   details?: (anchor: Anchor) => Details;
 }
 
@@ -138,10 +148,11 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
       const jk = INDEED_JK.exec(search)?.[1];
       return jk ? indeedLead(jk) : null;
     },
-    // Job alert cards: the title link, then company and location as the next two text lines.
+    // Job alert cards: the title link, then company and location as the next two text lines,
+    // then salary, "Einfach bewerben" and the posting's age.
     details: ({ after }) => {
-      const [company, location] = textNodes(after);
-      return { company, location };
+      const [company, location, ...rest] = textNodes(after);
+      return { company, location, snippet: snippetOf(rest) };
     },
   },
   glassdoor: {
@@ -149,7 +160,8 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
       const id = /jobListingId=(\d+)/.exec(href)?.[1];
       return id ? { externalId: id, url: `https://www.glassdoor.de/job-listing/index.htm?jl=${id}` } : null;
     },
-    // The whole card is one link: company (and rating) first, then the bold title, then the location.
+    // The whole card is one link: company (and rating) first, then the bold title, then the location
+    // and the posting's age.
     details: ({ inner }) => {
       const title = boldText(inner);
       if (!title) return {};
@@ -159,6 +171,7 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
         title,
         ...(at > 0 ? { company: nodes[0] } : {}),
         ...(at >= 0 && nodes[at + 1] ? { location: nodes[at + 1] } : {}),
+        snippet: snippetOf([nodes.slice(1, Math.max(at, 1)).join(' '), ...nodes.slice(at + 2)]),
       };
     },
   },
@@ -167,6 +180,8 @@ const PLATFORMS: Partial<Record<JobLeadSource, PlatformRule>> = {
 const INSTAFFO_JOB_LINK =
   /\[((?:[^[\]\n]|\[[^[\]\n]*\])*)\]\(https:\/\/app\.instaffo\.com\/candidate\/job\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[?#][^)\s]*)?\)/g;
 const INSTAFFO_LOCATION = /\[Ort\]\s*([^\n[]+)/;
+// A fact about the job as a link label, e.g. "[Gehalt] 40.000 € – 65.000 €" or "[Remote] Hybrid".
+const INSTAFFO_FACT = /^\s*\[([^\]]+)\]\s*(\S.*)$/;
 // Text-part labels start with icon placeholders such as "[Logo]".
 const sameText = (value: string) =>
   value
@@ -183,6 +198,7 @@ function parseInstaffo(html: string, text: string): JobLeadInput[] {
   const idByLabel = new Map<string, string>();
   const labelsById = new Map<string, Set<string>>();
   const locationById = new Map<string, string>();
+  const factsById = new Map<string, Set<string>>();
   for (const line of text.split('\n')) {
     for (const [, rawLabel, id] of line.matchAll(INSTAFFO_JOB_LINK)) {
       const label = sameText(rawLabel);
@@ -190,6 +206,10 @@ function parseInstaffo(html: string, text: string): JobLeadInput[] {
       labelsById.set(id, (labelsById.get(id) ?? new Set()).add(label));
       const location = INSTAFFO_LOCATION.exec(line)?.[1]?.trim();
       if (location && !locationById.has(id)) locationById.set(id, location);
+      const [, tag, value] = INSTAFFO_FACT.exec(rawLabel) ?? [];
+      if (tag && value && tag !== 'Logo') {
+        factsById.set(id, (factsById.get(id) ?? new Set()).add(`${tag}: ${value.trim()}`));
+      }
     }
   }
   const texts = extractAnchors(html)
@@ -202,12 +222,14 @@ function parseInstaffo(html: string, text: string): JobLeadInput[] {
     const next = texts[i + 1];
     const company = next && labelsById.get(id)?.has(sameText(next)) ? next : undefined;
     const location = locationById.get(id);
+    const snippet = snippetOf([...(factsById.get(id) ?? [])]);
     leads.set(id, {
       source: 'instaffo',
       externalId: id,
       title,
       ...(company ? { company } : {}),
       ...(location ? { location } : {}),
+      ...(snippet ? { snippet } : {}),
       // Rebuilt from the id: the mail's link carries a login token ("sso") that must not be stored.
       url: `https://app.instaffo.com/candidate/job/${id}`,
     });
@@ -228,13 +250,14 @@ export async function parseAlert(source: JobLeadSource, html: string, text = '')
     if (!anchor.text) continue;
     const hit = await rule.match(anchor.href);
     if (!hit || leads.has(hit.externalId)) continue;
-    const { title, company, location } = rule.details?.(anchor) ?? {};
+    const { title, company, location, snippet } = rule.details?.(anchor) ?? {};
     leads.set(hit.externalId, {
       source,
       externalId: hit.externalId,
       title: title ?? anchor.text,
       ...(company ? { company } : {}),
       ...(location ? { location } : {}),
+      ...(snippet ? { snippet } : {}),
       url: hit.url,
     });
   }
