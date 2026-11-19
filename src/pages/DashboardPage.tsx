@@ -8,7 +8,7 @@ import { STATUS_LABELS } from '../utils/status';
 import { changeStatus, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
 import { derivedDates } from '../domain/statusMachine';
 import { ApplicationCard } from '../components/dashboard/ApplicationCard';
-import { fitScore } from '../components/dashboard/FitBadge';
+import { fitScore } from '../utils/fitCriteria';
 import { ImportApplicationModal } from '../components/ImportApplicationModal';
 import { BackupModal } from '../components/BackupModal';
 import { DashboardNav } from '../components/dashboard/DashboardNav';

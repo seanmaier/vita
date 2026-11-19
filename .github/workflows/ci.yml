@@ -21,6 +21,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fails on errors only; warnings (e.g. files over 400 lines) are hints.
+      - name: Lint
+        run: npm run lint
+
       - name: Test
         run: npm test
 

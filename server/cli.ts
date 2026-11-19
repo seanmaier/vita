@@ -56,11 +56,10 @@ switch (command) {
   case 'add': {
     if (!username) fail('Usage: add <username> [password]');
     const { password, generated } = passwordOrGenerated();
-    try {
-      db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, await hashPassword(password));
-    } catch {
-      fail(`User "${username}" already exists.`);
-    }
+    // Checked up front: catching the insert's error reported every failure,
+    // e.g. a locked database, as an existing user.
+    if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) fail(`User "${username}" already exists.`);
+    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, await hashPassword(password));
     console.log(`Created user "${username}".${generated ? ` Password: ${password}` : ''}`);
     break;
   }
