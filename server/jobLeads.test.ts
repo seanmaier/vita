@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { createTestUser, testApp } from './test/testApp.ts';
+import { db } from './db.ts';
 
 type App = ReturnType<typeof testApp>;
 const json = { 'content-type': 'application/json' };
@@ -237,4 +238,55 @@ test('an exclusion without a criteria breakdown in the same request is a 400, al
   expect((await patch(app, id, { exclusion: null })).status).toBe(400);
   expect((await patch(app, id, { score: 60, exclusion: null })).status).toBe(400);
   expect((await patch(app, id, { score: 60, criteria, exclusion: null })).status).toBe(200);
+});
+
+test('a rating with a breakdown is read, an estimated one may carry an exclusion without it', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  const read = (await (await patch(app, id, { score: 60, criteria })).json()) as Record<string, unknown>;
+  expect(read.basis).toBe('read');
+  const res = await patch(app, id, { score: 10, basis: 'estimated', verdict: 'ABAP', exclusion: 'SAP' });
+  expect(res.status).toBe(200);
+  const estimated = (await res.json()) as Record<string, unknown>;
+  expect(estimated.basis).toBe('estimated');
+  expect(estimated.exclusion).toBe('SAP');
+  expect(estimated).not.toHaveProperty('criteria');
+  const [listed] = (await (await app.request('/api/v1/job-leads')).json()) as Record<string, unknown>[];
+  expect(listed.basis).toBe('estimated');
+});
+
+test('basis needs a score, is read or estimated, and an estimated rating has no breakdown', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  expect((await patch(app, id, { basis: 'estimated' })).status).toBe(400);
+  expect((await patch(app, id, { score: 50, basis: 'guessed' })).status).toBe(400);
+  expect((await patch(app, id, { score: 50, basis: null })).status).toBe(400);
+  expect((await patch(app, id, { score: 50, basis: 'estimated', criteria })).status).toBe(400);
+  expect((await patch(app, id, { score: 50, basis: 'read', exclusion: 'SAP' })).status).toBe(400);
+  const plain = (await (await patch(app, id, { score: 50, basis: 'read' })).json()) as Record<string, unknown>;
+  expect(plain.basis).toBe('read');
+  expect(plain).not.toHaveProperty('criteria');
+});
+
+test('a new score without basis or breakdown drops the old basis', async () => {
+  const app = testApp(createTestUser());
+  const id = await firstLeadId(app);
+  await patch(app, id, { score: 40, basis: 'estimated' });
+  const rescored = (await (await patch(app, id, { score: 45, verdict: 'Passt' })).json()) as Record<string, unknown>;
+  expect(rescored).not.toHaveProperty('basis');
+});
+
+test('leads rated before basis existed get it from their breakdown or the unreadable-posting verdict', async () => {
+  const user = createTestUser();
+  const app = testApp(user);
+  await post(app, { leads: [lead(1), lead(2), lead(3)] });
+  const rate = db.prepare(
+    "UPDATE job_leads SET status = 'rated', score = ?, verdict = ?, rating = ? WHERE user_id = ? AND external_id = ?",
+  );
+  rate.run(60, 'Passt', JSON.stringify({ criteria }), user.id, 'ext-1');
+  rate.run(25, 'Anzeige nicht lesbar; Product Owner.', null, user.id, 'ext-2');
+  rate.run(70, 'Passt gut', null, user.id, 'ext-3');
+  const leads = (await (await app.request('/api/v1/job-leads')).json()) as Record<string, unknown>[];
+  const basis = Object.fromEntries(leads.map((l) => [l.externalId, l.basis]));
+  expect(basis).toEqual({ 'ext-1': 'read', 'ext-2': 'estimated', 'ext-3': undefined });
 });

@@ -43,20 +43,26 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url`).
    Davon die **ältesten** N bewerten (N = „Höchstens bewertet pro Lauf“), also die letzten N
    der Liste; so bleibt kein Lead dauerhaft liegen.
-4. **Bewerten.** Jede Anzeige (`url`) lesen und nach den Regeln aus
+4. **Bewerten.** Jede Anzeige (`url`) mit dem Tool **WebFetch** lesen (nicht mit `curl`
+   oder `node`: der Proxy einer Cloud-Umgebung sperrt fremde Seiten oft) und nach den Regeln aus
    `.claude/skills/stellencheck/SKILL.md`, Abschnitt „Stelle bewerten“, Schritte 1–3,
    bewerten (Regeln dort lesen, nicht von hier aus nachbauen), mit den Dateien aus Schritt 1
    als `priorities.md` und `about-me.md`. Den Abgleich „Schon bekannt?“ mit
    `GET applications` aus Schritt 1 dort **überspringen**: Der Radar-Token darf das nicht,
    und Dubletten unter den Leads fängt der Server schon ab. Ist die Anzeige nicht
-   abrufbar (Login-Wand, 404): `score` nur aus Titel, Firma und Ort schätzen und das
-   `verdict` mit „Anzeige nicht lesbar“ beginnen.
-5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "verdict": "<ein Satz mit dem wichtigsten Grund>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`
+   lesbar (Login-Wand, Captcha, 403/404, kein Anzeigentext): `score` nur aus Titel, Firma
+   und Ort schätzen und das `verdict` mit „Anzeige nicht lesbar“ beginnen.
+5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "basis": "read", "verdict": "<ein Satz mit dem wichtigsten Grund>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`
    anlegen und `node scripts/api.ts PATCH job-leads/<id> <datei.json>` ausführen.
    `criteria` wie bei `/stellencheck` (Namen und Gewichte wörtlich aus `priorities.md`).
    `score` ist hier der Wert, der zählt, also nach einem Deckel; er darf unter der Summe der
-   Kriterien liegen, aber nicht darüber. Bei „Anzeige nicht lesbar“ kein `criteria` senden.
-6. **Push.** Liegen Leads mit `score` ≥ Schwelle vor: **eine** Nachricht.
+   Kriterien liegen, aber nicht darüber. Bei „Anzeige nicht lesbar“: `"basis": "estimated"`
+   und kein `criteria`; ein Ausschlusskriterium, das schon aus Titel oder Firma klar ist
+   (z. B. ABAP/SAP), trotzdem als `exclusion` senden. Die App zeigt geschätzte Scores als
+   „~60 %“ und mit gestricheltem Rahmen.
+6. **Push.** Liegen **gelesene** Leads (`basis: read`) mit `score` ≥ Schwelle vor: **eine**
+   Nachricht. Geschätzte Scores lösen nie einen Push aus, auch über der Schwelle; sie
+   stehen nur im Ergebnis unter „prüfen“.
    - Titel: `Stellenradar: <n> Treffer`
    - Text (Datei): pro Treffer eine Zeile `<score> % · <Firma> · <Rolle>`, höchstens 5,
      nach Score absteigend
@@ -65,8 +71,13 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
 
    Keine Treffer: keine Nachricht. Fehlt `NTFY_TOPIC` oder ist er zu kurz, bricht
    `notify.ts` ab; dann das im Ergebnis melden, die Bewertungen bleiben gespeichert.
-7. **Ergebnis** kurz berichten: neu eingesammelt, Duplikate, bewertet, Treffer über
-   Schwelle, noch offen (`new`), Push gesendet ja/nein, Fehler.
+7. **Ergebnis** berichten:
+   - Zahlen: neu eingesammelt, Duplikate, bewertet (davon gelesen / geschätzt), noch offen
+     (`new`), Push gesendet ja/nein
+   - Tabelle aller in diesem Lauf bewerteten Leads, nach Score absteigend:
+     Score | gelesen/geschätzt | Firma | Rolle | Ort | Kurzurteil | Lead-ID
+   - Treffer ≥ Schwelle (nur gelesene) und „prüfen“ (geschätzt, aber ≥ Schwelle oder knapp darunter)
+   - Fehler je Quelle (Suche, Anzeige, API) mit kurzer Ursache
 
 Temporäre Dateien (`<datei.json>`, `<nachricht.txt>`) gehören nicht ins Repo; im
 Temp-Verzeichnis anlegen.

@@ -37,8 +37,11 @@ function scoreClass(score: number): string {
   return 'text-ink-3 border-rule';
 }
 
+const ESTIMATED_TITLE = "Estimated: the posting wasn't readable, so only title, company and location were rated";
+
 function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' | 'applied') => void }) {
   const meta = [lead.company, lead.location, lead.source].filter(Boolean).join(' · ');
+  const estimated = lead.basis === 'estimated';
   return (
     <li className="bg-surface border border-rule rounded-[5px] p-4 flex flex-col gap-2.5">
       <div className="flex items-start justify-between gap-3">
@@ -48,14 +51,19 @@ function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' 
         </div>
         {lead.score !== null && (
           <span
-            className={`font-mono text-[12px] font-semibold border rounded px-2 py-0.5 shrink-0 ${scoreClass(lead.score)}`}
-            title="Match score"
+            className={`font-mono text-[12px] font-semibold border rounded px-2 py-0.5 shrink-0 ${scoreClass(lead.score)} ${estimated ? 'border-dashed' : ''}`}
+            title={estimated ? ESTIMATED_TITLE : 'Match score'}
           >
+            {estimated && <span className="sr-only">estimated </span>}
+            {estimated ? '~' : ''}
             {lead.score}%
           </span>
         )}
       </div>
       {lead.verdict && <p className="text-[12.5px] leading-[1.55] text-ink-2 m-0">{lead.verdict}</p>}
+      {lead.exclusion && !lead.criteria?.length && (
+        <p className="font-mono text-[11px] text-status-rejected m-0">Excluded: {lead.exclusion}</p>
+      )}
       <CriteriaBreakdown criteria={lead.criteria} exclusion={lead.exclusion} />
       <div className="flex flex-wrap items-center gap-2">
         <a
