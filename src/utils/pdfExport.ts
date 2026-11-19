@@ -1,42 +1,8 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-
 const INVALID_FOLDER_CHARS = /[\\/:*?"<>|]+/g;
 
 /** Sanitizes a company name into a safe filesystem directory name, keeping it human-readable. */
 export function sanitizeFolderName(name: string): string {
   return name.replace(INVALID_FOLDER_CHARS, '-').trim() || 'application';
-}
-
-/** Rasterizes a single already-A4-sized .doc-page element (see .pdf-export-root in document.css). */
-async function renderPageCanvas(el: HTMLElement): Promise<HTMLCanvasElement> {
-  return html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-}
-
-function canvasesToPdfBlob(canvases: HTMLCanvasElement[]): Blob {
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-  canvases.forEach((canvas, i) => {
-    if (i > 0) pdf.addPage();
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    pdf.addImage(imgData, 'JPEG', 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM);
-  });
-  return pdf.output('blob');
-}
-
-/** Rasterizes each page element once and returns the canvases, reusable across multiple PDF outputs. */
-export async function renderPageCanvases(pageElements: HTMLElement[]): Promise<HTMLCanvasElement[]> {
-  const canvases: HTMLCanvasElement[] = [];
-  for (const el of pageElements) {
-    canvases.push(await renderPageCanvas(el));
-  }
-  return canvases;
-}
-
-export function buildPdfBlob(canvases: HTMLCanvasElement[]): Blob {
-  return canvasesToPdfBlob(canvases);
 }
 
 /** Triggers a regular browser download for browsers without File System Access API support (e.g. Firefox). */

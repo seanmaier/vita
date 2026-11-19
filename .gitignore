@@ -43,3 +43,7 @@ docs/superpowers/plans/
 
 # Vitest coverage reports (npm run test:coverage)
 coverage
+
+# Playwright output (npm run test:e2e)
+test-results
+playwright-report
