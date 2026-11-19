@@ -13,7 +13,7 @@ async function loggedInClient() {
   db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, await hashPassword('rpc password 123'));
   let cookie = '';
   const client = hc<AppType>('http://localhost/', {
-    fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+    fetch: async (input: string | URL | Request, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
       if (cookie) headers.set('cookie', cookie);
       // What the browser adds to the app's own POST/PUT/DELETE requests.
