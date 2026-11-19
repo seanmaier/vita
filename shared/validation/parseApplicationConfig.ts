@@ -1,189 +1,141 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, FitRecommendation, JobFit, Note } from '#shared/types.ts';
+import { z } from 'zod';
+import type { ApplicationConfig, ApplicationStatus, AppFont, AppLanguage, CoverLetter, FitRecommendation, JobFit } from '#shared/types.ts';
 import { slugify } from '#shared/utils/slug.ts';
-import { isAppLanguage, LANGUAGE_ERROR } from '#shared/utils/language.ts';
+import { LANGUAGE_MESSAGE, LANGUAGES } from '#shared/utils/language.ts';
 import { normalizeNotes } from '#shared/utils/notes.ts';
-import { criteriaScore, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
+import { criteriaSchema, criteriaScore, exclusionSchema } from '#shared/utils/fitCriteria.ts';
+import { check, nonBlank, parseJsonText, percent, stringArray } from './issues.ts';
 
-const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'];
-const FONTS: AppFont[] = ['sans', 'serif', 'mono'];
-export const FIT_RECOMMENDATIONS: FitRecommendation[] = ['apply', 'apply-if', 'unlikely', 'exclude'];
+const STATUSES = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'] as const satisfies readonly ApplicationStatus[];
+const FONTS = ['sans', 'serif', 'mono'] as const satisfies readonly AppFont[];
+export const FIT_RECOMMENDATIONS = ['apply', 'apply-if', 'unlikely', 'exclude'] as const satisfies readonly FitRecommendation[];
 
 export type ParseResult =
   | { ok: true; config: ApplicationConfig }
   | { ok: false; errors: string[] };
 
-function isString(v: unknown): v is string {
-  return typeof v === 'string';
-}
+const optionalString = z.string({ error: 'must be a string.' }).optional();
 
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
+const coverLetterSchema: z.ZodType<CoverLetter> = z
+  .object(
+    {
+      recipientOrg: nonBlank('is required and must be a non-empty string.'),
+      date: z.string({ error: 'must be a string.' }),
+      subjectRole: z.string({ error: 'must be a string.' }),
+      paragraphs: stringArray('must be an array of strings.'),
+      recipientName: optionalString,
+      closing: optionalString,
+    },
+    { error: 'must be an object.' },
+  )
+  .transform(({ recipientName, closing, ...letter }) => ({
+    ...letter,
+    ...(recipientName && { recipientName }),
+    ...(closing && { closing }),
+  }));
 
-function validateCoverLetter(value: unknown, errors: string[]): CoverLetter | undefined {
-  if (value === undefined) return undefined;
-  if (!isPlainObject(value)) {
-    errors.push('"coverLetter" must be an object.');
-    return undefined;
-  }
-  const clErrors: string[] = [];
-  if (!isString(value.recipientOrg) || !value.recipientOrg.trim()) clErrors.push('"coverLetter.recipientOrg" is required and must be a non-empty string.');
-  if (!isString(value.date)) clErrors.push('"coverLetter.date" must be a string.');
-  if (!isString(value.subjectRole)) clErrors.push('"coverLetter.subjectRole" must be a string.');
-  if (!Array.isArray(value.paragraphs) || !value.paragraphs.every(isString)) clErrors.push('"coverLetter.paragraphs" must be an array of strings.');
-  if (value.recipientName !== undefined && !isString(value.recipientName)) clErrors.push('"coverLetter.recipientName" must be a string.');
-  if (value.closing !== undefined && !isString(value.closing)) clErrors.push('"coverLetter.closing" must be a string.');
-
-  errors.push(...clErrors);
-  if (clErrors.length > 0) return undefined;
-
-  return {
-    recipientOrg: value.recipientOrg as string,
-    date: value.date as string,
-    subjectRole: value.subjectRole as string,
-    paragraphs: value.paragraphs as string[],
-    ...(isString(value.recipientName) && value.recipientName && { recipientName: value.recipientName }),
-    ...(isString(value.closing) && value.closing && { closing: value.closing }),
-  };
-}
-
-const isPercent = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
-
-function validateFit(value: unknown, errors: string[]): JobFit | undefined {
-  if (value === undefined) return undefined;
-  if (!isPlainObject(value)) {
-    errors.push('"fit" must be an object with score, recommendation, reason and evaluatedAt.');
-    return undefined;
-  }
-  const before = errors.length;
-  if (!isPercent(value.score)) errors.push('"fit.score" must be a number from 0 to 100.');
-  if (value.cappedScore !== undefined && !isPercent(value.cappedScore)) errors.push('"fit.cappedScore" must be a number from 0 to 100.');
-  if (!FIT_RECOMMENDATIONS.includes(value.recommendation as FitRecommendation)) {
-    errors.push(`"fit.recommendation" must be one of: ${FIT_RECOMMENDATIONS.join(', ')}.`);
-  }
-  if (!isString(value.reason) || !value.reason.trim()) errors.push('"fit.reason" must be a non-empty string.');
-  if (!isString(value.evaluatedAt) || Number.isNaN(Date.parse(value.evaluatedAt))) {
-    errors.push('"fit.evaluatedAt" must be an ISO timestamp.');
-  }
-  const criteria = value.criteria === undefined ? undefined : validateCriteria(value.criteria, 'fit.criteria', errors);
-  if (criteria && isPercent(value.score) && Math.abs(value.score - criteriaScore(criteria)) > 1) {
-    errors.push(`"fit.score" must match the criteria breakdown (${criteriaScore(criteria)}).`);
-  }
-  let exclusion: string | undefined;
-  if (value.exclusion !== undefined) {
-    if (value.criteria === undefined) errors.push('"fit.exclusion" needs a "fit.criteria" breakdown.');
-    else exclusion = validateExclusion(value.exclusion, 'fit.exclusion', errors);
-  }
-  if (errors.length > before) return undefined;
-  return {
-    score: value.score as number,
-    ...(value.cappedScore !== undefined && { cappedScore: value.cappedScore as number }),
-    recommendation: value.recommendation as FitRecommendation,
-    reason: (value.reason as string).trim(),
-    evaluatedAt: value.evaluatedAt as string,
+const fitSchema: z.ZodType<JobFit> = z
+  .object(
+    {
+      score: percent('must be a number from 0 to 100.'),
+      cappedScore: percent('must be a number from 0 to 100.').optional(),
+      recommendation: z.enum(FIT_RECOMMENDATIONS, { error: `must be one of: ${FIT_RECOMMENDATIONS.join(', ')}.` }),
+      reason: nonBlank('must be a non-empty string.'),
+      evaluatedAt: z
+        .string({ error: 'must be an ISO timestamp.' })
+        .refine((s) => !Number.isNaN(Date.parse(s)), { error: 'must be an ISO timestamp.' }),
+      criteria: criteriaSchema.optional(),
+      // Checked below: it is only valid together with a breakdown.
+      exclusion: z.unknown().optional(),
+    },
+    { error: 'must be an object with score, recommendation, reason and evaluatedAt.' },
+  )
+  // Also when other fields are wrong, so every error shows at once.
+  .superRefine(
+    (fit, ctx) => {
+      // Runs even when `fit` itself is the wrong type (already reported).
+      if (typeof fit !== 'object' || fit === null) return;
+      const criteria = criteriaSchema.safeParse(fit.criteria);
+      if (criteria.success && typeof fit.score === 'number' && Math.abs(fit.score - criteriaScore(criteria.data)) > 1) {
+        ctx.addIssue({ code: 'custom', path: ['score'], message: `must match the criteria breakdown (${criteriaScore(criteria.data)}).` });
+      }
+      if (fit.exclusion === undefined) return;
+      if (fit.criteria === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['exclusion'], message: 'needs a "fit.criteria" breakdown.' });
+        return;
+      }
+      for (const issue of exclusionSchema.safeParse(fit.exclusion).error?.issues ?? []) {
+        ctx.addIssue({ code: 'custom', path: ['exclusion'], message: issue.message });
+      }
+    },
+    { when: () => true },
+  )
+  .transform(({ score, cappedScore, recommendation, reason, evaluatedAt, criteria, exclusion }) => ({
+    score,
+    ...(cappedScore !== undefined && { cappedScore }),
+    recommendation,
+    reason: reason.trim(),
+    evaluatedAt,
     ...(criteria && { criteria }),
-    ...(exclusion && { exclusion }),
-  };
-}
+    ...(exclusion !== undefined && { exclusion: exclusionSchema.parse(exclusion) }),
+  }));
+
+/** An application as stored and imported. Empty optional strings are dropped; a missing id comes from the company. */
+const applicationSchema: z.ZodType<ApplicationConfig> = z
+  .object(
+    {
+      company: nonBlank('is required and must be a non-empty string.'),
+      role: nonBlank('is required and must be a non-empty string.'),
+      // Anything but a non-empty string falls back to the company's slug.
+      id: z.unknown().optional(),
+      status: z.enum(STATUSES, { error: `must be one of: ${STATUSES.join(', ')}.` }).optional(),
+      language: z.enum(LANGUAGES as [AppLanguage, ...AppLanguage[]], { error: LANGUAGE_MESSAGE }).optional(),
+      font: z.enum(FONTS, { error: 'must be "sans", "serif", or "mono".' }).optional(),
+      appliedDate: optionalString,
+      interviewDate: optionalString,
+      finalDecisionDate: optionalString,
+      url: optionalString,
+      baseProfileId: optionalString,
+      summaryOverride: optionalString,
+      // The current array of notes, or the legacy single free-text string,
+      // migrated on the fly.
+      notes: z.union([z.string(), z.array(z.unknown())], { error: 'must be a string or an array of notes.' }).optional(),
+      featuredProjectIds: stringArray('must be an array of strings.').optional(),
+      coverLetter: coverLetterSchema.optional(),
+      fit: fitSchema.optional(),
+    },
+    { error: 'Expected a JSON object.' },
+  )
+  .transform((input) => {
+    const notes = input.notes === undefined ? undefined : normalizeNotes(input.notes);
+    return {
+      id: typeof input.id === 'string' && input.id.trim() ? input.id : slugify(input.company),
+      company: input.company,
+      role: input.role,
+      status: input.status ?? 'drafting',
+      ...(input.language && { language: input.language }),
+      ...(input.font && { font: input.font }),
+      ...(input.appliedDate && { appliedDate: input.appliedDate }),
+      ...(input.interviewDate && { interviewDate: input.interviewDate }),
+      ...(input.finalDecisionDate && { finalDecisionDate: input.finalDecisionDate }),
+      ...(notes && { notes }),
+      ...(input.url && { url: input.url }),
+      ...(input.baseProfileId && { baseProfileId: input.baseProfileId }),
+      ...(input.summaryOverride && { summaryOverride: input.summaryOverride }),
+      ...(input.featuredProjectIds && { featuredProjectIds: input.featuredProjectIds }),
+      ...(input.coverLetter && { coverLetter: input.coverLetter }),
+      ...(input.fit && { fit: input.fit }),
+    };
+  });
 
 /** Validates a parsed JSON value against the ApplicationConfig shape, collecting every error found. */
 export function validateApplicationConfig(input: unknown): ParseResult {
-  if (!isPlainObject(input)) {
-    return { ok: false, errors: ['Expected a JSON object.'] };
-  }
-
-  const errors: string[] = [];
-
-  if (!isString(input.company) || !input.company.trim()) errors.push('"company" is required and must be a non-empty string.');
-  if (!isString(input.role) || !input.role.trim()) errors.push('"role" is required and must be a non-empty string.');
-
-  const id = isString(input.id) && input.id.trim()
-    ? input.id
-    : slugify(isString(input.company) ? input.company : '');
-
-  let status: ApplicationStatus = 'drafting';
-  if (input.status !== undefined) {
-    if (!isString(input.status) || !STATUSES.includes(input.status as ApplicationStatus)) {
-      errors.push(`"status" must be one of: ${STATUSES.join(', ')}.`);
-    } else {
-      status = input.status as ApplicationStatus;
-    }
-  }
-
-  let language: AppLanguage | undefined;
-  if (input.language !== undefined) {
-    if (!isAppLanguage(input.language)) {
-      errors.push(LANGUAGE_ERROR);
-    } else {
-      language = input.language;
-    }
-  }
-
-  let font: AppFont | undefined;
-  if (input.font !== undefined) {
-    if (!isString(input.font) || !FONTS.includes(input.font as AppFont)) {
-      errors.push('"font" must be "sans", "serif", or "mono".');
-    } else {
-      font = input.font as AppFont;
-    }
-  }
-
-  for (const key of ['appliedDate', 'interviewDate', 'finalDecisionDate', 'url', 'baseProfileId', 'summaryOverride'] as const) {
-    if (input[key] !== undefined && !isString(input[key])) {
-      errors.push(`"${key}" must be a string.`);
-    }
-  }
-
-  // Accepts both the current array-of-notes shape and the legacy single
-  // free-text string, migrating the latter on the fly.
-  let notes: Note[] | undefined;
-  if (input.notes !== undefined) {
-    if (isString(input.notes) || Array.isArray(input.notes)) {
-      notes = normalizeNotes(input.notes);
-    } else {
-      errors.push('"notes" must be a string or an array of notes.');
-    }
-  }
-
-  if (input.featuredProjectIds !== undefined
-    && (!Array.isArray(input.featuredProjectIds) || !input.featuredProjectIds.every(isString))) {
-    errors.push('"featuredProjectIds" must be an array of strings.');
-  }
-
-  const coverLetter = validateCoverLetter(input.coverLetter, errors);
-  const fit = validateFit(input.fit, errors);
-
-  if (errors.length > 0) return { ok: false, errors };
-
-  const config: ApplicationConfig = {
-    id,
-    company: input.company as string,
-    role: input.role as string,
-    status,
-    ...(language && { language }),
-    ...(font && { font }),
-    ...(isString(input.appliedDate) && input.appliedDate && { appliedDate: input.appliedDate }),
-    ...(isString(input.interviewDate) && input.interviewDate && { interviewDate: input.interviewDate }),
-    ...(isString(input.finalDecisionDate) && input.finalDecisionDate && { finalDecisionDate: input.finalDecisionDate }),
-    ...(notes && { notes }),
-    ...(isString(input.url) && input.url && { url: input.url }),
-    ...(isString(input.baseProfileId) && input.baseProfileId && { baseProfileId: input.baseProfileId }),
-    ...(isString(input.summaryOverride) && input.summaryOverride && { summaryOverride: input.summaryOverride }),
-    ...(Array.isArray(input.featuredProjectIds) && { featuredProjectIds: input.featuredProjectIds as string[] }),
-    ...(coverLetter && { coverLetter }),
-    ...(fit && { fit }),
-  };
-
-  return { ok: true, config };
+  const result = check(applicationSchema, input, 'quoted');
+  return result.ok ? { ok: true, config: result.value } : result;
 }
 
 /** Parses and validates a raw JSON string in one step. */
 export function parseApplicationConfig(raw: string): ParseResult {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return { ok: false, errors: [`Invalid JSON: ${(e as SyntaxError).message}`] };
-  }
-  return validateApplicationConfig(parsed);
+  const json = parseJsonText(raw);
+  return json.ok ? validateApplicationConfig(json.value) : json;
 }
