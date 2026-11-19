@@ -3,7 +3,8 @@
 // (e.g. useAllBaseProfiles in ./baseProfiles.ts) go through whichever backend
 // the DataBackendProvider above them holds.
 import { createContext, useContext } from 'react';
-import type { BaseProfile } from '#shared/types.ts';
+import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
+import { LANGUAGES } from '#shared/utils/language.ts';
 import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 import { client, errorFrom } from '../utils/apiClient';
 import { storage } from '../utils/storage';
@@ -20,8 +21,16 @@ export interface BaseProfilesBackend {
   remove(id: string): Promise<BaseProfile[]>;
 }
 
+/** Edits to a language's default profile from before base profiles; only the languages that have one. */
+export type ProfileOverrides = Partial<Record<AppLanguage, Profile>>;
+
+export interface ProfileOverridesBackend {
+  list(): Promise<ProfileOverrides>;
+}
+
 export interface DataBackend {
   baseProfiles: BaseProfilesBackend;
+  profileOverrides: ProfileOverridesBackend;
 }
 
 // ---- Server -----------------------------------------------------------------------
@@ -48,6 +57,9 @@ export const serverBackend: DataBackend = {
     trash: (id) => ok(routes[':id'].trash.$post(param(id)), 'Moving the base profile to the trash failed'),
     restore: (id) => ok(routes[':id'].restore.$post(param(id)), 'Restoring the base profile failed'),
     remove: (id) => ok(routes[':id'].$delete(param(id)), 'Deleting the base profile failed'),
+  },
+  profileOverrides: {
+    list: () => ok(client.api['profile-overrides'].$get(), 'Loading the profiles failed'),
   },
 };
 
@@ -99,6 +111,20 @@ export const localBackend: DataBackend = {
           : null,
       ),
     remove: (id) => changeList((list) => (known(list, id) ? list.filter((p) => p.id !== id) : null)),
+  },
+  profileOverrides: {
+    list: () => {
+      const overrides: ProfileOverrides = {};
+      for (const language of LANGUAGES) {
+        try {
+          const raw = storage.getItem(STORAGE_KEYS.profileOverride(language));
+          if (raw) overrides[language] = JSON.parse(raw) as Profile;
+        } catch {
+          // A corrupt one reads as missing.
+        }
+      }
+      return Promise.resolve(overrides);
+    },
   },
 };
 

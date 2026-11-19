@@ -20,6 +20,8 @@ import { allValues, getJson, KEYS, parseJson, removeValue, setValue } from '../s
  * previous version can't overwrite them with its stale copy.
  */
 const MOVED_KEYS: readonly string[] = [KEYS.baseProfiles];
+const MOVED_PREFIXES: readonly string[] = [KEYS.profileOverride('')];
+const isMoved = (key: string) => MOVED_KEYS.includes(key) || MOVED_PREFIXES.some((prefix) => key.startsWith(prefix));
 
 const isStringRecord = (v: unknown): v is Record<string, string> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === 'string');
@@ -57,7 +59,7 @@ export const dataRoutes = new Hono<SessionEnv>()
       );
     }
 
-    const moved = [...Object.keys(rawSet), ...(rawRemove as string[])].filter((k) => MOVED_KEYS.includes(k));
+    const moved = [...Object.keys(rawSet), ...(rawRemove as string[])].filter(isMoved);
     if (moved.length) {
       return c.json({ error: `These are saved differently now; reload the page. Refused: ${moved.join(', ')}.` }, 400);
     }

@@ -1,7 +1,7 @@
 // Plain helpers around base profiles; the profiles themselves come from
 // src/api/baseProfiles.ts (useAllBaseProfiles etc.).
 import type { AppLanguage, ApplicationConfig, BaseProfile, Profile } from '#shared/types.ts';
-import { getProfile } from '../data/profiles';
+import type { LanguageProfiles } from '../api/languageProfiles';
 import { applications } from '../data/applications';
 import { getLocalApplications } from './localApplications';
 import { getConfigOverride } from './appStorage';
@@ -59,10 +59,14 @@ export function applicationsUsingBaseProfile(id: string): ApplicationConfig[] {
 // created before this feature (or left on "language default") keep working.
 // `baseProfiles` includes trashed ones, so an application using one keeps
 // rendering it until it's purged.
-export function resolveApplicationProfile(app: ApplicationConfig, baseProfiles: BaseProfile[]): Profile {
+export function resolveApplicationProfile(
+  app: ApplicationConfig,
+  baseProfiles: BaseProfile[],
+  languages: LanguageProfiles,
+): Profile {
   if (app.baseProfileId) {
     const baseProfile = baseProfiles.find((p) => p.id === app.baseProfileId);
     if (baseProfile) return baseProfile.profile;
   }
-  return getProfile(app.language);
+  return languages[app.language ?? 'en'];
 }

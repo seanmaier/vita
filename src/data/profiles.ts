@@ -1,5 +1,4 @@
 import type { Profile, AppLanguage } from '#shared/types.ts';
-import { getProfileOverride } from '../utils/profileStorage';
 import { isDemo } from '../demo/demoMode';
 import demoEn from '../demo/profiles/en.json';
 import demoDe from '../demo/profiles/de.json';
@@ -24,11 +23,6 @@ function loadProfile(lang: AppLanguage): Profile {
 const profiles: Record<AppLanguage, Profile> = isDemo
   ? { en: demoEn as Profile, de: demoDe as Profile, sv: demoSv as Profile }
   : { en: loadProfile('en'), de: loadProfile('de'), sv: loadProfile('sv') };
-
-export function getProfile(language?: AppLanguage): Profile {
-  const lang = language ?? 'en';
-  return getProfileOverride(lang) ?? profiles[lang];
-}
 
 export function getStaticProfile(language?: AppLanguage): Profile {
   return profiles[language ?? 'en'];
