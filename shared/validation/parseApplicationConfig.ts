@@ -1,8 +1,8 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, FitRecommendation, JobFit, Note } from '../types.ts';
-import { slugify } from './slug.ts';
-import { isAppLanguage, LANGUAGE_ERROR } from './language.ts';
-import { normalizeNotes } from './notes.ts';
-import { criteriaScore, validateCriteria, validateExclusion } from './fitCriteria.ts';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, FitRecommendation, JobFit, Note } from '#shared/types.ts';
+import { slugify } from '#shared/utils/slug.ts';
+import { isAppLanguage, LANGUAGE_ERROR } from '#shared/utils/language.ts';
+import { normalizeNotes } from '#shared/utils/notes.ts';
+import { criteriaScore, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
 
 const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'];
 const FONTS: AppFont[] = ['sans', 'serif', 'mono'];

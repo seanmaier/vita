@@ -2,8 +2,8 @@
 // and written back in batches, plus importing a backup file. Session cookie
 // only, so an API token can't overwrite raw storage.
 import { Hono } from 'hono';
-import type { ApplicationConfig } from '../../src/types.ts';
-import { mergeBackup, parseBackupValue } from '../../src/domain/backupMerge.ts';
+import type { ApplicationConfig } from '#shared/types.ts';
+import { mergeBackup, parseBackupValue } from '#shared/domain/backupMerge.ts';
 import { db, transaction } from '../db.ts';
 import { affectedAppIds, BROWSER_AUTHOR, deleteVersions, recordChanges, snapshot } from '../history.ts';
 import { requireUser, type SessionEnv } from '../session.ts';
@@ -74,7 +74,7 @@ dataRoutes.put('/data', requireUser, async (c) => {
 
 // Adds a backup file to the account: applications, base profiles and
 // profile overrides it doesn't have yet. Nothing that exists is overwritten
-// (see src/domain/backupMerge.ts); the answer lists what was added and skipped.
+// (see shared/domain/backupMerge.ts); the answer lists what was added and skipped.
 dataRoutes.post('/import', requireUser, async (c) => {
   const parsed = parseBackupValue(await c.req.json().catch(() => undefined));
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);

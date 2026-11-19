@@ -2,7 +2,7 @@
 // service token (scope `inbound:deliver`); the target user comes only from the
 // recipient address, never from the token's owner.
 import { Hono } from 'hono';
-import type { JobLeadInput } from '../src/types.ts';
+import type { JobLeadInput } from '#shared/types.ts';
 import { db } from './db.ts';
 import { inboundDomain, sameMailbox } from './emailAddress.ts';
 import { invalid, readBody, type V1Env } from './http.ts';

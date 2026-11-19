@@ -1,8 +1,8 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { seedHistory } from '../src/domain/statusMachine.ts';
-import type { ApplicationConfig, ApplicationStatus } from '../src/types.ts';
+import { seedHistory } from '#shared/domain/statusMachine.ts';
+import type { ApplicationConfig, ApplicationStatus } from '#shared/types.ts';
 
 const DB_PATH = process.env.DB_PATH ?? path.resolve('data', 'app.db');
 

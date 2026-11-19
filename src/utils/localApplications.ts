@@ -1,7 +1,7 @@
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { storage } from './storage';
 import { clearConfigOverride } from './appStorage';
-import { normalizeNotes } from './notes';
+import { normalizeNotes } from '#shared/utils/notes.ts';
 
 const KEY = 'local-apps';
 

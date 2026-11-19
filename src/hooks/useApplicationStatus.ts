@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { changeStatus, changeStepDate, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 
 const showError = (e: unknown) => alert(e instanceof Error ? e.message : String(e));
 

@@ -1,5 +1,5 @@
 import { diffArrays } from 'diff';
-import type { ApplicationConfig, SkillGroup } from '../types';
+import type { ApplicationConfig, SkillGroup } from '#shared/types.ts';
 
 /** An application's content as the server versions it (see server/history.ts). */
 export type VersionContent = Omit<ApplicationConfig, 'status' | 'deletedAt' | 'notes'>;

@@ -20,5 +20,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "scripts", "src/**/*.test.ts"]
+  "include": ["server", "scripts", "shared", "src/**/*.test.ts"]
 }

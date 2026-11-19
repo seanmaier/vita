@@ -1,12 +1,12 @@
-import type { AppLanguage, ApplicationConfig, BaseProfile, Profile } from '../types';
+import type { AppLanguage, ApplicationConfig, BaseProfile, Profile } from '#shared/types.ts';
 import { storage } from './storage';
 import { getProfile } from '../data/profiles';
 import { applications } from '../data/applications';
 import { getLocalApplications } from './localApplications';
 import { getConfigOverride } from './appStorage';
-import { slugify, uniqueId } from './slug';
-import { TRASH_RETENTION_DAYS } from './trash';
-import { LANGUAGES, LANGUAGE_LABELS } from './language';
+import { slugify, uniqueId } from '#shared/utils/slug.ts';
+import { TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
+import { LANGUAGES, LANGUAGE_LABELS } from '#shared/utils/language.ts';
 
 const KEY = 'base-profiles';
 

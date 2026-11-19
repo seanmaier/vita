@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import type { ApplicationConfig } from '../src/types.ts';
-import { todayIso } from '../src/utils/date.ts';
+import type { ApplicationConfig } from '#shared/types.ts';
+import { todayIso } from '#shared/utils/date.ts';
 import { refusedStorageKeys } from './statusHistory.ts';
 import { getJson, KEYS, setJson, setValue } from './store.ts';
 import { createTestUser, testApp } from './test/testApp.ts';

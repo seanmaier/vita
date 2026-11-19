@@ -1,7 +1,7 @@
 // Job postings collected from alerts (e.g. a Cloudflare Email Worker), to be
 // rated later against the user's priorities.
 import { Hono } from 'hono';
-import type { JobLead, JobLeadInput } from '../src/types.ts';
+import type { JobLead, JobLeadInput } from '#shared/types.ts';
 import type { User } from './auth.ts';
 import { db, transaction } from './db.ts';
 import { invalid, readBody } from './http.ts';

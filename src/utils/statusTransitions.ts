@@ -1,8 +1,8 @@
-// The app's side of the status state machine (src/domain/statusMachine.ts):
+// The app's side of the status state machine (shared/domain/statusMachine.ts):
 // reading an application's history and changing it. Changes go through the
 // server's transitions API, which enforces the rules; in the demo, which never
 // talks to the server, the same pure functions run on this tab's storage.
-import type { ApplicationConfig, ApplicationStatus, StatusTransition, StoredStatus } from '../types';
+import type { ApplicationConfig, ApplicationStatus, StatusTransition, StoredStatus } from '#shared/types.ts';
 import {
   appendTransition,
   currentStatus,
@@ -11,11 +11,11 @@ import {
   undoLast,
   validateHistory,
   type HistoryResult,
-} from '../domain/statusMachine';
+} from '#shared/domain/statusMachine.ts';
 import { isDemo } from '../demo/demoMode';
 import { errorFrom } from './api';
 import { getConfigOverride } from './appStorage';
-import { todayIso } from './date';
+import { todayIso } from '#shared/utils/date.ts';
 import { storage } from './storage';
 
 const historyKey = (appId: string) => `status-history-${appId}`;

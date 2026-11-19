@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Fragment } from 'react';
-import type { ApplicationConfig, CoverLetter, Profile } from '../../types';
+import type { ApplicationConfig, CoverLetter, Profile } from '#shared/types.ts';
 import { FONT_STACKS } from '../../utils/fonts';
 import { usePagedBlocks } from './usePagedBlocks';
 import type { Block } from './usePagedBlocks';

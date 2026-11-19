@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { JobFit } from '../../types';
+import type { JobFit } from '#shared/types.ts';
 import { FitBadge } from './FitBadge';
 
 const fit: JobFit = {

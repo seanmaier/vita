@@ -3,15 +3,15 @@
 // sync raw storage keys, these routes work on one application or base profile
 // at a time and return the merged, effective view of it.
 import { Hono, type Context } from 'hono';
-import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '../src/domain/statusMachine.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '../src/types.ts';
-import { validateApplicationConfig } from '../src/utils/parseApplicationConfig.ts';
-import { validateProfile } from '../src/utils/parseProfile.ts';
-import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
-import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
-import { todayIso } from '../src/utils/date.ts';
-import { slugify, uniqueId } from '../src/utils/slug.ts';
-import { purgeDate } from '../src/utils/trash.ts';
+import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '#shared/domain/statusMachine.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '#shared/types.ts';
+import { validateApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
+import { validateProfile } from '#shared/validation/parseProfile.ts';
+import { validateSkillGroups } from '#shared/validation/parseSkillGroups.ts';
+import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '#shared/utils/language.ts';
+import { todayIso } from '#shared/utils/date.ts';
+import { slugify, uniqueId } from '#shared/utils/slug.ts';
+import { purgeDate } from '#shared/utils/trash.ts';
 import { transaction } from './db.ts';
 import { BROWSER_AUTHOR, getVersion, listVersions, recordChanges, snapshot } from './history.ts';
 import { invalid, readBody, type Body, type V1Env, type Validated } from './http.ts';
@@ -260,7 +260,7 @@ v1.patch('/applications/:id', async (c) => {
 });
 
 // ---- Status transitions ----------------------------------------------------
-// The status only moves along src/domain/statusMachine.ts's transitions, and
+// The status only moves along shared/domain/statusMachine.ts's transitions, and
 // every step is recorded with its date. An application the server can't see
 // (bundled with the app in development) starts from the caller's `expected`.
 

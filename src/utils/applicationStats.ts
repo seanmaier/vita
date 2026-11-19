@@ -1,5 +1,5 @@
-import type { ApplicationConfig, ApplicationStatus } from '../types';
-import { numericDateToIso, todayIso } from './date';
+import type { ApplicationConfig, ApplicationStatus } from '#shared/types.ts';
+import { numericDateToIso, todayIso } from '#shared/utils/date.ts';
 
 export type StatKey = 'total' | 'thisMonth' | 'active' | 'interviews' | 'offers' | 'ghosted';
 

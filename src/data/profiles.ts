@@ -1,4 +1,4 @@
-import type { Profile, AppLanguage } from '../types';
+import type { Profile, AppLanguage } from '#shared/types.ts';
 import { getProfileOverride } from '../utils/profileStorage';
 import { isDemo } from '../demo/demoMode';
 import demoEn from '../demo/profiles/en.json';

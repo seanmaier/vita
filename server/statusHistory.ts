@@ -1,9 +1,9 @@
 // Each application's status history (kv `status-history-<id>`, see
-// src/domain/statusMachine.ts). Applications without one yet, such as data
+// shared/domain/statusMachine.ts). Applications without one yet, such as data
 // from before the history existed, read as a history seeded from the old
 // `status-<id>` value and date fields, so every reader sees the same status.
-import { seedHistory, validateHistory } from '../src/domain/statusMachine.ts';
-import type { ApplicationConfig, ApplicationStatus, StatusTransition } from '../src/types.ts';
+import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
+import type { ApplicationConfig, ApplicationStatus, StatusTransition } from '#shared/types.ts';
 import { getJson, getValue, KEYS, setJson } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;

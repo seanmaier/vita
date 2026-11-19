@@ -6,7 +6,7 @@ import { purgeTrash } from './trash.ts';
 /**
  * Hourly housekeeping (scheduled by server/index.ts). Trashed applications and
  * base profiles are purged within an hour of their retention period running
- * out (TRASH_RETENTION_DAYS in src/utils/trash.ts).
+ * out (TRASH_RETENTION_DAYS in shared/utils/trash.ts).
  */
 export function housekeeping() {
   try {
