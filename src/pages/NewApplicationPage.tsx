@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { AppLanguage, BaseProfile } from '../types';
-import { LANG_FLAGS, LANGUAGE_LABELS } from '../utils/language';
+import type { AppLanguage, BaseProfile } from '#shared/types.ts';
+import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
 import { getProfile } from '../data/profiles';
 import { getBaseProfiles } from '../utils/baseProfiles';
 import { saveLocalApplication } from '../utils/localApplications';

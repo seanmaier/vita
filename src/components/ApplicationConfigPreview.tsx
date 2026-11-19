@@ -1,4 +1,4 @@
-import type { ApplicationConfig, CoverLetter } from '../types';
+import type { ApplicationConfig, CoverLetter } from '#shared/types.ts';
 import { resolveApplicationProfile } from '../utils/baseProfiles';
 import { CVDocument } from './cv/CVDocument';
 import { CoverLetterDocument } from './cover-letter/CoverLetterDocument';

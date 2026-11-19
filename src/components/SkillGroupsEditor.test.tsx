@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { SkillGroup } from '../types';
+import type { SkillGroup } from '#shared/types.ts';
 import { SkillGroupsEditor } from './SkillGroupsEditor';
 
 const groups: SkillGroup[] = [

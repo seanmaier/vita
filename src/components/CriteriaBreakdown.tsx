@@ -1,5 +1,5 @@
-import type { FitCriterion } from '../types';
-import { criterionPoints } from '../utils/fitCriteria';
+import type { FitCriterion } from '#shared/types.ts';
+import { criterionPoints } from '#shared/utils/fitCriteria.ts';
 
 const cell = 'py-1 pr-3 text-left font-normal';
 const num = 'py-1 pl-3 text-right tabular-nums';

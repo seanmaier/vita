@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ApplicationConfig, Profile, SkillGroup } from '../types';
-import { parseSkillGroups } from '../utils/parseSkillGroups';
+import type { ApplicationConfig, Profile, SkillGroup } from '#shared/types.ts';
+import { parseSkillGroups } from '#shared/validation/parseSkillGroups.ts';
 import { CVDocument } from './cv/CVDocument';
 
 interface Props {

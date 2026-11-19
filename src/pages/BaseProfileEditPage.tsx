@@ -4,8 +4,8 @@ import { useParams, Link, useNavigate, useBlocker } from 'react-router-dom';
 import type {
   ApplicationConfig, BaseProfile, Profile,
   Experience, Project, HumanLanguage,
-} from '../types';
-import { LANG_FLAGS } from '../utils/language';
+} from '#shared/types.ts';
+import { LANG_FLAGS } from '#shared/utils/language.ts';
 import {
   getBaseProfile, saveBaseProfile, trashBaseProfile, trashConfirmMessage,
 } from '../utils/baseProfiles';

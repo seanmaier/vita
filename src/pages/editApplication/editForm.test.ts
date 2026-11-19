@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ApplicationConfig, Profile } from '../../types.ts';
+import type { ApplicationConfig, Profile } from '#shared/types.ts';
 import { editFormToConfig, initialEditForm } from './editForm.ts';
 
 const profile: Profile = {

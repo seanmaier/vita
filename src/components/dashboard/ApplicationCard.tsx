@@ -5,9 +5,9 @@ import { StatusOptions } from '../StatusOptions';
 import { FitBadge } from './FitBadge';
 import type { StatusAction } from '../../utils/statusTransitions';
 import { NotesDialog } from '../NotesDialog';
-import { LANGUAGE_LABELS } from '../../utils/language';
-import { summarizeNotes } from '../../utils/notes';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '../../types';
+import { LANGUAGE_LABELS } from '#shared/utils/language.ts';
+import { summarizeNotes } from '#shared/utils/notes.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '#shared/types.ts';
 
 const dateCellClass = 'font-mono text-[11px] text-ink-3 w-[88px] shrink-0 text-right truncate ml-2';
 

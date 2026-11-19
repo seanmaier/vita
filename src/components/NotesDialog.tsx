@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { NotesView } from './NotesView';
-import type { AppLanguage, Note } from '../types';
+import type { AppLanguage, Note } from '#shared/types.ts';
 
 interface Props {
   company: string;

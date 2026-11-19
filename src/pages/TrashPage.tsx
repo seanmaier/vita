@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import type { ApplicationConfig, BaseProfile } from '../types';
+import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
 import {
   applicationsUsingBaseProfile, deleteBaseProfilePermanently, getDeletedBaseProfiles, restoreBaseProfile,
 } from '../utils/baseProfiles';
 import {
   deleteLocalApplicationPermanently, getDeletedLocalApplications, restoreLocalApplication,
 } from '../utils/localApplications';
-import { purgeDate, TRASH_RETENTION_DAYS } from '../utils/trash';
-import { LANG_FLAGS } from '../utils/language';
+import { purgeDate, TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
+import { LANG_FLAGS } from '#shared/utils/language.ts';
 
 const actionBtn =
   'font-mono text-[11px] text-ink-2 bg-transparent border border-rule rounded px-2.5 py-1 cursor-pointer transition-colors';

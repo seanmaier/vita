@@ -21,12 +21,15 @@
     "jsx": "react-jsx",
 
     /* Linting */
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  // For the API client's types: the server's declarations, not its source.
+  "references": [{ "path": "./tsconfig.server.json" }],
   // Tests of shared modules run under Node and are checked with the server config.
   "exclude": ["src/**/*.test.ts"]
 }

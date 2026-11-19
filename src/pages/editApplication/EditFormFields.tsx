@@ -1,5 +1,5 @@
-import type { AppLanguage, BaseProfile, Profile } from '../../types';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../../utils/language';
+import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 import { DEFAULT_CLOSINGS } from '../../utils/coverLetterClosing';
 import { AutoTextarea } from '../../components/AutoTextarea';
 import { FeaturedProjectsPicker } from '../../components/FeaturedProjectsPicker';

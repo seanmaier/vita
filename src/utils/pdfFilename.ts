@@ -1,4 +1,4 @@
-import type { AppLanguage } from '../types';
+import type { AppLanguage } from '#shared/types.ts';
 
 export type PrintTarget = 'both' | 'cv' | 'coverLetter';
 

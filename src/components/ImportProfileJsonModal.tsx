@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Profile } from '../types';
-import { parseProfile } from '../utils/parseProfile';
+import type { Profile } from '#shared/types.ts';
+import { parseProfile } from '#shared/validation/parseProfile.ts';
 import { JsonFileButton } from './JsonFileButton';
 
 interface Props {

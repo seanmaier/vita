@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLeads, updateLead } from '../utils/api';
-import type { JobLead, JobLeadStatus } from '../types';
+import type { JobLead, JobLeadStatus } from '#shared/types.ts';
 import { CriteriaBreakdown } from '../components/CriteriaBreakdown';
 import { LeadListSkeleton } from '../components/Skeleton';
 

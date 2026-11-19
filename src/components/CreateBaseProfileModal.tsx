@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { AppLanguage, BaseProfile, Profile } from '../types';
+import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
 import { getStaticProfile } from '../data/profiles';
 import { blankProfile, saveBaseProfile, uniqueBaseProfileId } from '../utils/baseProfiles';
-import { parseProfile } from '../utils/parseProfile';
+import { parseProfile } from '#shared/validation/parseProfile.ts';
 import { JsonFileButton } from './JsonFileButton';
 import { nafSection, nafLabel, nafInput, nafAddBtn } from '../styles/formStyles';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../utils/language';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 
 type StartFrom = 'blank' | 'language-default' | 'json' | `duplicate:${string}`;
 

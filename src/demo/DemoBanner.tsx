@@ -1,8 +1,8 @@
 import { DEMO_TEXTS } from './demoTexts';
 import { DEMO_LOCALES, demoLocale, resetDemo, setDemoLocale } from './demoMode';
 import { startTour } from '../tour/tourControl';
-import { LANG_FLAGS, LANGUAGE_LABELS } from '../utils/language';
-import type { AppLanguage } from '../types';
+import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
+import type { AppLanguage } from '#shared/types.ts';
 
 const outlineButton =
   'bg-transparent border border-rule text-ink-2 rounded px-2.5 py-1 cursor-pointer hover:text-accent hover:border-accent transition-colors duration-150';

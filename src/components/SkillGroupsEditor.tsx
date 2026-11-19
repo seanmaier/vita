@@ -1,4 +1,4 @@
-import type { SkillGroup } from '../types';
+import type { SkillGroup } from '#shared/types.ts';
 import { MoveButtons } from './MoveButtons';
 import { DragHandle } from './DragHandle';
 import { move } from '../utils/move';

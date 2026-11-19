@@ -2,8 +2,9 @@
 // doesn't have yet is added, nothing it has is overwritten. Pure functions
 // over the account's raw kv entries, so the server (POST /api/import) and the
 // demo (which never talks to the server) merge the same way.
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, Profile, StatusTransition } from '../types.ts';
-import { seedHistory, validateHistory } from './statusMachine.ts';
+import { KEY_PREFIXES, STORAGE_KEYS } from '#shared/storageKeys.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, Profile, StatusTransition } from '#shared/types.ts';
+import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
@@ -19,13 +20,14 @@ export interface DataBackup {
   statuses?: Record<string, ApplicationStatus>;
 }
 
+/** The keys a backup reads and writes: whole lists, and prefixes of per-id keys. */
 export const BACKUP_KEYS = {
-  localApps: 'local-apps',
-  baseProfiles: 'base-profiles',
-  appConfig: 'app-config-',
-  status: 'status-',
-  statusHistory: 'status-history-',
-  profileOverride: 'profile-override-',
+  localApps: STORAGE_KEYS.localApps,
+  baseProfiles: STORAGE_KEYS.baseProfiles,
+  appConfig: KEY_PREFIXES.appConfig,
+  status: KEY_PREFIXES.status,
+  statusHistory: KEY_PREFIXES.statusHistory,
+  profileOverride: KEY_PREFIXES.profileOverride,
 };
 
 export type ParseBackupResult = { ok: true; backup: DataBackup } | { ok: false; error: string };

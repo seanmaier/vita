@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { STATUS_COLORS, STATUS_LABELS } from '../utils/status';
-import { GHOSTED_AFTER_DAYS, ghostedOn } from '../domain/statusMachine';
-import { formatDateNumeric, formatDateTime, todayIso, toIsoDate } from '../utils/date';
+import { GHOSTED_AFTER_DAYS, ghostedOn } from '#shared/domain/statusMachine.ts';
+import { formatDateNumeric, formatDateTime, todayIso, toIsoDate } from '#shared/utils/date.ts';
 import { linkify } from '../utils/linkify';
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, StatusTransition } from '../types';
+import type { ApplicationConfig, ApplicationStatus, AppLanguage, StatusTransition } from '#shared/types.ts';
 
 interface Props {
   app: ApplicationConfig;

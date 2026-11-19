@@ -7,7 +7,7 @@ import {
   JOB_ALERT_EVENTS_LIMIT,
   saveForwardingFrom,
 } from '../utils/api';
-import type { InboundEvent, JobAlertsConfig } from '../types';
+import type { InboundEvent, JobAlertsConfig } from '#shared/types.ts';
 import { hintText, nafInput, nafLabel, primaryButton } from '../styles/formStyles';
 import { JOB_ALERT_SOURCES } from '../data/jobAlertSources';
 import { AlertEventsSkeleton, JobAlertsSkeleton, Spinner } from './Skeleton';

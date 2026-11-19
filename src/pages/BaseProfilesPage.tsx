@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LANG_FLAGS } from '../utils/language';
+import { LANG_FLAGS } from '#shared/utils/language.ts';
 import {
   getBaseProfiles, trashBaseProfile, trashConfirmMessage, applicationsUsingBaseProfile,
 } from '../utils/baseProfiles';
 import { countTrashed } from '../utils/trashCount';
-import type { BaseProfile } from '../types';
+import type { BaseProfile } from '#shared/types.ts';
 import { CreateBaseProfileModal } from '../components/CreateBaseProfileModal';
 
 

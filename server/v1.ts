@@ -3,18 +3,18 @@
 // sync raw storage keys, these routes work on one application or base profile
 // at a time and return the merged, effective view of it.
 import { Hono, type Context } from 'hono';
-import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '../src/domain/statusMachine.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '../src/types.ts';
-import { validateApplicationConfig } from '../src/utils/parseApplicationConfig.ts';
-import { validateProfile } from '../src/utils/parseProfile.ts';
-import { validateSkillGroups } from '../src/utils/parseSkillGroups.ts';
-import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '../src/utils/language.ts';
-import { todayIso } from '../src/utils/date.ts';
-import { slugify, uniqueId } from '../src/utils/slug.ts';
-import { purgeDate } from '../src/utils/trash.ts';
+import { allowedNext, appendTransition, currentStatus, derivedDates, INITIAL_STATUSES, isIsoDate, isStoredStatus, setTransitionDate, undoLast } from '#shared/domain/statusMachine.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, BaseProfile, SkillGroup, StatusTransition, StoredStatus } from '#shared/types.ts';
+import { validateApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
+import { validateProfile } from '#shared/validation/parseProfile.ts';
+import { validateSkillGroups } from '#shared/validation/parseSkillGroups.ts';
+import { isAppLanguage, LANGUAGE_ERROR, LANGUAGES, languageOf } from '#shared/utils/language.ts';
+import { todayIso } from '#shared/utils/date.ts';
+import { slugify, uniqueId } from '#shared/utils/slug.ts';
+import { purgeDate } from '#shared/utils/trash.ts';
 import { transaction } from './db.ts';
 import { BROWSER_AUTHOR, getVersion, listVersions, recordChanges, snapshot } from './history.ts';
-import { invalid, readBody, type Body, type V1Env, type Validated } from './http.ts';
+import { type Body, invalid, jsonBody, type V1Env, type Validated } from './http.ts';
 import { inboundMail } from './inboundMail.ts';
 import { jobAlerts } from './jobAlerts.ts';
 import { jobLeads } from './jobLeads.ts';
@@ -23,8 +23,6 @@ import { historyFor, writeHistory } from './statusHistory.ts';
 import { getJson, idsWithStoredKey, KEYS, setJson } from './store.ts';
 
 type StoredConfig = Omit<ApplicationConfig, 'status'>;
-
-export const v1 = new Hono<V1Env>();
 
 /** Who a write is recorded as in the version history: the API token's name, or the app for session calls. */
 const authorOf = (c: Context) => (c.get('apiToken') as string | undefined) ?? BROWSER_AUTHOR;
@@ -78,39 +76,6 @@ function listView<T extends { deletedAt?: string }>(c: Context, items: T[]) {
   );
 }
 
-v1.route('/knowledge', knowledge);
-v1.route('/job-leads', jobLeads);
-v1.route('/job-alerts', jobAlerts);
-v1.route('/inbound-mail', inboundMail);
-
-v1.get('/me', (c) => c.json(c.get('user')));
-
-// Optional ?language=en|de|sv narrows the list; applications without a stored
-// language count as English, like in the app.
-v1.get('/applications', (c) => {
-  const userId = c.get('user').id;
-  const language = c.req.query('language');
-  if (language !== undefined && !isAppLanguage(language)) {
-    return invalid(c, [`Unknown language "${language}". Use one of: ${LANGUAGES.join(', ')}.`]);
-  }
-  const apps = localApps(userId).map((a) => effectiveApplication(userId, a));
-  return listView(c, language ? apps.filter((a) => languageOf(a) === language) : apps);
-});
-
-v1.get('/applications/:id', (c) => {
-  const app = findApplication(c.get('user').id, c.req.param('id'));
-  return app ? c.json(app) : c.json({ error: 'No such application.' }, 404);
-});
-
-// Empty until the app has been opened once: the frontend seeds the list from
-// the legacy per-language profiles on first use.
-v1.get('/base-profiles', (c) => listView(c, baseProfiles(c.get('user').id) ?? []));
-
-v1.get('/base-profiles/:id', (c) => {
-  const profile = baseProfiles(c.get('user').id)?.find((p) => p.id === c.req.param('id'));
-  return profile ? c.json(profile) : c.json({ error: 'No such base profile.' }, 404);
-});
-
 // ---- Writes ---------------------------------------------------------------
 // Every write is one read-modify-write inside a transaction, so concurrent
 // API calls can't lose each other's changes. Nothing here deletes for good:
@@ -120,16 +85,16 @@ v1.get('/base-profiles/:id', (c) => {
 const APPLICATION_FIELDS = [
   'id', 'company', 'role', 'status', 'language', 'font', 'appliedDate', 'interviewDate', 'finalDecisionDate',
   'notes', 'url', 'baseProfileId', 'summaryOverride', 'featuredProjectIds', 'skillGroupsOverride', 'coverLetter', 'fit',
-];
+] as const;
 // Derived from the status history; changed only through the transitions
 // endpoints below. Still listed above so a request naming them gets this
 // explanation rather than "unknown field".
-const DATE_FIELDS = ['appliedDate', 'interviewDate', 'finalDecisionDate'];
+const DATE_FIELDS: readonly string[] = ['appliedDate', 'interviewDate', 'finalDecisionDate'];
 const STATUS_FIELDS_ERROR =
   'The status and the applied/interview/decision dates follow the status history. Change them with ' +
   'POST /api/v1/applications/:id/transitions { to, date? }, undo with DELETE /api/v1/applications/:id/transitions/last, ' +
   'and fix a date with PATCH /api/v1/applications/:id/transitions/:index { date }.';
-const BASE_PROFILE_FIELDS = ['id', 'name', 'language', 'profile'];
+const BASE_PROFILE_FIELDS = ['id', 'name', 'language', 'profile'] as const;
 // Not part of the application: a short note on what a write changed, shown
 // in the application's version history like a commit message.
 const CHANGE_MESSAGE = 'changeMessage';
@@ -168,99 +133,8 @@ function baseProfileIdError(userId: number, body: Body): string | null {
   return null;
 }
 
-// New applications start as drafts, so nothing the assistant creates looks
-// finished until the user has reviewed it in the app; a job that was only
-// checked (/stellencheck) starts as "evaluated" instead.
-v1.post('/applications', async (c) => {
-  const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
-  if (Array.isArray(body)) return invalid(c, body);
-  const message = takeChangeMessage(body);
-  if (Array.isArray(message)) return invalid(c, message);
-  if (DATE_FIELDS.some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
-  if (body.status !== undefined && !INITIAL_STATUSES.includes(body.status as StoredStatus)) {
-    return invalid(c, [`"status" of a new application must be ${INITIAL_STATUSES.map((st) => `"${st}"`).join(' or ')}.`]);
-  }
-  const initial = (body.status as StoredStatus | undefined) ?? 'drafting';
-  const result = validateApplication({ ...body, status: initial });
-  if (!result.ok) return invalid(c, result.errors);
-
-  const userId = c.get('user').id;
-  const profileError = baseProfileIdError(userId, body);
-  if (profileError) return invalid(c, [profileError]);
-  const explicitId = typeof body.id === 'string' && body.id.trim() !== '';
-  if (!result.value.id) return invalid(c, ['Could not derive an id from "company"; pass an "id".']);
-
-  const outcome = transaction(() => {
-    const apps = localApps(userId);
-    // An id is also taken while edits or a status are stored under it: they
-    // may belong to an application from private/applications/, which the
-    // server can't see. The API never removes them, so it can't destroy that
-    // data by accident; it picks another id instead.
-    const taken = new Set([
-      ...apps.map((a) => a.id),
-      ...idsWithStoredKey(userId, KEYS.appConfig('')),
-      ...idsWithStoredKey(userId, KEYS.status('')),
-      ...idsWithStoredKey(userId, KEYS.statusHistory('')),
-    ]);
-    if (explicitId && taken.has(result.value.id)) return null;
-    const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
-    const before = snapshot(userId, [config.id]);
-    setJson(userId, KEYS.localApps, [...apps, config]);
-    writeHistory(userId, config.id, [{ to: initial, date: null, recordedAt: new Date().toISOString() }]);
-    recordChanges(userId, before, authorOf(c), () => message);
-    return config;
-  });
-
-  if (!outcome) {
-    return c.json({ error: `The id "${result.value.id}" is already in use. Pick another one or leave "id" out.` }, 409);
-  }
-  return c.json(effectiveApplication(userId, outcome), 201);
-});
-
-// Partial update: given fields replace the current value, null removes an
-// optional one. Saved the way the app's editor saves (the app-config
-// override), so the app shows it immediately. Status and dates aren't
-// fields here; see the transitions endpoints.
-v1.patch('/applications/:id', async (c) => {
-  const body = await readBody(c, [...APPLICATION_FIELDS, CHANGE_MESSAGE]);
-  if (Array.isArray(body)) return invalid(c, body);
-  const message = takeChangeMessage(body);
-  if (Array.isArray(message)) return invalid(c, message);
-  const id = c.req.param('id');
-  if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
-  if (['status', ...DATE_FIELDS].some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
-
-  const userId = c.get('user').id;
-  const profileError = baseProfileIdError(userId, body);
-  if (profileError) return invalid(c, [profileError]);
-  const outcome = transaction((): Validated<null> | 'trashed' | null => {
-    const current = findApplication(userId, id);
-    if (!current) return null;
-    if (current.deletedAt) return 'trashed';
-    const { statusHistory: _history, ...rest } = current;
-    const merged: Body = { ...rest };
-    for (const [key, value] of Object.entries(body)) {
-      if (value === null) delete merged[key];
-      else merged[key] = value;
-    }
-    const result = validateApplication(merged);
-    if (!result.ok) return result;
-
-    const { status: _status, ...stored } = result.value;
-    const before = snapshot(userId, [id]);
-    setJson(userId, KEYS.appConfig(id), withoutStatusFields(stored));
-    recordChanges(userId, before, authorOf(c), () => message);
-    return { ok: true, value: null };
-  });
-
-  if (!outcome) return c.json({ error: 'No such application.' }, 404);
-  if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
-  if (!outcome.ok) return invalid(c, outcome.errors);
-  return c.json(findApplication(userId, id));
-});
-
 // ---- Status transitions ----------------------------------------------------
-// The status only moves along src/domain/statusMachine.ts's transitions, and
+// The status only moves along shared/domain/statusMachine.ts's transitions, and
 // every step is recorded with its date. An application the server can't see
 // (bundled with the app in development) starts from the caller's `expected`.
 
@@ -318,82 +192,9 @@ function changeHistory(
 
 const DATE_ERROR = '"date" must be a date like "2026-11-16".';
 
-v1.post('/applications/:id/transitions', async (c) => {
-  const body = await readBody(c, ['to', 'date', 'expected']);
-  if (Array.isArray(body)) return invalid(c, body);
-  if (!isStoredStatus(body.to)) return invalid(c, ['"to" must be a status other than "ghosted", which is derived.']);
-  if (body.date !== undefined && !isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
-  const expected = body.expected;
-  if (expected !== undefined && !(isStoredStatus(expected) || expected === 'ghosted')) {
-    return invalid(c, ['"expected" must be a status.']);
-  }
-  const to = body.to;
-  const date = (body.date as string | undefined) ?? todayIso();
-  return changeHistory(
-    c,
-    (history) => {
-      const result = appendTransition(history, to, date, new Date().toISOString());
-      return result.ok ? result.history : { kind: 'conflict', error: result.error };
-    },
-    expected,
-  );
-});
-
-v1.delete('/applications/:id/transitions/last', (c) =>
-  changeHistory(c, (history) => {
-    const result = undoLast(history);
-    return result.ok ? result.history : { kind: 'conflict', error: result.error };
-  }),
-);
-
-v1.patch('/applications/:id/transitions/:index', async (c) => {
-  const body = await readBody(c, ['date']);
-  if (Array.isArray(body)) return invalid(c, body);
-  if (!isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
-  const date = body.date;
-  const index = Number(c.req.param('index'));
-  return changeHistory(c, (history) => {
-    const result = setTransitionDate(history, index, date);
-    return result.ok ? result.history : { kind: 'invalid', error: result.error };
-  });
-});
-
 // ---- Version history -------------------------------------------------------
 // Every change to an application's content is kept as a full snapshot (see
 // server/history.ts), newest first. Status and notes aren't versioned.
-
-v1.get('/applications/:id/versions', (c) => {
-  const userId = c.get('user').id;
-  const id = c.req.param('id');
-  if (!findApplication(userId, id)) return c.json({ error: 'No such application.' }, 404);
-  return c.json(listVersions(userId, id));
-});
-
-// Writes the version's content back as the application's saved edits, keeping
-// its current status and notes, and records that as a new version, so a
-// restore can itself be undone.
-v1.post('/applications/:id/versions/:versionId/restore', (c) => {
-  const userId = c.get('user').id;
-  const id = c.req.param('id');
-  const versionId = Number(c.req.param('versionId'));
-  const outcome = transaction((): ApplicationConfig | 'no-app' | 'no-version' | 'trashed' => {
-    const current = findApplication(userId, id);
-    if (!current) return 'no-app';
-    if (current.deletedAt) return 'trashed';
-    const version = Number.isInteger(versionId) ? getVersion(userId, id, versionId) : null;
-    if (!version) return 'no-version';
-    const before = snapshot(userId, [id]);
-    setJson(userId, KEYS.appConfig(id), { ...version.content, id, ...(current.notes && { notes: current.notes }) });
-    const restoredMessage = version.message ? `Restored: ${version.message}` : 'Restored an earlier version';
-    recordChanges(userId, before, authorOf(c), () => restoredMessage);
-    return findApplication(userId, id)!;
-  });
-
-  if (outcome === 'no-app') return c.json({ error: 'No such application.' }, 404);
-  if (outcome === 'no-version') return c.json({ error: 'No such version.' }, 404);
-  if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
-  return c.json(outcome);
-});
 
 function validateBaseProfile(input: Body): Validated<Omit<BaseProfile, 'id'>> {
   const errors: string[] = [];
@@ -410,61 +211,6 @@ function validateBaseProfile(input: Body): Validated<Omit<BaseProfile, 'id'>> {
 
 const NOT_SEEDED = 'Base profiles are set up the first time the app is opened. Open it once, then retry.';
 
-v1.post('/base-profiles', async (c) => {
-  const body = await readBody(c, BASE_PROFILE_FIELDS);
-  if (Array.isArray(body)) return invalid(c, body);
-  const result = validateBaseProfile(body);
-  if (!result.ok) return invalid(c, result.errors);
-  const givenId = body.id;
-  if (givenId !== undefined && (typeof givenId !== 'string' || !givenId || slugify(givenId) !== givenId)) {
-    return invalid(c, ['"id" must be a lowercase slug like "backend-de".']);
-  }
-
-  const userId = c.get('user').id;
-  const outcome = transaction((): BaseProfile | 'not-seeded' | 'conflict' => {
-    // Writing a list before the app seeded it would stop the app from ever
-    // adding the default profiles, so this waits for that first run.
-    const list = baseProfiles(userId);
-    if (!list) return 'not-seeded';
-    const taken = new Set(list.map((p) => p.id));
-    // Trashed profiles keep their id until purged, so a restore never collides.
-    if (givenId !== undefined && taken.has(givenId)) return 'conflict';
-    const id = givenId ?? uniqueId(slugify(result.value.name) || 'profile', taken);
-    const created: BaseProfile = { id, ...result.value };
-    setJson(userId, KEYS.baseProfiles, [...list, created]);
-    return created;
-  });
-
-  if (outcome === 'not-seeded') return c.json({ error: NOT_SEEDED }, 409);
-  if (outcome === 'conflict') return c.json({ error: `A base profile with id "${givenId}" already exists.` }, 409);
-  return c.json(outcome, 201);
-});
-
-// Full replacement of name, language and profile; the id stays.
-v1.put('/base-profiles/:id', async (c) => {
-  const body = await readBody(c, BASE_PROFILE_FIELDS);
-  if (Array.isArray(body)) return invalid(c, body);
-  const id = c.req.param('id');
-  if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
-  const result = validateBaseProfile(body);
-  if (!result.ok) return invalid(c, result.errors);
-
-  const userId = c.get('user').id;
-  const updated = transaction((): BaseProfile | 'not-found' | 'trashed' => {
-    const list = baseProfiles(userId);
-    const current = list?.find((p) => p.id === id);
-    if (!list || !current) return 'not-found';
-    if (current.deletedAt) return 'trashed';
-    const replacement: BaseProfile = { id, ...result.value };
-    setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? replacement : p)));
-    return replacement;
-  });
-
-  if (updated === 'not-found') return c.json({ error: 'No such base profile.' }, 404);
-  if (updated === 'trashed') return c.json({ error: 'This base profile is in the trash. Restore it first.' }, 409);
-  return c.json(updated);
-});
-
 // ---- Trash ----------------------------------------------------------------
 // The API only soft-deletes base profiles: they move to the trash, where the
 // user can restore them or delete them for good in the app, and the server
@@ -478,48 +224,279 @@ function applicationsUsing(userId: number, profileId: string): ApplicationConfig
     .filter((a) => !a.deletedAt && a.baseProfileId === profileId);
 }
 
-// Refuses profiles that applications still use: once purged, those would
-// silently fall back to the language default profile, changing CVs that may
-// already have been sent. Move the applications to another profile first.
-v1.delete('/base-profiles/:id', (c) => {
-  const id = c.req.param('id');
-  const userId = c.get('user').id;
-  const outcome = transaction((): BaseProfile | ApplicationConfig[] | null => {
-    const list = baseProfiles(userId);
-    const current = list?.find((p) => p.id === id);
-    if (!list || !current) return null;
-    if (current.deletedAt) return current;
-    const usedBy = applicationsUsing(userId, id);
-    if (usedBy.length) return usedBy;
-    const trashed: BaseProfile = { ...current, deletedAt: new Date().toISOString() };
-    setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? trashed : p)));
-    return trashed;
-  });
+export const v1 = new Hono<V1Env>()
+  .route('/knowledge', knowledge)
+  .route('/job-leads', jobLeads)
+  .route('/job-alerts', jobAlerts)
+  .route('/inbound-mail', inboundMail)
+  .get('/me', (c) => c.json(c.get('user')))
+  // Optional ?language=en|de|sv narrows the list; applications without a stored
+  // language count as English, like in the app.
+  .get('/applications', (c) => {
+    const userId = c.get('user').id;
+    const language = c.req.query('language');
+    if (language !== undefined && !isAppLanguage(language)) {
+      return invalid(c, [`Unknown language "${language}". Use one of: ${LANGUAGES.join(', ')}.`]);
+    }
+    const apps = localApps(userId).map((a) => effectiveApplication(userId, a));
+    return listView(c, language ? apps.filter((a) => languageOf(a) === language) : apps);
+  })
+  .get('/applications/:id', (c) => {
+    const app = findApplication(c.get('user').id, c.req.param('id'));
+    return app ? c.json(app) : c.json({ error: 'No such application.' }, 404);
+  })
+  // Empty until the app has been opened once: the frontend seeds the list from
+  // the legacy per-language profiles on first use.
+  .get('/base-profiles', (c) => listView(c, baseProfiles(c.get('user').id) ?? []))
+  .get('/base-profiles/:id', (c) => {
+    const profile = baseProfiles(c.get('user').id)?.find((p) => p.id === c.req.param('id'));
+    return profile ? c.json(profile) : c.json({ error: 'No such base profile.' }, 404);
+  })
+  // New applications start as drafts, so nothing the assistant creates looks
+  // finished until the user has reviewed it in the app; a job that was only
+  // checked (/stellencheck) starts as "evaluated" instead.
+  .post('/applications', jsonBody([...APPLICATION_FIELDS, CHANGE_MESSAGE]), async (c) => {
+    const body = c.req.valid('json');
+    const message = takeChangeMessage(body);
+    if (Array.isArray(message)) return invalid(c, message);
+    if (DATE_FIELDS.some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
+    if (body.status !== undefined && !INITIAL_STATUSES.includes(body.status as StoredStatus)) {
+      return invalid(c, [`"status" of a new application must be ${INITIAL_STATUSES.map((st) => `"${st}"`).join(' or ')}.`]);
+    }
+    const initial = (body.status as StoredStatus | undefined) ?? 'drafting';
+    const result = validateApplication({ ...body, status: initial });
+    if (!result.ok) return invalid(c, result.errors);
 
-  if (!outcome) return c.json({ error: 'No such base profile.' }, 404);
-  if (Array.isArray(outcome)) {
-    return c.json(
-      {
-        error: 'This base profile is still used by applications. Point them at another profile first.',
-        applications: outcome.map((a) => ({ id: a.id, company: a.company, role: a.role, status: a.status })),
+    const userId = c.get('user').id;
+    const profileError = baseProfileIdError(userId, body);
+    if (profileError) return invalid(c, [profileError]);
+    const explicitId = typeof body.id === 'string' && body.id.trim() !== '';
+    if (!result.value.id) return invalid(c, ['Could not derive an id from "company"; pass an "id".']);
+
+    const outcome = transaction(() => {
+      const apps = localApps(userId);
+      // An id is also taken while edits or a status are stored under it: they
+      // may belong to an application from private/applications/, which the
+      // server can't see. The API never removes them, so it can't destroy that
+      // data by accident; it picks another id instead.
+      const taken = new Set([
+        ...apps.map((a) => a.id),
+        ...idsWithStoredKey(userId, KEYS.appConfig('')),
+        ...idsWithStoredKey(userId, KEYS.status('')),
+        ...idsWithStoredKey(userId, KEYS.statusHistory('')),
+      ]);
+      if (explicitId && taken.has(result.value.id)) return null;
+      const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
+      const before = snapshot(userId, [config.id]);
+      setJson(userId, KEYS.localApps, [...apps, config]);
+      writeHistory(userId, config.id, [{ to: initial, date: null, recordedAt: new Date().toISOString() }]);
+      recordChanges(userId, before, authorOf(c), () => message);
+      return config;
+    });
+
+    if (!outcome) {
+      return c.json({ error: `The id "${result.value.id}" is already in use. Pick another one or leave "id" out.` }, 409);
+    }
+    return c.json(effectiveApplication(userId, outcome), 201);
+  })
+  // Partial update: given fields replace the current value, null removes an
+  // optional one. Saved the way the app's editor saves (the app-config
+  // override), so the app shows it immediately. Status and dates aren't
+  // fields here; see the transitions endpoints.
+  .patch('/applications/:id', jsonBody([...APPLICATION_FIELDS, CHANGE_MESSAGE]), async (c) => {
+    const body = c.req.valid('json');
+    const message = takeChangeMessage(body);
+    if (Array.isArray(message)) return invalid(c, message);
+    const id = c.req.param('id');
+    if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
+    if (['status', ...DATE_FIELDS].some((f) => f in body)) return invalid(c, [STATUS_FIELDS_ERROR]);
+
+    const userId = c.get('user').id;
+    const profileError = baseProfileIdError(userId, body);
+    if (profileError) return invalid(c, [profileError]);
+    const outcome = transaction((): Validated<null> | 'trashed' | null => {
+      const current = findApplication(userId, id);
+      if (!current) return null;
+      if (current.deletedAt) return 'trashed';
+      const { statusHistory: _history, ...rest } = current;
+      const merged: Body = { ...rest };
+      for (const [key, value] of Object.entries(body)) {
+        if (value === null) delete merged[key];
+        else merged[key] = value;
+      }
+      const result = validateApplication(merged);
+      if (!result.ok) return result;
+
+      const { status: _status, ...stored } = result.value;
+      const before = snapshot(userId, [id]);
+      setJson(userId, KEYS.appConfig(id), withoutStatusFields(stored));
+      recordChanges(userId, before, authorOf(c), () => message);
+      return { ok: true, value: null };
+    });
+
+    if (!outcome) return c.json({ error: 'No such application.' }, 404);
+    if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+    if (!outcome.ok) return invalid(c, outcome.errors);
+    return c.json(findApplication(userId, id));
+  })
+  .post('/applications/:id/transitions', jsonBody(['to', 'date', 'expected']), async (c) => {
+    const body = c.req.valid('json');
+    if (!isStoredStatus(body.to)) return invalid(c, ['"to" must be a status other than "ghosted", which is derived.']);
+    if (body.date !== undefined && !isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
+    const expected = body.expected;
+    if (expected !== undefined && !(isStoredStatus(expected) || expected === 'ghosted')) {
+      return invalid(c, ['"expected" must be a status.']);
+    }
+    const to = body.to;
+    const date = (body.date as string | undefined) ?? todayIso();
+    return changeHistory(
+      c,
+      (history) => {
+        const result = appendTransition(history, to, date, new Date().toISOString());
+        return result.ok ? result.history : { kind: 'conflict', error: result.error };
       },
-      409,
+      expected,
     );
-  }
-  return c.json({ ...outcome, purgesAt: purgeDate(outcome.deletedAt!).toISOString() });
-});
+  })
+  .delete('/applications/:id/transitions/last', (c) =>
+    changeHistory(c, (history) => {
+      const result = undoLast(history);
+      return result.ok ? result.history : { kind: 'conflict', error: result.error };
+    }),
+  )
+  .patch('/applications/:id/transitions/:index', jsonBody(['date']), async (c) => {
+    const body = c.req.valid('json');
+    if (!isIsoDate(body.date)) return invalid(c, [DATE_ERROR]);
+    const date = body.date;
+    const index = Number(c.req.param('index'));
+    return changeHistory(c, (history) => {
+      const result = setTransitionDate(history, index, date);
+      return result.ok ? result.history : { kind: 'invalid', error: result.error };
+    });
+  })
+  .get('/applications/:id/versions', (c) => {
+    const userId = c.get('user').id;
+    const id = c.req.param('id');
+    if (!findApplication(userId, id)) return c.json({ error: 'No such application.' }, 404);
+    return c.json(listVersions(userId, id));
+  })
+  // Writes the version's content back as the application's saved edits, keeping
+  // its current status and notes, and records that as a new version, so a
+  // restore can itself be undone.
+  .post('/applications/:id/versions/:versionId/restore', (c) => {
+    const userId = c.get('user').id;
+    const id = c.req.param('id');
+    const versionId = Number(c.req.param('versionId'));
+    const outcome = transaction((): ApplicationConfig | 'no-app' | 'no-version' | 'trashed' => {
+      const current = findApplication(userId, id);
+      if (!current) return 'no-app';
+      if (current.deletedAt) return 'trashed';
+      const version = Number.isInteger(versionId) ? getVersion(userId, id, versionId) : null;
+      if (!version) return 'no-version';
+      const before = snapshot(userId, [id]);
+      setJson(userId, KEYS.appConfig(id), { ...version.content, id, ...(current.notes && { notes: current.notes }) });
+      const restoredMessage = version.message ? `Restored: ${version.message}` : 'Restored an earlier version';
+      recordChanges(userId, before, authorOf(c), () => restoredMessage);
+      return findApplication(userId, id)!;
+    });
 
-v1.post('/base-profiles/:id/restore', (c) => {
-  const id = c.req.param('id');
-  const userId = c.get('user').id;
-  const restored = transaction(() => {
-    const list = baseProfiles(userId);
-    const current = list?.find((p) => p.id === id);
-    if (!list || !current) return null;
-    const { deletedAt: _deletedAt, ...active } = current;
-    if (current.deletedAt) setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? active : p)));
-    return active;
+    if (outcome === 'no-app') return c.json({ error: 'No such application.' }, 404);
+    if (outcome === 'no-version') return c.json({ error: 'No such version.' }, 404);
+    if (outcome === 'trashed') return c.json({ error: 'This application is in the trash. Restore it in the app first.' }, 409);
+    return c.json(outcome);
+  })
+  .post('/base-profiles', jsonBody(BASE_PROFILE_FIELDS), async (c) => {
+    const body = c.req.valid('json');
+    const result = validateBaseProfile(body);
+    if (!result.ok) return invalid(c, result.errors);
+    const givenId = body.id;
+    if (givenId !== undefined && (typeof givenId !== 'string' || !givenId || slugify(givenId) !== givenId)) {
+      return invalid(c, ['"id" must be a lowercase slug like "backend-de".']);
+    }
+
+    const userId = c.get('user').id;
+    const outcome = transaction((): BaseProfile | 'not-seeded' | 'conflict' => {
+      // Writing a list before the app seeded it would stop the app from ever
+      // adding the default profiles, so this waits for that first run.
+      const list = baseProfiles(userId);
+      if (!list) return 'not-seeded';
+      const taken = new Set(list.map((p) => p.id));
+      // Trashed profiles keep their id until purged, so a restore never collides.
+      if (givenId !== undefined && taken.has(givenId)) return 'conflict';
+      const id = givenId ?? uniqueId(slugify(result.value.name) || 'profile', taken);
+      const created: BaseProfile = { id, ...result.value };
+      setJson(userId, KEYS.baseProfiles, [...list, created]);
+      return created;
+    });
+
+    if (outcome === 'not-seeded') return c.json({ error: NOT_SEEDED }, 409);
+    if (outcome === 'conflict') return c.json({ error: `A base profile with id "${givenId}" already exists.` }, 409);
+    return c.json(outcome, 201);
+  })
+  // Full replacement of name, language and profile; the id stays.
+  .put('/base-profiles/:id', jsonBody(BASE_PROFILE_FIELDS), async (c) => {
+    const body = c.req.valid('json');
+    const id = c.req.param('id');
+    if (body.id !== undefined && body.id !== id) return invalid(c, ['"id" cannot be changed.']);
+    const result = validateBaseProfile(body);
+    if (!result.ok) return invalid(c, result.errors);
+
+    const userId = c.get('user').id;
+    const updated = transaction((): BaseProfile | 'not-found' | 'trashed' => {
+      const list = baseProfiles(userId);
+      const current = list?.find((p) => p.id === id);
+      if (!list || !current) return 'not-found';
+      if (current.deletedAt) return 'trashed';
+      const replacement: BaseProfile = { id, ...result.value };
+      setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? replacement : p)));
+      return replacement;
+    });
+
+    if (updated === 'not-found') return c.json({ error: 'No such base profile.' }, 404);
+    if (updated === 'trashed') return c.json({ error: 'This base profile is in the trash. Restore it first.' }, 409);
+    return c.json(updated);
+  })
+  // Refuses profiles that applications still use: once purged, those would
+  // silently fall back to the language default profile, changing CVs that may
+  // already have been sent. Move the applications to another profile first.
+  .delete('/base-profiles/:id', (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('user').id;
+    const outcome = transaction((): BaseProfile | ApplicationConfig[] | null => {
+      const list = baseProfiles(userId);
+      const current = list?.find((p) => p.id === id);
+      if (!list || !current) return null;
+      if (current.deletedAt) return current;
+      const usedBy = applicationsUsing(userId, id);
+      if (usedBy.length) return usedBy;
+      const trashed: BaseProfile = { ...current, deletedAt: new Date().toISOString() };
+      setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? trashed : p)));
+      return trashed;
+    });
+
+    if (!outcome) return c.json({ error: 'No such base profile.' }, 404);
+    if (Array.isArray(outcome)) {
+      return c.json(
+        {
+          error: 'This base profile is still used by applications. Point them at another profile first.',
+          applications: outcome.map((a) => ({ id: a.id, company: a.company, role: a.role, status: a.status })),
+        },
+        409,
+      );
+    }
+    return c.json({ ...outcome, purgesAt: purgeDate(outcome.deletedAt!).toISOString() });
+  })
+  .post('/base-profiles/:id/restore', (c) => {
+    const id = c.req.param('id');
+    const userId = c.get('user').id;
+    const restored = transaction(() => {
+      const list = baseProfiles(userId);
+      const current = list?.find((p) => p.id === id);
+      if (!list || !current) return null;
+      const { deletedAt: _deletedAt, ...active } = current;
+      if (current.deletedAt) setJson(userId, KEYS.baseProfiles, list.map((p) => (p.id === id ? active : p)));
+      return active;
+    });
+
+    return restored ? c.json(restored) : c.json({ error: 'No such base profile (it may already have been purged).' }, 404);
   });
-
-  return restored ? c.json(restored) : c.json({ error: 'No such base profile (it may already have been purged).' }, 404);
-});

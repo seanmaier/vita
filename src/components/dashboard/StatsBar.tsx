@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ApplicationConfig } from '../../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { STATUS_COLORS } from '../../utils/status';
 import { countStat, type StatKey } from '../../utils/applicationStats';
 

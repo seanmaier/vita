@@ -1,4 +1,4 @@
-import type { ApplicationConfig, Profile } from '../types';
+import type { ApplicationConfig, Profile } from '#shared/types.ts';
 import { featuredProjects } from './featuredProjects';
 import { DEFAULT_CLOSINGS } from './coverLetterClosing';
 
