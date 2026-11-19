@@ -13,7 +13,8 @@ export interface TestUser {
  * guided tour not yet seen.
  */
 export function createUser(): TestUser {
-  const user = { username: `e2e-${randomUUID().slice(0, 8)}`, password: 'e2e-password-1234' }; // secret-scan:allow (throwaway e2e user)
+  // A throwaway user per test, with a random password.
+  const user = { username: `e2e-${randomUUID().slice(0, 8)}`, password: randomUUID() };
   execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/cli.ts', 'add', user.username, user.password], {
     env: { ...process.env, DB_PATH: process.env.E2E_DB_PATH },
     stdio: 'ignore',
