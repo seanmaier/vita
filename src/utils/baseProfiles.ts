@@ -7,8 +7,9 @@ import { getConfigOverride } from './appStorage';
 import { slugify, uniqueId } from '#shared/utils/slug.ts';
 import { TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
 import { LANGUAGES, LANGUAGE_LABELS } from '#shared/utils/language.ts';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
-const KEY = 'base-profiles';
+const KEY = STORAGE_KEYS.baseProfiles;
 
 function readList(): BaseProfile[] | null {
   try {

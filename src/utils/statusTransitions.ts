@@ -17,8 +17,9 @@ import { client, errorFrom } from './apiClient';
 import { getConfigOverride } from './appStorage';
 import { todayIso } from '#shared/utils/date.ts';
 import { storage } from './storage';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
-const historyKey = (appId: string) => `status-history-${appId}`;
+const historyKey = STORAGE_KEYS.statusHistory;
 
 /** What a status picker can ask for: a next status, or undoing the last step. */
 export type StatusAction = StoredStatus | 'undo';
@@ -38,7 +39,7 @@ export function historyOf(app: ApplicationConfig): StatusTransition[] {
       // unreadable: fall back to the old fields below
     }
   }
-  const legacyStatus = storage.getItem(`status-${app.id}`) as ApplicationStatus | null;
+  const legacyStatus = storage.getItem(STORAGE_KEYS.status(app.id)) as ApplicationStatus | null;
   return seedHistory(legacyStatus ?? app.status, getConfigOverride(app.id) ?? app);
 }
 

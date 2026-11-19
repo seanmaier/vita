@@ -2,8 +2,9 @@ import type { ApplicationConfig } from '#shared/types.ts';
 import { storage } from './storage';
 import { clearConfigOverride } from './appStorage';
 import { normalizeNotes } from '#shared/utils/notes.ts';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
-const KEY = 'local-apps';
+const KEY = STORAGE_KEYS.localApps;
 
 /** Every stored application, including the ones in the trash. Writes must start from this list. */
 export function getAllLocalApplications(): ApplicationConfig[] {
@@ -51,8 +52,8 @@ export function restoreLocalApplication(id: string): void {
 export function deleteLocalApplicationPermanently(id: string): void {
   writeList(getAllLocalApplications().filter((a) => a.id !== id));
   clearConfigOverride(id);
-  storage.removeItem(`status-${id}`);
-  storage.removeItem(`status-history-${id}`);
+  storage.removeItem(STORAGE_KEYS.status(id));
+  storage.removeItem(STORAGE_KEYS.statusHistory(id));
 }
 
 export function isLocalApplication(id: string): boolean {

@@ -192,7 +192,7 @@ transaction(() => {
   }
   setJson(userId, KEYS.appConfig(APP_ID), current);
   setJson(userId, KEYS.statusHistory(APP_ID), [{ to: 'drafting', date: null, recordedAt: null }]);
-  setValue(userId, 'tour-seen', '1');
+  setValue(userId, KEYS.tourSeen, '1');
 
   const insert = db.prepare(
     'INSERT INTO app_versions (user_id, app_id, created_at, author, message, content) VALUES (?, ?, ?, ?, ?, ?)',
