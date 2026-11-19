@@ -6,7 +6,7 @@ import { db } from './db.ts';
 // Through the whole app, as production serves it: these tests cover what
 // testApp() skips on purpose (login, session cookie, CSRF, token scopes).
 const app = createApp({ staticDir: './does-not-exist' });
-const PASSWORD = 'correct horse battery'; // secret-scan:allow (test-only password)
+const PASSWORD = 'correct horse battery';
 const json = { 'content-type': 'application/json' };
 // What a browser sends with a POST or DELETE from the app's own page.
 const sameOrigin = { origin: 'http://localhost' };
