@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 import { andSaved, logInFresh } from './users.ts';
 
 test('a new application is saved on the server and moves through its statuses', async ({ page }) => {
@@ -10,7 +11,7 @@ test('a new application is saved on the server and moves through its statuses', 
   await expect(save).toBeDisabled();
   await page.getByPlaceholder('e.g. Vattenfall').fill('Kaiwerk Studio');
   await page.getByPlaceholder('e.g. Backend Engineer').fill('Fullstack Developer');
-  await andSaved(page, 'local-apps', () => save.click());
+  await andSaved(page, STORAGE_KEYS.localApps, () => save.click());
 
   await expect(page).toHaveURL(/\/application\/kaiwerk-studio/);
   const status = page.getByLabel('Status');

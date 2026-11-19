@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
 export interface TestUser {
   username: string;
@@ -53,6 +54,6 @@ export async function andSaved(page: Page, key: string, action: () => Promise<vo
 export async function logInFresh(page: Page): Promise<TestUser> {
   const user = createUser();
   await logIn(page, user);
-  await andSaved(page, 'tour-seen', () => page.getByRole('button', { name: 'skip tour' }).click());
+  await andSaved(page, STORAGE_KEYS.tourSeen, () => page.getByRole('button', { name: 'skip tour' }).click());
   return user;
 }
