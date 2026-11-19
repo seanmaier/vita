@@ -105,6 +105,24 @@ describe('API tokens', () => {
     expect(posted.status).toBe(201);
   });
 
+  it('rotates through the session: the new secret works, the old one stops at once', async () => {
+    const user = await createUser();
+    const cookie = await sessionCookie(user.username);
+    const old = tokenFor(user.id, 'full');
+    const tokenName = `token-${counter}`;
+    // A token can't rotate tokens, not even itself.
+    const byToken = await app.request(`/api/tokens/${tokenName}/rotate`, { method: 'POST', headers: { authorization: `Bearer ${old}`, ...sameOrigin } });
+    expect(byToken.status).toBe(401);
+
+    const res = await app.request(`/api/tokens/${tokenName}/rotate`, { method: 'POST', headers: { cookie, ...sameOrigin } });
+    expect(res.status).toBe(200);
+    const { token } = (await res.json()) as { token: string };
+    expect((await app.request('/api/v1/me', { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
+    expect((await app.request('/api/v1/me', { headers: { authorization: `Bearer ${old}` } })).status).toBe(401);
+    const missing = await app.request('/api/tokens/nope/rotate', { method: 'POST', headers: { cookie, ...sameOrigin } });
+    expect(missing.status).toBe(404);
+  });
+
   it('is not accepted outside /api/v1', async () => {
     const user = await createUser();
     const authorization = `Bearer ${tokenFor(user.id, 'full')}`;
