@@ -162,7 +162,7 @@ export function DashboardPage() {
     });
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[1220px] mx-auto sm:pt-12 sm:px-8">
+    <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[1220px] mx-auto sm:pt-12 sm:px-8">
       <DashboardNav trashCount={trashSize} ratedLeadCount={ratedLeadCount} onImport={() => setImportOpen(true)} onBackup={() => setBackupOpen(true)} />
 
       <StatsBar applications={appliedApps} activeFilter={statFilter} onSelect={handleStatSelect} />
@@ -170,13 +170,13 @@ export function DashboardPage() {
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <input
-          className="[font-family:var(--font-mono)] text-[12px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-invert)] px-3 py-1.5 flex-1 basis-full sm:basis-0 min-w-0 outline-none focus:border-[color:var(--accent)] placeholder:text-[color:var(--ink-3)]"
+          className="font-mono text-[12px] bg-transparent border border-rule text-ink-invert px-3 py-1.5 flex-1 basis-full sm:basis-0 min-w-0 outline-none focus:border-accent placeholder:text-ink-3"
           placeholder="search company or role..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
-          className="[font-family:var(--font-mono)] text-[11px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-2)] px-2 py-1.5 cursor-pointer"
+          className="font-mono text-[11px] bg-transparent border border-rule text-ink-2 px-2 py-1.5 cursor-pointer"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as ApplicationStatus | '')}
         >
@@ -186,7 +186,7 @@ export function DashboardPage() {
           ))}
         </select>
         <select
-          className="[font-family:var(--font-mono)] text-[11px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-2)] px-2 py-1.5 cursor-pointer"
+          className="font-mono text-[11px] bg-transparent border border-rule text-ink-2 px-2 py-1.5 cursor-pointer"
           value={languageFilter}
           onChange={(e) => setLanguageFilter(e.target.value as AppLanguage | '')}
           aria-label="Filter by language"
@@ -198,7 +198,7 @@ export function DashboardPage() {
         </select>
         {/* Below lg the sortable column headers are hidden, so sorting moves here */}
         <select
-          className="lg:hidden [font-family:var(--font-mono)] text-[11px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-2)] px-2 py-1.5 cursor-pointer"
+          className="lg:hidden font-mono text-[11px] bg-transparent border border-rule text-ink-2 px-2 py-1.5 cursor-pointer"
           value={sortField ?? ''}
           onChange={(e) => { setSortField((e.target.value || null) as SortField | null); setSortDir('asc'); }}
           aria-label="Sort by"
@@ -210,7 +210,7 @@ export function DashboardPage() {
         </select>
         {sortField && (
           <button
-            className="lg:hidden [font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] px-2.5 py-1.5 cursor-pointer"
+            className="lg:hidden font-mono text-[11px] text-ink-2 bg-transparent border border-rule px-2.5 py-1.5 cursor-pointer"
             onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
             aria-label={sortDir === 'asc' ? 'Sorted ascending' : 'Sorted descending'}
           >
@@ -219,7 +219,7 @@ export function DashboardPage() {
         )}
         {hasActiveFilter && (
           <button
-            className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] bg-transparent border-none cursor-pointer hover:text-[color:var(--status-rejected)] transition-colors"
+            className="font-mono text-[11px] text-ink-3 bg-transparent border-none cursor-pointer hover:text-status-rejected transition-colors"
             onClick={clearFilters}
           >
             clear
@@ -233,68 +233,68 @@ export function DashboardPage() {
       <div className="lg:min-w-[1052px]">
 
       {/* Column headers */}
-      <div className="hidden lg:flex items-center border-b border-[color:var(--rule)] pb-1.5">
+      <div className="hidden lg:flex items-center border-b border-rule pb-1.5">
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 w-[190px] shrink-0"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-left p-0 w-[190px] shrink-0"
           onClick={() => toggleSort('company')}
         >
           company{sortIndicator('company')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 flex-1 min-w-[120px]"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-left p-0 flex-1 min-w-[120px]"
           onClick={() => toggleSort('role')}
         >
           role{sortIndicator('role')}
         </button>
         <span className="w-[28px] shrink-0" />
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-center p-0 w-[44px] shrink-0"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-center p-0 w-[44px] shrink-0"
           onClick={() => toggleSort('language')}
         >
           lang{sortIndicator('language')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[48px] shrink-0"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-right p-0 w-[48px] shrink-0"
           onClick={() => toggleSort('fit')}
         >
           fit{sortIndicator('fit')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[116px] shrink-0 pr-1"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-right p-0 w-[116px] shrink-0 pr-1"
           onClick={() => toggleSort('status')}
         >
           status{sortIndicator('status')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
           onClick={() => toggleSort('appliedDate')}
         >
           applied{sortIndicator('appliedDate')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
           onClick={() => toggleSort('interviewDate')}
         >
           interview{sortIndicator('interviewDate')}
         </button>
         <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+          className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink-2 bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
           onClick={() => toggleSort('finalDecisionDate')}
         >
           decision{sortIndicator('finalDecisionDate')}
         </button>
-        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] w-[170px] shrink-0 pl-3">
+        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-ink-3 w-[170px] shrink-0 pl-3">
           notes
         </span>
         <span className="w-[36px] shrink-0" />
       </div>
 
       {allApps.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
+        <p className="font-mono text-[12px] text-ink-3 py-10">
           no applications found.
         </p>
       ) : visibleApps.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
+        <p className="font-mono text-[12px] text-ink-3 py-10">
           no applications match your search/filters.
         </p>
       ) : (

@@ -15,9 +15,9 @@ interface Props {
   onClose: () => void;
 }
 
-const mono = '[font-family:var(--font-mono)]';
-const secondaryBtn = `${mono} text-[11px] bg-transparent text-[color:var(--ink-2)] border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-[color:var(--ink-invert)]`;
-const restoreBtn = `${mono} text-[11px] bg-transparent text-[color:var(--accent)] border border-[color:var(--accent)] rounded px-3.5 py-[6px] cursor-pointer hover:bg-[color:var(--accent)] hover:text-[color:var(--ink)] disabled:opacity-40 disabled:cursor-default`;
+const mono = 'font-mono';
+const secondaryBtn = `${mono} text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert`;
+const restoreBtn = `${mono} text-[11px] bg-transparent text-accent border border-accent rounded px-3.5 py-[6px] cursor-pointer hover:bg-accent hover:text-ink disabled:opacity-40 disabled:cursor-default`;
 const insClass = 'bg-[rgba(63,185,80,0.22)] text-[#7ee787] rounded-[2px] no-underline';
 const delClass = 'bg-[rgba(248,81,73,0.20)] text-[#ffa198] rounded-[2px] line-through mr-[3px]';
 
@@ -36,14 +36,14 @@ function WordDiff({ before, after }: { before: string; after: string }) {
 function ChangeView({ change }: { change: FieldChange }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className={`${mono} text-[9.5px] tracking-[0.14em] uppercase text-[color:var(--accent)]`}>
+      <div className={`${mono} text-[9.5px] tracking-[0.14em] uppercase text-accent`}>
         {change.label}
         {change.type === 'list' && change.note && (
-          <span className="ml-2 normal-case tracking-normal text-[color:var(--ink-3)]">↕ {change.note}</span>
+          <span className="ml-2 normal-case tracking-normal text-ink-3">↕ {change.note}</span>
         )}
       </div>
       {change.type === 'text' ? (
-        <div className="text-[12.5px] leading-[1.6] text-[color:var(--ink-invert)] whitespace-pre-wrap break-words">
+        <div className="text-[12.5px] leading-[1.6] text-ink-invert whitespace-pre-wrap break-words">
           {change.before !== undefined && change.after !== undefined ? (
             <WordDiff before={change.before} after={change.after} />
           ) : change.after !== undefined ? (
@@ -55,8 +55,8 @@ function ChangeView({ change }: { change: FieldChange }) {
       ) : (
         <ul className="m-0 p-0 list-none flex flex-col gap-1">
           {change.items.map((item, i) => (
-            <li key={i} className="flex gap-2 text-[12.5px] leading-[1.6] text-[color:var(--ink-invert)]">
-              <span className={`${mono} shrink-0 w-3 ${item.op === 'added' ? 'text-[#7ee787]' : item.op === 'removed' ? 'text-[#ffa198]' : 'text-[color:var(--status-sent)]'}`}>
+            <li key={i} className="flex gap-2 text-[12.5px] leading-[1.6] text-ink-invert">
+              <span className={`${mono} shrink-0 w-3 ${item.op === 'added' ? 'text-[#7ee787]' : item.op === 'removed' ? 'text-[#ffa198]' : 'text-status-sent'}`}>
                 {item.op === 'added' ? '+' : item.op === 'removed' ? '−' : '~'}
               </span>
               <span className="whitespace-pre-wrap break-words min-w-0">
@@ -128,16 +128,16 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
         ref={dialogRef}
       >
         <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-white/8 shrink-0">
-          <div className={`${mono} text-[12px] font-semibold tracking-[0.04em] uppercase text-[color:var(--ink-invert)] min-w-0 truncate`}>
-            History · <span className="text-[color:var(--accent)] normal-case">{company}</span>
+          <div className={`${mono} text-[12px] font-semibold tracking-[0.04em] uppercase text-ink-invert min-w-0 truncate`}>
+            History · <span className="text-accent normal-case">{company}</span>
           </div>
           <button className={secondaryBtn} onClick={onClose}>Close</button>
         </div>
 
-        {error && <p className={`${mono} text-[11px] text-[color:var(--status-rejected)] px-5 py-2 m-0`}>{error}</p>}
+        {error && <p className={`${mono} text-[11px] text-status-rejected px-5 py-2 m-0`}>{error}</p>}
         {!versions && !error && <VersionHistorySkeleton />}
         {versions && versions.length === 0 && (
-          <p className="text-[13px] text-[color:var(--ink-2)] px-5 py-4 m-0 leading-[1.55]">
+          <p className="text-[13px] text-ink-2 px-5 py-4 m-0 leading-[1.55]">
             No changes recorded yet. From now on, every change to this application, in the app or through the API,
             is kept here.
           </p>
@@ -152,14 +152,14 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
                 return (
                   <li key={v.id}>
                     <button
-                      className={`w-full text-left px-4 py-2.5 border-none border-b border-white/5 cursor-pointer flex flex-col gap-1 ${active ? 'bg-[color:var(--accent-bg)] shadow-[inset_3px_0_0_var(--accent)]' : 'bg-transparent hover:bg-white/4'}`}
+                      className={`w-full text-left px-4 py-2.5 border-none border-b border-white/5 cursor-pointer flex flex-col gap-1 ${active ? 'bg-accent-bg shadow-[inset_3px_0_0_var(--accent)]' : 'bg-transparent hover:bg-white/4'}`}
                       onClick={() => setSelectedId(v.id)}
                     >
                       <span className="flex items-center gap-2">
                         <span className={`${mono} text-[10px] border rounded px-1.5 py-px ${author.className}`}>{author.text}</span>
-                        <span className={`${mono} text-[10.5px] text-[color:var(--ink-3)]`}>{formatTime(v.createdAt)}</span>
+                        <span className={`${mono} text-[10.5px] text-ink-3`}>{formatTime(v.createdAt)}</span>
                       </span>
-                      <span className={`text-[12.5px] leading-[1.45] ${v.message ? 'text-[color:var(--ink-invert)]' : 'text-[color:var(--ink-3)] italic'}`}>
+                      <span className={`text-[12.5px] leading-[1.45] ${v.message ? 'text-ink-invert' : 'text-ink-3 italic'}`}>
                         {v.message ?? (v.author === 'baseline' ? 'State before the first recorded change' : 'No description')}
                       </span>
                     </button>
@@ -171,7 +171,7 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
             <div className="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col gap-5">
               {selected && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className={`${mono} text-[11px] text-[color:var(--ink-2)]`}>
+                  <span className={`${mono} text-[11px] text-ink-2`}>
                     {previous ? `Changes compared to ${formatTime(previous.createdAt)}` : 'Oldest kept version'}
                   </span>
                   <button className={restoreBtn} onClick={handleRestore} disabled={restoring || index === 0}
@@ -181,10 +181,10 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
                 </div>
               )}
               {selected && previous && changes.length === 0 && (
-                <p className="text-[13px] text-[color:var(--ink-3)] m-0">No visible changes.</p>
+                <p className="text-[13px] text-ink-3 m-0">No visible changes.</p>
               )}
               {selected && !previous && (
-                <p className="text-[13px] text-[color:var(--ink-3)] m-0 leading-[1.55]">
+                <p className="text-[13px] text-ink-3 m-0 leading-[1.55]">
                   There's no older version to compare this one with.
                 </p>
               )}

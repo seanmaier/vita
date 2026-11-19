@@ -19,7 +19,7 @@ const GROUP_COLORS = {
 
 const groupLine = 'border-[color:color-mix(in_srgb,var(--group)_45%,transparent)]';
 const item =
-  '[font-family:var(--font-mono)] text-[11px] no-underline bg-transparent border-0 px-3 py-1.5 cursor-pointer ' +
+  'font-mono text-[11px] no-underline bg-transparent border-0 px-3 py-1.5 cursor-pointer ' +
   `[&:not(:first-child)]:border-l [&:not(:first-child)]:border-solid ${groupLine} ` +
   'text-[color:var(--group)] transition-colors duration-150 hover:bg-[color:color-mix(in_srgb,var(--group)_14%,transparent)]';
 
@@ -42,7 +42,7 @@ function NavItem({ to, onClick, tour, children }: NavItemProps) {
 function NavGroup({ name, children }: { name: keyof typeof GROUP_COLORS; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1" style={{ '--group': GROUP_COLORS[name] } as CSSProperties}>
-      <span className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-[color:var(--group)] opacity-70 pl-0.5">
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[color:var(--group)] opacity-70 pl-0.5">
         {name}
       </span>
       <div
@@ -57,7 +57,7 @@ function NavGroup({ name, children }: { name: keyof typeof GROUP_COLORS; childre
 }
 
 const accountItem =
-  '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] no-underline bg-transparent border border-[color:var(--rule)] rounded px-3 py-1.5 cursor-pointer transition-colors duration-150 hover:text-[color:var(--ink-invert)] hover:border-[color:var(--ink-2)]';
+  'font-mono text-[11px] text-ink-2 no-underline bg-transparent border border-rule rounded px-3 py-1.5 cursor-pointer transition-colors duration-150 hover:text-ink-invert hover:border-ink-2';
 
 interface Props {
   trashCount: number;
@@ -78,12 +78,12 @@ export function DashboardNav({ trashCount, ratedLeadCount, onImport, onBackup }:
   return (
     <header className="mb-6 sm:mb-8 flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5 [font-family:var(--font-mono)] text-[15px]">
+        <div className="flex items-center gap-2.5 font-mono text-[15px]">
           <AppLogo />
           <span>
-            <span className="text-[color:var(--ink-3)]">~/</span>
-            <span className="text-[color:var(--accent)]">applications</span>
-            <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+            <span className="text-ink-3">~/</span>
+            <span className="text-accent">applications</span>
+            <span className="text-ink-3 animate-pulse"> _</span>
           </span>
         </div>
         <nav className="flex items-center gap-2" aria-label="Account">

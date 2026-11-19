@@ -78,20 +78,20 @@ export function ImportApplicationModal({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center py-3 px-5 border-b border-white/7 shrink-0 gap-4">
-          <span className="[font-family:var(--font-mono)] text-[11px] font-semibold text-[color:var(--ink-invert)] tracking-[0.08em] uppercase shrink-0">
+          <span className="font-mono text-[11px] font-semibold text-ink-invert tracking-[0.08em] uppercase shrink-0">
             {previewConfig ? 'Preview import' : 'Import application JSON — paste or load a file'}
           </span>
           <div className="flex items-center gap-2.5 shrink-0">
             {previewConfig ? (
               <>
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-[color:var(--ink-invert)]"
+                  className="font-mono text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-ink-invert"
                   onClick={backToEdit}
                 >
                   Back to edit
                 </button>
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
+                  className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
                   onClick={handleImport}
                 >
                   Create application
@@ -100,11 +100,11 @@ export function ImportApplicationModal({ onClose }: Props) {
             ) : (
               <>
                 <JsonFileButton
-                  className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-[color:var(--ink-invert)]"
+                  className="font-mono text-[11px] bg-transparent text-[#8896AB] border border-white/12 rounded px-3.5 py-1.5 cursor-pointer hover:text-ink-invert"
                   onLoad={(fileText) => { setText(fileText); setErrors([]); }}
                 />
                 <button
-                  className="[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
+                  className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
                   onClick={handlePreview}
                 >
                   Preview
@@ -112,7 +112,7 @@ export function ImportApplicationModal({ onClose }: Props) {
               </>
             )}
             <button
-              className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-[color:var(--ink-invert)]"
+              className="text-[14px] bg-transparent border-none text-[#4A5568] cursor-pointer py-1 px-2 rounded leading-none hover:bg-white/7 hover:text-ink-invert"
               onClick={onClose}
             >
               ✕
@@ -121,13 +121,13 @@ export function ImportApplicationModal({ onClose }: Props) {
         </div>
 
         {errors.length > 0 && (
-          <div className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-rejected)] bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1">
+          <div className="font-mono text-[11px] text-status-rejected bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1">
             {errors.map((e, i) => <div key={i}>{e}</div>)}
           </div>
         )}
 
         {idNote && (
-          <div className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-sent)] bg-[rgba(217,119,6,0.10)] border-b border-[rgba(217,119,6,0.20)] py-2 px-5 shrink-0">
+          <div className="font-mono text-[11px] text-status-sent bg-[rgba(217,119,6,0.10)] border-b border-[rgba(217,119,6,0.20)] py-2 px-5 shrink-0">
             {idNote}
           </div>
         )}
@@ -139,7 +139,7 @@ export function ImportApplicationModal({ onClose }: Props) {
         ) : (
           <textarea
             ref={textareaRef}
-            className="flex-1 [font-family:var(--font-mono)] text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre [overflow-wrap:normal] overflow-auto"
+            className="flex-1 font-mono text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre [overflow-wrap:normal] overflow-auto"
             value={text}
             onChange={(e) => { setText(e.target.value); setErrors([]); }}
             placeholder={PLACEHOLDER}

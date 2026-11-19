@@ -50,10 +50,10 @@ export function EditPreviewPanel({ application, profile, onApplyJson, className 
               key={option}
               role="tab"
               aria-selected={view === option}
-              className={`[font-family:var(--font-mono)] text-[10.5px] tracking-[0.06em] rounded px-3 py-1 border-none cursor-pointer transition-colors ${
+              className={`font-mono text-[10.5px] tracking-[0.06em] rounded px-3 py-1 border-none cursor-pointer transition-colors ${
                 view === option
-                  ? 'bg-[color:var(--accent)] text-[color:var(--ink)]'
-                  : 'bg-transparent text-[#8896AB] hover:text-[color:var(--ink-invert)]'
+                  ? 'bg-accent text-ink'
+                  : 'bg-transparent text-[#8896AB] hover:text-ink-invert'
               }`}
               onClick={() => switchView(option)}
             >

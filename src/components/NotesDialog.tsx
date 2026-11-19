@@ -11,8 +11,8 @@ interface Props {
   onClose: () => void;
 }
 
-const secondaryBtn = '[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-2)] border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-[color:var(--ink-invert)]';
-const primaryBtn = '[font-family:var(--font-mono)] text-[11px] bg-[color:var(--accent)] text-[color:var(--ink)] border-none rounded px-4 py-[6px] cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40';
+const secondaryBtn = 'font-mono text-[11px] bg-transparent text-ink-2 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert';
+const primaryBtn = 'font-mono text-[11px] bg-accent text-ink border-none rounded px-4 py-[6px] cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40';
 
 // An application's notes: a composer for adding a new, separately timestamped
 // entry, and the growing list of everything added so far below it. Ctrl/Cmd+Enter
@@ -44,14 +44,14 @@ export function NotesDialog({ company, notes, language, onAdd, onDelete, onClose
         tabIndex={-1}
         ref={dialogRef}
       >
-        <div className="[font-family:var(--font-mono)] text-[12px] font-semibold tracking-[0.04em] uppercase text-[color:var(--ink-invert)]">
-          Notes · <span className="text-[color:var(--accent)] normal-case">{company}</span>
+        <div className="font-mono text-[12px] font-semibold tracking-[0.04em] uppercase text-ink-invert">
+          Notes · <span className="text-accent normal-case">{company}</span>
         </div>
 
         <textarea
           ref={textareaRef}
           autoFocus
-          className="[font-family:var(--font-mono)] text-[12.5px] leading-[1.6] bg-[color:var(--surface)] text-[color:var(--ink-invert)] border-[1.5px] border-[color:var(--rule)] rounded-[5px] p-3 h-[90px] resize-y focus:outline-none focus:border-[color:var(--accent)]"
+          className="font-mono text-[12.5px] leading-[1.6] bg-surface text-ink-invert border-[1.5px] border-rule rounded-[5px] p-3 h-[90px] resize-y focus:outline-none focus:border-accent"
           placeholder="Add a new note… (contacts, next steps, anything worth remembering)"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -63,12 +63,12 @@ export function NotesDialog({ company, notes, language, onAdd, onDelete, onClose
           <button className={primaryBtn} onClick={addNote} disabled={!draft.trim()}>+ Add note</button>
         </div>
 
-        <div className="border-t border-[color:var(--rule)] pt-3 max-h-[40vh] overflow-y-auto">
+        <div className="border-t border-rule pt-3 max-h-[40vh] overflow-y-auto">
           <NotesView notes={notes} language={language} onDelete={onDelete} />
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="[font-family:var(--font-mono)] text-[10.5px] text-[color:var(--ink-2)]">
+          <span className="font-mono text-[10.5px] text-ink-2">
             Ctrl+Enter to add · Esc to close
           </span>
           <button className={secondaryBtn} onClick={onClose}>Close</button>

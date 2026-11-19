@@ -171,9 +171,9 @@ export function EditApplicationPage() {
 
   if (!staticApp) {
     return (
-      <div className="py-20 px-10 [font-family:var(--font-mono)] text-[color:var(--ink-2)] flex flex-col gap-4">
+      <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
         <p>Application not found.</p>
-        <Link className="text-[color:var(--accent)]" to="/">← Back to dashboard</Link>
+        <Link className="text-accent" to="/">← Back to dashboard</Link>
       </div>
     );
   }

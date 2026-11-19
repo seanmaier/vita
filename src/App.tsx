@@ -64,7 +64,7 @@ function tourNavigate(path: string) {
 
 type AuthState = { kind: 'loading' } | { kind: 'anonymous' } | { kind: 'ready' } | { kind: 'error'; message: string };
 
-const centered = 'min-h-screen bg-[color:var(--bg)] flex items-center justify-center [font-family:var(--font-mono)] text-[12px]';
+const centered = 'min-h-screen bg-bg flex items-center justify-center font-mono text-[12px]';
 
 // Every page reads storage synchronously while rendering, so the router only
 // mounts once the user's data has been loaded into it.
@@ -113,7 +113,7 @@ export function App() {
     return <><SeasonalEffect /><AppSkeleton /></>;
   }
   if (auth.kind === 'error') {
-    return <><SeasonalEffect /><div className={`${centered} text-[color:var(--status-rejected)]`}>{auth.message}</div></>;
+    return <><SeasonalEffect /><div className={`${centered} text-status-rejected`}>{auth.message}</div></>;
   }
   if (auth.kind === 'anonymous') {
     return <><SeasonalEffect /><LoginPage onLoggedIn={() => void loadData()} /></>;
@@ -126,7 +126,7 @@ export function App() {
       <RouterProvider router={router} />
       <TourHost navigate={tourNavigate} />
       {syncError && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] [font-family:var(--font-mono)] text-[11px] bg-[color:var(--status-rejected)] text-[color:var(--ink)] font-semibold px-4 py-2 rounded shadow">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] font-mono text-[11px] bg-status-rejected text-ink font-semibold px-4 py-2 rounded shadow">
           {syncError} Retrying…
         </div>
       )}

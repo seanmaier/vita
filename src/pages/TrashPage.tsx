@@ -12,9 +12,9 @@ import { purgeDate, TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
 
 const actionBtn =
-  '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded px-2.5 py-1 cursor-pointer transition-colors';
-const meta = '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)]';
-const sectionLabel = '[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.14em] text-[color:var(--accent)] mb-2';
+  'font-mono text-[11px] text-ink-2 bg-transparent border border-rule rounded px-2.5 py-1 cursor-pointer transition-colors';
+const meta = 'font-mono text-[11px] text-ink-3';
+const sectionLabel = 'font-mono text-[9.5px] uppercase tracking-[0.14em] text-accent mb-2';
 
 const formatDate = (iso: string | Date) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -36,20 +36,20 @@ interface RowProps {
 
 function TrashRow({ title, deletedAt, extra, onRestore, onDeletePermanently }: RowProps) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[color:var(--rule)] py-2.5">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule py-2.5">
       <div className="flex-1 min-w-[200px]">
-        <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">{title}</span>
+        <span className="block font-mono text-[12.5px] text-ink-invert truncate">{title}</span>
         <span className={`block ${meta} mt-0.5`}>
           deleted {formatDate(deletedAt)} · removed {formatDate(purgeDate(deletedAt))}
           {extra && ` · ${extra}`}
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <button className={`${actionBtn} hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]`} onClick={onRestore}>
+        <button className={`${actionBtn} hover:text-accent hover:border-accent`} onClick={onRestore}>
           restore
         </button>
         <button
-          className={`${actionBtn} hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)]`}
+          className={`${actionBtn} hover:text-status-rejected hover:border-status-rejected`}
           onClick={onDeletePermanently}
         >
           delete permanently
@@ -95,15 +95,15 @@ export function TrashPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
-      <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+    <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
+      <header className="mb-6 sm:mb-8 font-mono text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
+        <Link className="text-[11px] text-ink-3 no-underline hover:text-ink-invert" to="/">
           ← Dashboard
         </Link>
         <span>
-          <span className="text-[color:var(--ink-3)]">~/</span>
-          <span className="text-[color:var(--accent)]">trash</span>
-          <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+          <span className="text-ink-3">~/</span>
+          <span className="text-accent">trash</span>
+          <span className="text-ink-3 animate-pulse"> _</span>
         </span>
       </header>
 

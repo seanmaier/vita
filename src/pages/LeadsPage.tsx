@@ -14,14 +14,14 @@ const FILTERS: { status: Filter; label: string }[] = [
 ];
 
 const tabClass = (active: boolean) =>
-  `[font-family:var(--font-mono)] text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
+  `font-mono text-[11px] bg-transparent border-0 border-b-2 px-3 py-2 cursor-pointer ${
     active
-      ? 'border-[color:var(--accent)] text-[color:var(--accent)]'
-      : 'border-transparent text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)]'
+      ? 'border-accent text-accent'
+      : 'border-transparent text-ink-3 hover:text-ink-invert'
   }`;
 
 const actionButton =
-  '[font-family:var(--font-mono)] text-[11px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-2)] rounded px-3 py-1.5 cursor-pointer transition-colors duration-150 hover:text-[color:var(--ink-invert)] hover:border-[color:var(--ink-2)]';
+  'font-mono text-[11px] bg-transparent border border-rule text-ink-2 rounded px-3 py-1.5 cursor-pointer transition-colors duration-150 hover:text-ink-invert hover:border-ink-2';
 
 /** Best score first; leads without a score last. */
 function byScoreDesc(a: JobLead, b: JobLead): number {
@@ -34,34 +34,34 @@ function byNewest(a: JobLead, b: JobLead): number {
 }
 
 function scoreClass(score: number): string {
-  if (score >= 75) return 'text-[color:var(--status-offer)] border-[color:var(--status-offer)]';
-  if (score >= 50) return 'text-[color:var(--ink-2)] border-[color:var(--ink-2)]';
-  return 'text-[color:var(--ink-3)] border-[color:var(--rule)]';
+  if (score >= 75) return 'text-status-offer border-status-offer';
+  if (score >= 50) return 'text-ink-2 border-ink-2';
+  return 'text-ink-3 border-rule';
 }
 
 function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' | 'applied') => void }) {
   const meta = [lead.company, lead.location, lead.source].filter(Boolean).join(' · ');
   return (
-    <li className="bg-[color:var(--surface)] border border-[color:var(--rule)] rounded-[5px] p-4 flex flex-col gap-2.5">
+    <li className="bg-surface border border-rule rounded-[5px] p-4 flex flex-col gap-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold text-[color:var(--ink-invert)] break-words m-0">{lead.title}</h2>
-          <p className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] break-words m-0 mt-1">{meta}</p>
+          <h2 className="text-[14px] font-semibold text-ink-invert break-words m-0">{lead.title}</h2>
+          <p className="font-mono text-[11px] text-ink-3 break-words m-0 mt-1">{meta}</p>
         </div>
         {lead.score !== null && (
           <span
-            className={`[font-family:var(--font-mono)] text-[12px] font-semibold border rounded px-2 py-0.5 shrink-0 ${scoreClass(lead.score)}`}
+            className={`font-mono text-[12px] font-semibold border rounded px-2 py-0.5 shrink-0 ${scoreClass(lead.score)}`}
             title="Match score"
           >
             {lead.score}%
           </span>
         )}
       </div>
-      {lead.verdict && <p className="text-[12.5px] leading-[1.55] text-[color:var(--ink-2)] m-0">{lead.verdict}</p>}
+      {lead.verdict && <p className="text-[12.5px] leading-[1.55] text-ink-2 m-0">{lead.verdict}</p>}
       <CriteriaBreakdown criteria={lead.criteria} exclusion={lead.exclusion} />
       <div className="flex flex-wrap items-center gap-2">
         <a
-          className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--accent)] no-underline hover:underline mr-2"
+          className="font-mono text-[11px] text-accent no-underline hover:underline mr-2"
           href={lead.url}
           target="_blank"
           rel="noopener noreferrer"
@@ -123,19 +123,19 @@ export function LeadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
-      <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+    <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
+      <header className="mb-6 sm:mb-8 font-mono text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
+        <Link className="text-[11px] text-ink-3 no-underline hover:text-ink-invert" to="/">
           ← Applications
         </Link>
         <span>
-          <span className="text-[color:var(--ink-3)]">~/</span>
-          <span className="text-[color:var(--accent)]">leads</span>
-          <span className="text-[color:var(--ink-3)] animate-pulse"> _</span>
+          <span className="text-ink-3">~/</span>
+          <span className="text-accent">leads</span>
+          <span className="text-ink-3 animate-pulse"> _</span>
         </span>
       </header>
 
-      <div className="flex border-b border-[color:var(--rule)] mb-5" role="tablist">
+      <div className="flex border-b border-rule mb-5" role="tablist">
         {FILTERS.map((f) => (
           <button
             key={f.status}
@@ -150,14 +150,14 @@ export function LeadsPage() {
         ))}
       </div>
 
-      {actionError && <p className="text-[12px] text-[color:var(--status-rejected)] mb-3">{actionError}</p>}
+      {actionError && <p className="text-[12px] text-status-rejected mb-3">{actionError}</p>}
 
       {loadError ? (
-        <p className="text-[12px] text-[color:var(--status-rejected)]">{loadError}</p>
+        <p className="text-[12px] text-status-rejected">{loadError}</p>
       ) : leads === null ? (
         <LeadListSkeleton />
       ) : leads.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)]">no job leads here.</p>
+        <p className="font-mono text-[12px] text-ink-3">no job leads here.</p>
       ) : (
         <ul className="list-none p-0 m-0 flex flex-col gap-3">
           {leads.map((lead) => (

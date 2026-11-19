@@ -80,7 +80,7 @@ export function NewApplicationPage() {
         <div className={`${newAppForm} ${mobilePanel === 'form' ? '' : 'max-lg:hidden'}`}>
           <Field label="Base profile">
             <div className="flex items-center gap-2.5">
-              <span className="[font-family:var(--font-sans)] text-[13px] text-[color:var(--ink-invert)] flex items-center gap-1.5">
+              <span className="font-sans text-[13px] text-ink-invert flex items-center gap-1.5">
                 {selectedBaseProfile ? (
                   <>
                     <span className="text-[13px] leading-none">{LANG_FLAGS[selectedBaseProfile.language]}</span>
@@ -91,7 +91,7 @@ export function NewApplicationPage() {
                 )}
               </span>
               <button
-                className="[font-family:var(--font-mono)] text-[10.5px] bg-transparent text-[color:var(--ink-3)] border border-[color:var(--rule)] rounded px-2 py-[3px] cursor-pointer hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]"
+                className="font-mono text-[10.5px] bg-transparent text-ink-3 border border-rule rounded px-2 py-[3px] cursor-pointer hover:text-accent hover:border-accent"
                 onClick={() => setStep('select-profile')}
               >
                 change

@@ -57,7 +57,7 @@ export function ImportParagraphsControl({ onImport }: Props) {
         value={text}
         onChange={(e) => { setText(e.target.value); setError(null); }}
       />
-      {error && <span className="text-[11px] text-[color:var(--status-rejected)]">{error}</span>}
+      {error && <span className="text-[11px] text-status-rejected">{error}</span>}
       <div className="flex gap-2">
         <button className={editSaveBtn} onClick={handleApply}>Apply</button>
         <button className={nafRemoveBtn} onClick={close}>Cancel</button>

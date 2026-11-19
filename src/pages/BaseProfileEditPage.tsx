@@ -38,7 +38,7 @@ function SectionHeader({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className={nafLabel}>{title}</span>
-      <div className="flex-1 h-px bg-[color:var(--rule)]" />
+      <div className="flex-1 h-px bg-rule" />
     </div>
   );
 }
@@ -51,7 +51,7 @@ function EntryCard<T>({ children, items, index, onChange, removeLabel = 'Remove'
   removeLabel?: string;
 }) {
   return (
-    <div className="border border-[color:var(--rule)] rounded p-3.5 flex flex-col gap-3">
+    <div className="border border-rule rounded p-3.5 flex flex-col gap-3">
       {children}
       <div className="flex justify-between">
         <button className={nafRemoveBtn} onClick={() => onChange(without(items, index))}>{removeLabel}</button>
@@ -73,9 +73,9 @@ export function BaseProfileEditPage() {
 
   if (!id || !stored) {
     return (
-      <div className="py-20 px-10 [font-family:var(--font-mono)] text-[color:var(--ink-2)] flex flex-col gap-4">
+      <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
         <p>Base profile not found.</p>
-        <Link className="text-[color:var(--accent)]" to="/profiles">← Back to base profiles</Link>
+        <Link className="text-accent" to="/profiles">← Back to base profiles</Link>
       </div>
     );
   }
@@ -177,20 +177,20 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-dvh bg-[color:var(--ink)] flex flex-col">
+    <div className="h-dvh bg-ink flex flex-col">
 
       {/* Header */}
-      <div className="bg-[color:var(--ink)] flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] shrink-0 gap-x-4 gap-y-2">
+      <div className="bg-ink flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 min-h-[52px] shrink-0 gap-x-4 gap-y-2">
         <div className="flex items-center gap-5 min-w-0">
-          <Link className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/profiles">
+          <Link className="font-mono text-[11px] text-ink-3 no-underline hover:text-ink-invert" to="/profiles">
             ← Base profiles
           </Link>
-          <div className="[font-family:var(--font-mono)] text-[13px] flex items-center gap-2 min-w-0">
-            <span className="text-[color:var(--ink-3)]">~/</span>
-            <span className="text-[color:var(--ink-invert)] font-semibold truncate">{stored.name}</span>
+          <div className="font-mono text-[13px] flex items-center gap-2 min-w-0">
+            <span className="text-ink-3">~/</span>
+            <span className="text-ink-invert font-semibold truncate">{stored.name}</span>
             <span className="text-[12px]" title={stored.language}>{LANG_FLAGS[stored.language]}</span>
             {isDirty && (
-              <span className="text-[9px] tracking-[0.1em] uppercase text-[color:var(--status-sent)] border border-[color:var(--status-sent)] rounded-[10px] py-px px-[7px] opacity-80 shrink-0">
+              <span className="text-[9px] tracking-[0.1em] uppercase text-status-sent border border-status-sent rounded-[10px] py-px px-[7px] opacity-80 shrink-0">
                 unsaved
               </span>
             )}
@@ -199,26 +199,26 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            className={`[font-family:var(--font-mono)] text-[11px] font-semibold border-none rounded px-4 py-[5px] cursor-pointer transition-colors duration-150 ${
-              saved ? 'bg-[color:var(--status-offer)] text-[color:var(--ink)] pointer-events-none' : 'bg-[color:var(--accent)] text-[color:var(--ink)] hover:opacity-90'
+            className={`font-mono text-[11px] font-semibold border-none rounded px-4 py-[5px] cursor-pointer transition-colors duration-150 ${
+              saved ? 'bg-status-offer text-ink pointer-events-none' : 'bg-accent text-ink hover:opacity-90'
             }`}
             onClick={handleSave}
           >{saved ? 'Saved!' : 'Save'}</button>
 
           <button
-            className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-3)] border border-white/12 rounded px-3 py-[5px] cursor-pointer hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)] transition-colors"
+            className="font-mono text-[11px] bg-transparent text-ink-3 border border-white/12 rounded px-3 py-[5px] cursor-pointer hover:text-status-rejected hover:border-status-rejected transition-colors"
             onClick={handleDelete}
           >
             Delete
           </button>
 
-          <button className="[font-family:var(--font-mono)] text-[11px] bg-white/7 text-[color:var(--ink-invert)] border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleCopy}>
+          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleCopy}>
             {copied ? 'Copied!' : 'Copy JSON'}
           </button>
-          <button className="[font-family:var(--font-mono)] text-[11px] bg-white/7 text-[color:var(--ink-invert)] border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleDownload}>
+          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={handleDownload}>
             Download
           </button>
-          <button className="[font-family:var(--font-mono)] text-[11px] bg-white/7 text-[color:var(--ink-invert)] border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={() => setImportOpen(true)}>
+          <button className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer hover:bg-white/14" onClick={() => setImportOpen(true)}>
             {imported ? 'Imported!' : 'Import'}
           </button>
         </div>
@@ -236,7 +236,7 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
       <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[520px_1fr]">
 
         {/* Form */}
-        <div className={`h-full py-6 px-4 sm:py-7 sm:px-7 overflow-y-auto bg-[color:var(--bg)] flex flex-col gap-6 lg:border-r border-[color:var(--rule)] ${mobilePanel === 'form' ? '' : 'max-lg:hidden'}`}>
+        <div className={`h-full py-6 px-4 sm:py-7 sm:px-7 overflow-y-auto bg-bg flex flex-col gap-6 lg:border-r border-rule ${mobilePanel === 'form' ? '' : 'max-lg:hidden'}`}>
 
           {/* ── Base profile name ── */}
           <SectionHeader title="base profile" />

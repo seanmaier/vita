@@ -9,7 +9,7 @@ export function linkify(text: string) {
         href={part}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[color:var(--accent)] underline underline-offset-2 hover:opacity-80"
+        className="text-accent underline underline-offset-2 hover:opacity-80"
         onClick={(e) => e.stopPropagation()}
       >
         {part}

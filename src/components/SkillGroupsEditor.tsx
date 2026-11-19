@@ -34,7 +34,7 @@ export function SkillGroupsEditor({ skillGroups, onChange }: Props) {
       {skillGroups.map((group, gi) => (
         <div
           {...drag.rowProps(gi)}
-          className={`border border-[color:var(--rule)] rounded p-3.5 flex flex-col gap-3 ${dropClass(drag.dropSide(gi))} ${drag.isDragging(gi) ? 'opacity-40' : ''}`}
+          className={`border border-rule rounded p-3.5 flex flex-col gap-3 ${dropClass(drag.dropSide(gi))} ${drag.isDragging(gi) ? 'opacity-40' : ''}`}
           key={gi}
         >
           <div className="flex gap-2 items-end">
