@@ -119,14 +119,13 @@ export async function fetchVersions(appId: string) {
   return res.json();
 }
 
-/** Makes an older version the application's current content (itself recorded as a new version). */
+/** Makes an older version the application's current content (itself recorded as a new version); the caller refetches the applications. */
 export async function restoreVersion(appId: string, versionId: number): Promise<void> {
   await flush();
   const res = await applicationRoutes.versions[':versionId'].restore.$post({
     param: { id: encodeURIComponent(appId), versionId: String(versionId) },
   });
   if (!res.ok) throw await errorFrom(res, 'Restoring the version failed');
-  await refreshUserData();
 }
 
 /** Saves any pending edits, ends the session, and returns to the login screen. */

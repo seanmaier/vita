@@ -1,6 +1,7 @@
 // The profiles an application can render with, for pages that need both kinds.
 import type { BaseProfile } from '#shared/types.ts';
 import { useAllBaseProfiles } from './baseProfiles';
+import { combine } from './combine';
 import { useLanguageProfiles, type LanguageProfiles } from './languageProfiles';
 
 export interface Profiles {
@@ -12,13 +13,5 @@ export interface Profiles {
 
 /** Base profiles and language defaults together, shaped like a query for QueryState. */
 export function useProfiles() {
-  const base = useAllBaseProfiles();
-  const languages = useLanguageProfiles();
-  const data: Profiles | undefined =
-    base.data && languages.data ? { baseProfiles: base.data, languages: languages.data } : undefined;
-  return {
-    data,
-    error: base.error ?? languages.error,
-    refetch: () => Promise.all([base.refetch(), languages.refetch()]),
-  };
+  return combine({ baseProfiles: useAllBaseProfiles(), languages: useLanguageProfiles() });
 }

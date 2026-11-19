@@ -2,8 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { hydrate, setStorageBackend } from '../utils/storage';
-import { getAllLocalApplications } from '../utils/localApplications';
+import { hydrate, setStorageBackend, storage } from '../utils/storage';
 import { NewApplicationPage } from './NewApplicationPage';
 import { withData } from '../test/withData';
 import { getStaticProfile } from '../data/profiles';
@@ -47,8 +46,8 @@ describe('NewApplicationPage', () => {
     expect(screen.getByText(/"id": "kaiwerk-studio"/)).toBeInTheDocument();
 
     await userEvent.click(save);
-    expect(screen.getByText('opened kaiwerk-studio')).toBeInTheDocument();
-    expect(getAllLocalApplications()).toMatchObject([
+    expect(await screen.findByText('opened kaiwerk-studio')).toBeInTheDocument();
+    expect(JSON.parse(storage.getItem('local-apps') ?? '[]')).toMatchObject([
       { id: 'kaiwerk-studio', company: 'Kaiwerk Studio', role: 'Fullstack Developer', status: 'drafting' },
     ]);
   });

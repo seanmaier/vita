@@ -1,30 +1,25 @@
-import { useState } from 'react';
 import type { ApplicationConfig } from '#shared/types.ts';
-import { getConfigOverride, setConfigOverride, clearConfigOverride, hasConfigOverride } from '../utils/appStorage';
-import { setChangeMessage } from '../utils/storage';
+import { effectiveApp, useApplicationMutations, type AppRecord } from '../api/applications';
 
-export function useApplication(staticApp: ApplicationConfig) {
-  const [app, setApp] = useState<ApplicationConfig>(() => {
-    const override = getConfigOverride(staticApp.id);
-    return override ? { ...staticApp, ...override, id: staticApp.id } : staticApp;
-  });
+type Callbacks = { onSuccess?: () => void; onError?: (e: Error) => void };
 
-  const [isDirty, setIsDirty] = useState(() => hasConfigOverride(staticApp.id));
+/** One application with its saved edits applied, and saving or resetting those edits. */
+export function useApplication(record: AppRecord) {
+  const { saveEdits, resetEdits } = useApplicationMutations();
+  const id = record.app.id;
 
   /** `message` optionally says what changed; it shows in the application's version history. */
-  const save = (updated: Omit<ApplicationConfig, 'status'>, message = '') => {
-    const stored = { ...updated, id: staticApp.id };
-    setChangeMessage(staticApp.id, message);
-    setConfigOverride(staticApp.id, stored);
-    setApp((prev) => ({ ...stored, status: prev.status }));
-    setIsDirty(true);
-  };
+  const save = (updated: Omit<ApplicationConfig, 'status'>, message = '', callbacks?: Callbacks) =>
+    saveEdits.mutate({ id, config: { ...updated, id }, message: message.trim() || undefined }, callbacks);
 
-  const reset = () => {
-    clearConfigOverride(staticApp.id);
-    setApp(staticApp);
-    setIsDirty(false);
-  };
+  /** Back to the application as it was created or imported. */
+  const reset = (callbacks?: Callbacks) => resetEdits.mutate(id, callbacks);
 
-  return { app, save, reset, isDirty };
+  return {
+    app: effectiveApp(record),
+    save,
+    reset,
+    isDirty: record.savedEdits !== null,
+    isSaving: saveEdits.isPending || resetEdits.isPending,
+  };
 }

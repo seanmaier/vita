@@ -5,6 +5,7 @@ import type { ApplicationConfig, BaseProfile, Profile, Experience, Project, Huma
 import { LANG_FLAGS } from '#shared/utils/language.ts';
 import { trashConfirmMessage } from '../utils/baseProfiles';
 import { useAllBaseProfiles, useBaseProfileMutations } from '../api/baseProfiles';
+import { useApplications } from '../api/applications';
 import { QueryState } from '../components/QueryState';
 import { Spinner } from '../components/Skeleton';
 import { CVDocument } from '../components/cv/CVDocument';
@@ -116,6 +117,7 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
   const [importOpen, setImportOpen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'form' | 'preview'>('form');
   const { save, trash } = useBaseProfileMutations();
+  const records = useApplications().data ?? [];
   const current = (): BaseProfile => ({
     id: stored.id,
     name: name.trim() || stored.name,
@@ -162,7 +164,7 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
   };
 
   const handleDelete = () => {
-    if (!confirm(trashConfirmMessage(stored))) return;
+    if (!confirm(trashConfirmMessage(stored, records))) return;
     trash.mutate(stored.id, { onSuccess: () => navigate('/profiles'), onError: showError });
   };
 

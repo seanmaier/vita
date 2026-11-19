@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
 import { trashConfirmMessage, applicationsUsingBaseProfile } from '../utils/baseProfiles';
 import { useBaseProfileMutations, useBaseProfiles } from '../api/baseProfiles';
+import { useApplications } from '../api/applications';
+import { combine } from '../api/combine';
 import { useTrashCount } from '../utils/trashCount';
 import { QueryState } from '../components/QueryState';
 import type { BaseProfile } from '#shared/types.ts';
@@ -10,13 +12,13 @@ import { CreateBaseProfileModal } from '../components/CreateBaseProfileModal';
 
 export function BaseProfilesPage() {
   const navigate = useNavigate();
-  const profilesQuery = useBaseProfiles();
+  const query = combine({ profiles: useBaseProfiles(), records: useApplications() });
   const { trash } = useBaseProfileMutations();
   const trashCount = useTrashCount();
   const [createOpen, setCreateOpen] = useState(false);
 
   const handleTrash = (profile: BaseProfile) => {
-    if (!confirm(trashConfirmMessage(profile))) return;
+    if (!confirm(trashConfirmMessage(profile, query.data?.records ?? []))) return;
     trash.mutate(profile.id, { onError: (e) => alert(e.message) });
   };
 
@@ -61,13 +63,13 @@ export function BaseProfilesPage() {
         <span className="w-[130px] shrink-0" />
       </div>
 
-      <QueryState query={profilesQuery}>
-        {(profiles) =>
+      <QueryState query={query}>
+        {({ profiles, records }) =>
           profiles.length === 0 ? (
             <p className="font-mono text-[12px] text-ink-3 py-10">no base profiles yet.</p>
           ) : (
             profiles.map((p) => {
-              const usedBy = applicationsUsingBaseProfile(p.id);
+              const usedBy = applicationsUsingBaseProfile(p.id, records);
               return (
                 <div
                   key={p.id}
@@ -116,7 +118,7 @@ export function BaseProfilesPage() {
 
       {createOpen && (
         <CreateBaseProfileModal
-          existingProfiles={profilesQuery.data ?? []}
+          existingProfiles={query.data?.profiles ?? []}
           onClose={() => setCreateOpen(false)}
           onCreated={(id) => navigate(`/profiles/${id}`)}
         />

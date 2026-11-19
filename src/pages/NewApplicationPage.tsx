@@ -5,7 +5,7 @@ import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
 import { useProfiles } from '../api/profiles';
 import type { LanguageProfiles } from '../api/languageProfiles';
 import { QueryState } from '../components/QueryState';
-import { saveLocalApplication } from '../utils/localApplications';
+import { useApplicationMutations } from '../api/applications';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
 import { BasicsFields } from '../components/applicationForm/BasicsFields';
@@ -34,6 +34,7 @@ function NewApplicationContent({
   languages: LanguageProfiles;
 }) {
   const navigate = useNavigate();
+  const { save: saveApplication } = useApplicationMutations();
   const [step, setStep] = useState<'select-profile' | 'form'>(baseProfiles.length > 0 ? 'select-profile' : 'form');
   const [mobilePanel, setMobilePanel] = useState<'form' | 'json'>('form');
 
@@ -78,8 +79,10 @@ function NewApplicationContent({
 
   const save = () => {
     if (!canSave) return;
-    saveLocalApplication(config);
-    navigate(`/application/${config.id}`);
+    saveApplication.mutate(config, {
+      onSuccess: () => navigate(`/application/${config.id}`),
+      onError: (e) => alert(e.message),
+    });
   };
 
   return (
@@ -163,7 +166,7 @@ function NewApplicationContent({
             className={editSaveBtn}
             style={{ opacity: canSave ? 1 : 0.4, cursor: canSave ? 'pointer' : 'not-allowed' }}
             onClick={save}
-            disabled={!canSave}
+            disabled={!canSave || saveApplication.isPending}
           >
             Save application
           </button>
