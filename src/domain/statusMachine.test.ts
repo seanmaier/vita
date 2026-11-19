@@ -129,19 +129,23 @@ test('the date of a step can be changed, but not of the initial draft', () => {
 test('seeding builds the shortest plausible path without inventing dates', () => {
   assert.deepEqual(seedHistory('drafting', {}), path(['drafting', null]));
   assert.deepEqual(seedHistory('ready', {}), path(['drafting', null], ['ready', null]));
-  assert.deepEqual(seedHistory('sent', { appliedDate: '10.11.2026' }), path(['drafting', null], ['sent', '2026-11-10']));
+  assert.deepEqual(
+    seedHistory('sent', { appliedDate: '10.11.2026' }),
+    path(['drafting', null], ['sent', '2026-11-10']),
+  );
   assert.deepEqual(
     seedHistory('interview', { appliedDate: '11/10/2026' }),
     path(['drafting', null], ['sent', '2026-11-10'], ['interview', null]),
   );
   assert.deepEqual(
-    seedHistory('rejected', { appliedDate: '2026-10-01', interviewDate: '2026-10-08', finalDecisionDate: '2026-10-20' }),
+    seedHistory('rejected', {
+      appliedDate: '2026-10-01',
+      interviewDate: '2026-10-08',
+      finalDecisionDate: '2026-10-20',
+    }),
     path(['drafting', null], ['sent', '2026-10-01'], ['interview', '2026-10-08'], ['rejected', '2026-10-20']),
   );
-  assert.deepEqual(
-    seedHistory('rejected', {}),
-    path(['drafting', null], ['sent', null], ['rejected', null]),
-  );
+  assert.deepEqual(seedHistory('rejected', {}), path(['drafting', null], ['sent', null], ['rejected', null]));
   assert.deepEqual(seedHistory('withdrawn', {}), path(['drafting', null], ['withdrawn', null]));
   assert.deepEqual(
     seedHistory('withdrawn', { appliedDate: '2026-10-01' }),
@@ -160,17 +164,36 @@ test('a stored ghosted status seeds as sent', () => {
 });
 
 test('every seeded history is valid', () => {
-  for (const status of ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'] as const) {
+  for (const status of [
+    'drafting',
+    'ready',
+    'sent',
+    'interview',
+    'offer',
+    'rejected',
+    'ghosted',
+    'withdrawn',
+    'accepted',
+    'declined',
+    'evaluated',
+    'skipped',
+  ] as const) {
     assert.ok(validateHistory(seedHistory(status, { appliedDate: '2026-10-01' })).ok, status);
   }
 });
 
 test('dates are derived from the history', () => {
   const history = path(
-    ['drafting', null], ['sent', '2026-10-01'], ['interview', '2026-10-08'], ['offer', '2026-10-20'], ['accepted', '2026-10-25'],
+    ['drafting', null],
+    ['sent', '2026-10-01'],
+    ['interview', '2026-10-08'],
+    ['offer', '2026-10-20'],
+    ['accepted', '2026-10-25'],
   );
   assert.deepEqual(derivedDates(history, 'de'), {
-    appliedDate: '01.10.2026', interviewDate: '08.10.2026', finalDecisionDate: '25.10.2026',
+    appliedDate: '01.10.2026',
+    interviewDate: '08.10.2026',
+    finalDecisionDate: '25.10.2026',
   });
   assert.deepEqual(derivedDates(path(['drafting', null]), 'en'), {});
   assert.deepEqual(derivedDates(path(['drafting', null], ['sent', null]), 'en'), {});

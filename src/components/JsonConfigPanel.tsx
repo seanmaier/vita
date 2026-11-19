@@ -34,13 +34,18 @@ export function JsonConfigPanel({ text, onTextChange, onApply }: Props) {
     <div className="flex-1 flex flex-col min-h-0">
       {errors.length > 0 && (
         <div className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--status-rejected)] bg-[rgba(220,38,38,0.10)] border-b border-[rgba(220,38,38,0.20)] py-2 px-5 shrink-0 flex flex-col gap-1 max-h-[140px] overflow-y-auto">
-          {errors.map((e, i) => <div key={i}>{e}</div>)}
+          {errors.map((e, i) => (
+            <div key={i}>{e}</div>
+          ))}
         </div>
       )}
       <textarea
         className="flex-1 [font-family:var(--font-mono)] text-[12.5px] leading-[1.65] text-[#c9d1e0] bg-transparent border-none p-5 resize-none outline-none whitespace-pre-wrap [overflow-wrap:anywhere] overflow-y-auto overflow-x-hidden"
         value={text}
-        onChange={(e) => { onTextChange(e.target.value); setErrors([]); }}
+        onChange={(e) => {
+          onTextChange(e.target.value);
+          setErrors([]);
+        }}
         spellCheck={false}
       />
       <div className="flex justify-end gap-2 py-2.5 px-5 border-t border-white/8 shrink-0">

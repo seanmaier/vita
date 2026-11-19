@@ -20,8 +20,9 @@ export function PasswordSection() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setSuccess(false);
-    if (next.length < MIN_PASSWORD_LENGTH) return setError(`The new password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-    if (next !== confirmNext) return setError('The new passwords don\'t match.');
+    if (next.length < MIN_PASSWORD_LENGTH)
+      return setError(`The new password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (next !== confirmNext) return setError("The new passwords don't match.");
     if (next === current) return setError('The new password must differ from the current one.');
 
     setBusy(true);
@@ -66,9 +67,7 @@ export function PasswordSection() {
           value={next}
           onChange={(e) => setNext(e.target.value)}
         />
-        <span className={hintText}>
-          At least {MIN_PASSWORD_LENGTH} characters.
-        </span>
+        <span className={hintText}>At least {MIN_PASSWORD_LENGTH} characters.</span>
       </label>
       <label className={nafSection}>
         <span className={nafLabel}>Repeat new password</span>
@@ -89,11 +88,7 @@ export function PasswordSection() {
         </p>
       )}
 
-      <button
-        className={primaryButton}
-        type="submit"
-        disabled={busy}
-      >
+      <button className={primaryButton} type="submit" disabled={busy}>
         {busy ? 'saving…' : 'change password'}
       </button>
     </form>

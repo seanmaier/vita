@@ -31,17 +31,44 @@ import { move } from '../utils/move';
 import { formatDateLong, parseToIsoDate } from '../utils/date';
 import { DEFAULT_CLOSINGS } from '../utils/coverLetterClosing';
 import {
-  nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,
-  nafCheckboxLabel, nafCheckboxInput, nafParagraphRow, nafRemoveBtn, nafAddBtn,
-  newAppPage, newAppBack, newAppTitle, newAppBody, newAppForm,
-  newAppPreview, napHeader, napFilename, napHint,
-  editAppHeader, editAppCompany, editAppHeaderActions, editHistoryBtn, editMessageInput, editResetBtn, editSaveBtn,
+  nafSection,
+  nafRow,
+  nafLabel,
+  nafOptional,
+  nafInput,
+  nafTextarea,
+  nafCheckboxLabel,
+  nafCheckboxInput,
+  nafParagraphRow,
+  nafRemoveBtn,
+  nafAddBtn,
+  newAppPage,
+  newAppBack,
+  newAppTitle,
+  newAppBody,
+  newAppForm,
+  newAppPreview,
+  napHeader,
+  napFilename,
+  napHint,
+  editAppHeader,
+  editAppCompany,
+  editAppHeaderActions,
+  editHistoryBtn,
+  editMessageInput,
+  editResetBtn,
+  editSaveBtn,
 } from '../styles/formStyles';
 
 const LANGUAGE_DEFAULT_PREFIX = 'language-default:';
 
 function toId(company: string) {
-  return company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-app';
+  return (
+    company
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'new-app'
+  );
 }
 
 // Inner component — staticApp is guaranteed to exist. onReload remounts it
@@ -86,9 +113,7 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
 
   const [hasSummaryOverride, setHasSummaryOverride] = useState(!!app.summaryOverride);
   const [summaryOverride, setSummaryOverride] = useState(app.summaryOverride ?? profile.summary);
-  const [featuredIds, setFeaturedIds] = useState<string[]>(
-    app.featuredProjectIds ?? profile.projects.map((p) => p.id),
-  );
+  const [featuredIds, setFeaturedIds] = useState<string[]>(app.featuredProjectIds ?? profile.projects.map((p) => p.id));
   const [hasSkillGroupsOverride, setHasSkillGroupsOverride] = useState(!!app.skillGroupsOverride);
   const [skillGroupsOverride, setSkillGroupsOverride] = useState<SkillGroup[]>(
     app.skillGroupsOverride ?? profile.skillGroups,
@@ -106,8 +131,7 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
     setParagraphs((prev) => prev.map((p, idx) => (idx === i ? value : p)));
 
   const addParagraph = () => setParagraphs((prev) => [...prev, '']);
-  const removeParagraph = (i: number) =>
-    setParagraphs((prev) => prev.filter((_, idx) => idx !== i));
+  const removeParagraph = (i: number) => setParagraphs((prev) => prev.filter((_, idx) => idx !== i));
 
   const buildConfig = (): Omit<ApplicationConfig, 'status'> => ({
     id: staticApp.id,
@@ -180,10 +204,13 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
 
   // Readable names for the ids a version diff mentions. Projects come from
   // the profile the form currently shows; ids it doesn't know stay as they are.
-  const historyNames = useMemo((): DiffNames => ({
-    baseProfile: (id) => baseProfiles.find((p) => p.id === id)?.name,
-    project: (id) => profile.projects.find((p) => p.id === id)?.name,
-  }), [baseProfiles, profile]);
+  const historyNames = useMemo(
+    (): DiffNames => ({
+      baseProfile: (id) => baseProfiles.find((p) => p.id === id)?.name,
+      project: (id) => profile.projects.find((p) => p.id === id)?.name,
+    }),
+    [baseProfiles, profile],
+  );
 
   // A restore rewrites the stored config on the server: drop the form's
   // state and remount it from what's stored now.
@@ -242,7 +269,9 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
               maxLength={500}
               value={changeMessage}
               onChange={(e) => setChangeMessage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+              }}
             />
           )}
           <button className={editSaveBtn} onClick={handleSave}>
@@ -254,7 +283,10 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
       <MobilePanelSwitch
         value={mobilePanel}
         onChange={setMobilePanel}
-        options={[{ value: 'form', label: 'edit' }, { value: 'preview', label: 'preview / JSON' }]}
+        options={[
+          { value: 'form', label: 'edit' },
+          { value: 'preview', label: 'preview / JSON' },
+        ]}
       />
 
       <div className={newAppBody}>
@@ -270,7 +302,9 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
               {baseProfiles.length > 0 && (
                 <optgroup label="Base profiles">
                   {baseProfiles.map((bp) => (
-                    <option key={bp.id} value={bp.id}>{LANG_FLAGS[bp.language]} {bp.name}</option>
+                    <option key={bp.id} value={bp.id}>
+                      {LANG_FLAGS[bp.language]} {bp.name}
+                    </option>
                   ))}
                 </optgroup>
               )}
@@ -310,13 +344,11 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
           <div className={nafRow}>
             <div className={nafSection}>
               <span className={nafLabel}>Font</span>
-              <select
-                className={nafInput}
-                value={font}
-                onChange={(e) => setFont(e.target.value as AppFont)}
-              >
+              <select className={nafInput} value={font} onChange={(e) => setFont(e.target.value as AppFont)}>
                 {ALL_FONTS.map((f) => (
-                  <option key={f} value={f}>{FONT_LABELS[f]}</option>
+                  <option key={f} value={f}>
+                    {FONT_LABELS[f]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -337,7 +369,8 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
           {hasSummaryOverride && (
             <div className={nafSection}>
               <span className={nafLabel}>
-                Profile summary override <span className={nafOptional}>(replaces the profile's summary on this application only)</span>
+                Profile summary override{' '}
+                <span className={nafOptional}>(replaces the profile's summary on this application only)</span>
               </span>
               <AutoTextarea
                 className={nafTextarea}
@@ -367,10 +400,13 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
           {hasSkillGroupsOverride && (
             <div className={nafSection}>
               <span className={nafLabel}>
-                Skill groups override <span className={nafOptional}>(replaces the profile's skill groups on this application only)</span>
+                Skill groups override{' '}
+                <span className={nafOptional}>(replaces the profile's skill groups on this application only)</span>
               </span>
               <div className="flex gap-2">
-                <button className={nafAddBtn} onClick={() => setImportSkillGroupsOpen(true)}>Import from JSON</button>
+                <button className={nafAddBtn} onClick={() => setImportSkillGroupsOpen(true)}>
+                  Import from JSON
+                </button>
                 <ExportSkillGroupsButton skillGroups={skillGroupsOverride} />
               </div>
               <SkillGroupsEditor skillGroups={skillGroupsOverride} onChange={setSkillGroupsOverride} />
@@ -415,11 +451,7 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
               <div className={nafRow}>
                 <div className={nafSection}>
                   <span className={nafLabel}>Recipient org</span>
-                  <input
-                    className={nafInput}
-                    value={recipientOrg}
-                    onChange={(e) => setRecipientOrg(e.target.value)}
-                  />
+                  <input className={nafInput} value={recipientOrg} onChange={(e) => setRecipientOrg(e.target.value)} />
                 </div>
                 <div className={nafSection}>
                   <span className={nafLabel}>
@@ -448,7 +480,11 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
                     />
                     {paragraphs.length > 1 && (
                       <>
-                        <MoveButtons index={i} length={paragraphs.length} onMove={(to) => setParagraphs(move(paragraphs, i, to))} />
+                        <MoveButtons
+                          index={i}
+                          length={paragraphs.length}
+                          onMove={(to) => setParagraphs(move(paragraphs, i, to))}
+                        />
                         <button className={nafRemoveBtn} onClick={() => removeParagraph(i)}>
                           ✕
                         </button>
@@ -489,10 +525,12 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
         {/* ── Live preview ── */}
         <div className={`${newAppPreview} ${mobilePanel === 'preview' ? '' : 'max-lg:hidden'}`}>
           <div className={napHeader}>
-            <span className={napFilename}>
-              private/applications/{toId(company)}.json
-            </span>
-            <div className="flex items-center gap-1 bg-white/5 rounded p-0.5" role="tablist" aria-label="Right panel view">
+            <span className={napFilename}>private/applications/{toId(company)}.json</span>
+            <div
+              className="flex items-center gap-1 bg-white/5 rounded p-0.5"
+              role="tablist"
+              aria-label="Right panel view"
+            >
               {(['preview', 'json'] as const).map((view) => (
                 <button
                   key={view}
@@ -529,9 +567,16 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
             </div>
           )}
           <p className={napHint}>
-            {rightView === 'json'
-              ? <>Starts from the form, unsaved edits included. <code>Apply JSON</code> saves it and reloads the form.</>
-              : <>Changes are saved to your account as you edit. Switch to <code>JSON</code> to edit or copy the config for <code>private/applications/{toId(company)}.json</code>.</>}
+            {rightView === 'json' ? (
+              <>
+                Starts from the form, unsaved edits included. <code>Apply JSON</code> saves it and reloads the form.
+              </>
+            ) : (
+              <>
+                Changes are saved to your account as you edit. Switch to <code>JSON</code> to edit or copy the config
+                for <code>private/applications/{toId(company)}.json</code>.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -579,7 +624,9 @@ export function EditApplicationPage() {
     return (
       <div className="py-20 px-10 [font-family:var(--font-mono)] text-[color:var(--ink-2)] flex flex-col gap-4">
         <p>Application not found.</p>
-        <Link className="text-[color:var(--accent)]" to="/">← Back to dashboard</Link>
+        <Link className="text-[color:var(--accent)]" to="/">
+          ← Back to dashboard
+        </Link>
       </div>
     );
   }

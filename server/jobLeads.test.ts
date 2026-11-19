@@ -34,7 +34,10 @@ test('a known lead takes the new title, url, company and location', async () => 
   const app = testApp(createTestUser());
   await post(app, { leads: [lead(1, { title: 'HanseCom 2.6 ★ Dev Hamburg 11T' }), lead(2)] });
   const res = await post(app, {
-    leads: [lead(1, { title: 'Dev', company: 'HanseCom', location: 'Hamburg', url: 'https://example.com/other' }), lead(2)],
+    leads: [
+      lead(1, { title: 'Dev', company: 'HanseCom', location: 'Hamburg', url: 'https://example.com/other' }),
+      lead(2),
+    ],
   });
   assert.deepEqual(await res.json(), { created: 0, duplicates: 2, updated: 1 });
   const [, first] = await listLeads(app);
@@ -142,7 +145,10 @@ test('PATCH rates a lead and stamps ratedAt', async () => {
   assert.equal(updated.verdict, 'Passt');
   assert.equal(updated.status, 'rated');
   assert.equal(typeof updated.ratedAt, 'string');
-  const cleared = (await (await patch(app, id, { score: null, applicationId: 'abc' })).json()) as Record<string, unknown>;
+  const cleared = (await (await patch(app, id, { score: null, applicationId: 'abc' })).json()) as Record<
+    string,
+    unknown
+  >;
   assert.equal(cleared.score, null);
   assert.equal(cleared.ratedAt, null);
   assert.equal(cleared.applicationId, 'abc');
@@ -199,7 +205,10 @@ test('PATCH rejects a breakdown without a score, a broken breakdown, or an exclu
   const app = testApp(createTestUser());
   const id = await firstLeadId(app);
   assert.equal((await patch(app, id, { criteria })).status, 400);
-  assert.equal((await patch(app, id, { score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] })).status, 400);
+  assert.equal(
+    (await patch(app, id, { score: 60, criteria: [{ ...criteria[0], weight: 50 }, criteria[1]] })).status,
+    400,
+  );
   assert.equal((await patch(app, id, { score: 60, exclusion: 'Freelance' })).status, 400);
   assert.equal((await patch(app, id, { score: 60, criteria, exclusion: '' })).status, 400);
 });

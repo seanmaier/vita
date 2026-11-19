@@ -198,7 +198,9 @@ export function KnowledgePage() {
           ) : (
             <>
               {saved === '' ? (
-                <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)]">Nothing here yet.</p>
+                <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)]">
+                  Nothing here yet.
+                </p>
               ) : (
                 <MarkdownView source={saved} />
               )}
@@ -206,10 +208,14 @@ export function KnowledgePage() {
               {saveError && <p className="text-[12px] text-[color:var(--status-rejected)]">{saveError}</p>}
               {justSaved && <p className="text-[12px] text-[color:var(--status-offer)]">Saved.</p>}
 
-              <button className={primaryButton} type="button" onClick={() => {
+              <button
+                className={primaryButton}
+                type="button"
+                onClick={() => {
                   setJustSaved(false);
                   setEditing(true);
-                }}>
+                }}
+              >
                 edit
               </button>
             </>

@@ -173,7 +173,10 @@ async function leadsPayload(
 ): Promise<{ payload: InboundPayload; log: string }> {
   const leads = sanitize(await parseAlert(source, mail.html ?? '', mail.text ?? ''));
   if (leads.length === 0) {
-    return { payload: { ...common, kind: 'failed', detail: 'no leads found' }, log: `failed source=${source} leads=0${via}` };
+    return {
+      payload: { ...common, kind: 'failed', detail: 'no leads found' },
+      log: `failed source=${source} leads=0${via}`,
+    };
   }
   return { payload: { ...common, kind: 'leads', leads }, log: `leads source=${source} leads=${leads.length}${via}` };
 }

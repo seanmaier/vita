@@ -12,9 +12,7 @@ export function CriteriaBreakdown({ criteria, exclusion }: { criteria?: FitCrite
       <summary className="cursor-pointer text-[color:var(--ink-3)] hover:text-[color:var(--ink-invert)] select-none">
         Breakdown
       </summary>
-      {exclusion && (
-        <p className="m-0 mt-2 text-[color:var(--status-rejected)]">Excluded: {exclusion}</p>
-      )}
+      {exclusion && <p className="m-0 mt-2 text-[color:var(--status-rejected)]">Excluded: {exclusion}</p>}
       <div className="overflow-x-auto">
         <table className="mt-2 border-collapse w-full">
           <thead className="text-[color:var(--ink-3)] border-b border-[color:var(--rule)]">

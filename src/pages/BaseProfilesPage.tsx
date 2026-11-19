@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LANG_FLAGS } from '../utils/language';
 import {
-  getBaseProfiles, trashBaseProfile, trashConfirmMessage, applicationsUsingBaseProfile,
+  getBaseProfiles,
+  trashBaseProfile,
+  trashConfirmMessage,
+  applicationsUsingBaseProfile,
 } from '../utils/baseProfiles';
 import { countTrashed } from '../utils/trashCount';
 import type { BaseProfile } from '../types';
 import { CreateBaseProfileModal } from '../components/CreateBaseProfileModal';
-
 
 export function BaseProfilesPage() {
   const navigate = useNavigate();
@@ -26,7 +28,10 @@ export function BaseProfilesPage() {
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
       <header className="mb-6 sm:mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="[font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+          <Link
+            className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
+            to="/"
+          >
             ← Dashboard
           </Link>
           <span>
@@ -79,10 +84,13 @@ export function BaseProfilesPage() {
               onClick={() => navigate(`/profiles/${p.id}`)}
             >
               <div className="flex-1 min-w-0">
-                <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">{p.name}</span>
+                <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">
+                  {p.name}
+                </span>
                 {/* Language and usage move under the name on phones, where their columns don't fit */}
                 <span className="sm:hidden block [font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] mt-0.5">
-                  {LANG_FLAGS[p.language]} · {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : 'unused'}
+                  {LANG_FLAGS[p.language]} ·{' '}
+                  {usedBy.length > 0 ? `${usedBy.length} application${usedBy.length === 1 ? '' : 's'}` : 'unused'}
                 </span>
               </div>
               <span className="hidden sm:block text-[12px] w-[70px] shrink-0 text-right" title={p.language}>
@@ -101,7 +109,10 @@ export function BaseProfilesPage() {
                 </Link>
                 <button
                   className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded px-2.5 py-1 cursor-pointer transition-colors hover:text-[color:var(--status-rejected)] hover:border-[color:var(--status-rejected)]"
-                  onClick={(e) => { e.stopPropagation(); handleTrash(p); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTrash(p);
+                  }}
                   title="Move to trash"
                 >
                   delete

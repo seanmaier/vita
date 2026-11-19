@@ -1,6 +1,10 @@
 // Below lg the editor pages show one panel at a time instead of two columns
 // side by side; this picks which one. From lg up it isn't rendered.
-export function MobilePanelSwitch<T extends string>({ value, options, onChange }: {
+export function MobilePanelSwitch<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;

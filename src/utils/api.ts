@@ -149,7 +149,9 @@ export async function fetchVersions(appId: string): Promise<AppVersion[]> {
 /** Makes an older version the application's current content (itself recorded as a new version). */
 export async function restoreVersion(appId: string, versionId: number): Promise<void> {
   await flush();
-  const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/versions/${versionId}/restore`, { method: 'POST' });
+  const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/versions/${versionId}/restore`, {
+    method: 'POST',
+  });
   if (!res.ok) throw await errorFrom(res, 'Restoring the version failed');
   await refreshUserData();
 }
@@ -181,7 +183,10 @@ export async function saveKnowledge(doc: KnowledgeDoc, content: string): Promise
   });
   if (!res.ok) {
     // Validation errors carry the useful part (e.g. "too long") in `details`.
-    const body: { error?: unknown; details?: unknown } = await res.clone().json().catch(() => ({}));
+    const body: { error?: unknown; details?: unknown } = await res
+      .clone()
+      .json()
+      .catch(() => ({}));
     if (Array.isArray(body.details) && body.details.length > 0) throw new Error(body.details.join(' '));
     throw await errorFrom(res, 'Saving the document failed');
   }
@@ -229,7 +234,10 @@ export async function saveForwardingFrom(value: string | null): Promise<JobAlert
     body: JSON.stringify({ forwardingFrom: value }),
   });
   if (!res.ok) {
-    const body: { details?: unknown } = await res.clone().json().catch(() => ({}));
+    const body: { details?: unknown } = await res
+      .clone()
+      .json()
+      .catch(() => ({}));
     const details = Array.isArray(body.details) ? body.details.filter((d) => typeof d === 'string') : [];
     if (details.length > 0) throw new Error(details.join(' '));
     throw await errorFrom(res, 'Saving the forwarding address failed');

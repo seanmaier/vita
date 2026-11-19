@@ -46,7 +46,9 @@ function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold text-[color:var(--ink-invert)] break-words m-0">{lead.title}</h2>
-          <p className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] break-words m-0 mt-1">{meta}</p>
+          <p className="[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)] break-words m-0 mt-1">
+            {meta}
+          </p>
         </div>
         {lead.score !== null && (
           <span
@@ -69,9 +71,13 @@ function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' 
           Open posting ↗
         </a>
         {lead.status !== 'dismissed' && (
-          <button className={actionButton} type="button" onClick={() => onSet('dismissed')}>Dismiss</button>
+          <button className={actionButton} type="button" onClick={() => onSet('dismissed')}>
+            Dismiss
+          </button>
         )}
-        <button className={actionButton} type="button" onClick={() => onSet('applied')}>Mark as applied</button>
+        <button className={actionButton} type="button" onClick={() => onSet('applied')}>
+          Mark as applied
+        </button>
       </div>
     </li>
   );
@@ -125,7 +131,10 @@ export function LeadsPage() {
   return (
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
       <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+        <Link
+          className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
+          to="/"
+        >
           ← Applications
         </Link>
         <span>

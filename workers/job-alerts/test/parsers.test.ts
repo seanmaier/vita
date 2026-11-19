@@ -23,7 +23,9 @@ test('extractAnchors decodes entities, strips tags and collapses whitespace', ()
 });
 
 test('extractAnchors keeps the link markup and the markup up to the next link', () => {
-  const [first, second] = extractAnchors('<a href="https://e.com/1"><b>T</b></a><p>Firma</p><p>Ort</p><a href="https://e.com/2">x</a>tail');
+  const [first, second] = extractAnchors(
+    '<a href="https://e.com/1"><b>T</b></a><p>Firma</p><p>Ort</p><a href="https://e.com/2">x</a>tail',
+  );
   assert.equal(first.inner, '<b>T</b>');
   assert.equal(first.after, '<p>Firma</p><p>Ort</p>');
   assert.equal(second.after, 'tail');
@@ -124,7 +126,12 @@ test('glassdoor: a card that is one big link yields the bold title plus company 
 test('glassdoor: a plain title link without a card keeps its link text', async () => {
   const html = '<a href="https://www.glassdoor.de/partner/jobListing.htm?jobListingId=77">Dev (m/w/d)</a>';
   assert.deepEqual(await parseAlert('glassdoor', html), [
-    { source: 'glassdoor', externalId: '77', title: 'Dev (m/w/d)', url: 'https://www.glassdoor.de/job-listing/index.htm?jl=77' },
+    {
+      source: 'glassdoor',
+      externalId: '77',
+      title: 'Dev (m/w/d)',
+      url: 'https://www.glassdoor.de/job-listing/index.htm?jl=77',
+    },
   ]);
 });
 
@@ -165,7 +172,10 @@ test('instaffo: a single top-match mail', async () => {
 
 test('instaffo: without a text part, or with job links on foreign hosts, there are no leads', async () => {
   assert.deepEqual(await parseAlert('instaffo', fixture('instaffo-top-match')), []);
-  const forged = fixture('instaffo-top-match', 'txt').replaceAll('https://app.instaffo.com/', 'https://app.instaffo.com.evil.example/');
+  const forged = fixture('instaffo-top-match', 'txt').replaceAll(
+    'https://app.instaffo.com/',
+    'https://app.instaffo.com.evil.example/',
+  );
   assert.deepEqual(await parseAlert('instaffo', fixture('instaffo-top-match'), forged), []);
 });
 
@@ -240,12 +250,17 @@ test('forwardedSource finds the platform in a hand-forwarded header block', () =
       '<blockquote><div><b>From:</b> Indeed &lt;donotreply@match.indeed.com&gt;<br><b>Subject:</b> Job</div></blockquote>',
   );
   assert.equal(forwardedSource(iphone), 'indeed');
-  assert.equal(forwardedSource('---------- Forwarded message ---------\nVon: LinkedIn <jobs-noreply@linkedin.com>'), 'linkedin');
+  assert.equal(
+    forwardedSource('---------- Forwarded message ---------\nVon: LinkedIn <jobs-noreply@linkedin.com>'),
+    'linkedin',
+  );
   assert.equal(forwardedSource('From: Friend <a@example.org>\nI like linkedin.com'), null);
   assert.equal(forwardedSource('From: x@evil-linkedin.com'), null);
   // Everything on one line: each label counts with the address right after it.
   assert.equal(
-    forwardedSource('Begin forwarded message: From: Me <me@icloud.com> Subject: WG: Job Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Di'),
+    forwardedSource(
+      'Begin forwarded message: From: Me <me@icloud.com> Subject: WG: Job Von: Indeed <donotreply@jobalert.indeed.com> Gesendet: Di',
+    ),
     'indeed',
   );
   assert.equal(forwardedSource('From: Me <me@icloud.com> I like linkedin.com and x@evil.example'), null);

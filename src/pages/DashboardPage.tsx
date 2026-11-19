@@ -20,7 +20,8 @@ import { createNote } from '../utils/notes';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
 import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note, StatusTransition } from '../types';
 
-type SortField = 'company' | 'role' | 'language' | 'fit' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
+type SortField =
+  'company' | 'role' | 'language' | 'fit' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
 
 const SORT_LABELS: Record<SortField, string> = {
   company: 'company',
@@ -51,7 +52,9 @@ export function DashboardPage() {
   // Read once like the fields above: the language only changes in the edit
   // form, which lives on another page.
   const [languages] = useState<Record<string, AppLanguage>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, languageOf({ language: getConfigOverride(a.id)?.language ?? a.language })])),
+    Object.fromEntries(
+      allApps.map((a) => [a.id, languageOf({ language: getConfigOverride(a.id)?.language ?? a.language })]),
+    ),
   );
   const languageFor = (app: ApplicationConfig) => languages[app.id] ?? languageOf(app);
 
@@ -163,7 +166,12 @@ export function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[1220px] mx-auto sm:pt-12 sm:px-8">
-      <DashboardNav trashCount={trashSize} ratedLeadCount={ratedLeadCount} onImport={() => setImportOpen(true)} onBackup={() => setBackupOpen(true)} />
+      <DashboardNav
+        trashCount={trashSize}
+        ratedLeadCount={ratedLeadCount}
+        onImport={() => setImportOpen(true)}
+        onBackup={() => setBackupOpen(true)}
+      />
 
       <StatsBar applications={appliedApps} activeFilter={statFilter} onSelect={handleStatSelect} />
 
@@ -182,7 +190,9 @@ export function DashboardPage() {
         >
           <option value="">all statuses</option>
           {(Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
+            <option key={v} value={v}>
+              {l}
+            </option>
           ))}
         </select>
         <select
@@ -193,19 +203,26 @@ export function DashboardPage() {
         >
           <option value="">all languages</option>
           {(Object.entries(LANGUAGE_LABELS) as [AppLanguage, string][]).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
+            <option key={v} value={v}>
+              {l}
+            </option>
           ))}
         </select>
         {/* Below lg the sortable column headers are hidden, so sorting moves here */}
         <select
           className="lg:hidden [font-family:var(--font-mono)] text-[11px] bg-transparent border border-[color:var(--rule)] text-[color:var(--ink-2)] px-2 py-1.5 cursor-pointer"
           value={sortField ?? ''}
-          onChange={(e) => { setSortField((e.target.value || null) as SortField | null); setSortDir('asc'); }}
+          onChange={(e) => {
+            setSortField((e.target.value || null) as SortField | null);
+            setSortDir('asc');
+          }}
           aria-label="Sort by"
         >
           <option value="">default order</option>
           {(Object.entries(SORT_LABELS) as [SortField, string][]).map(([v, l]) => (
-            <option key={v} value={v}>sort: {l}</option>
+            <option key={v} value={v}>
+              sort: {l}
+            </option>
           ))}
         </select>
         {sortField && (
@@ -230,98 +247,97 @@ export function DashboardPage() {
       {/* A table from lg up (scrolling sideways rather than crushing columns
           in narrow windows); below that each application is a card. */}
       <div data-tour="app-list" className="lg:overflow-x-auto">
-      <div className="lg:min-w-[1052px]">
+        <div className="lg:min-w-[1052px]">
+          {/* Column headers */}
+          <div className="hidden lg:flex items-center border-b border-[color:var(--rule)] pb-1.5">
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 w-[190px] shrink-0"
+              onClick={() => toggleSort('company')}
+            >
+              company{sortIndicator('company')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 flex-1 min-w-[120px]"
+              onClick={() => toggleSort('role')}
+            >
+              role{sortIndicator('role')}
+            </button>
+            <span className="w-[28px] shrink-0" />
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-center p-0 w-[44px] shrink-0"
+              onClick={() => toggleSort('language')}
+            >
+              lang{sortIndicator('language')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[48px] shrink-0"
+              onClick={() => toggleSort('fit')}
+            >
+              fit{sortIndicator('fit')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[116px] shrink-0 pr-1"
+              onClick={() => toggleSort('status')}
+            >
+              status{sortIndicator('status')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+              onClick={() => toggleSort('appliedDate')}
+            >
+              applied{sortIndicator('appliedDate')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+              onClick={() => toggleSort('interviewDate')}
+            >
+              interview{sortIndicator('interviewDate')}
+            </button>
+            <button
+              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
+              onClick={() => toggleSort('finalDecisionDate')}
+            >
+              decision{sortIndicator('finalDecisionDate')}
+            </button>
+            <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] w-[170px] shrink-0 pl-3">
+              notes
+            </span>
+            <span className="w-[36px] shrink-0" />
+          </div>
 
-      {/* Column headers */}
-      <div className="hidden lg:flex items-center border-b border-[color:var(--rule)] pb-1.5">
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 w-[190px] shrink-0"
-          onClick={() => toggleSort('company')}
-        >
-          company{sortIndicator('company')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-left p-0 flex-1 min-w-[120px]"
-          onClick={() => toggleSort('role')}
-        >
-          role{sortIndicator('role')}
-        </button>
-        <span className="w-[28px] shrink-0" />
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-center p-0 w-[44px] shrink-0"
-          onClick={() => toggleSort('language')}
-        >
-          lang{sortIndicator('language')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[48px] shrink-0"
-          onClick={() => toggleSort('fit')}
-        >
-          fit{sortIndicator('fit')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[116px] shrink-0 pr-1"
-          onClick={() => toggleSort('status')}
-        >
-          status{sortIndicator('status')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
-          onClick={() => toggleSort('appliedDate')}
-        >
-          applied{sortIndicator('appliedDate')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
-          onClick={() => toggleSort('interviewDate')}
-        >
-          interview{sortIndicator('interviewDate')}
-        </button>
-        <button
-          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] hover:text-[color:var(--ink-2)] bg-transparent border-none cursor-pointer text-right p-0 w-[88px] shrink-0 ml-2"
-          onClick={() => toggleSort('finalDecisionDate')}
-        >
-          decision{sortIndicator('finalDecisionDate')}
-        </button>
-        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] w-[170px] shrink-0 pl-3">
-          notes
-        </span>
-        <span className="w-[36px] shrink-0" />
-      </div>
-
-      {allApps.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
-          no applications found.
-        </p>
-      ) : visibleApps.length === 0 ? (
-        <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
-          no applications match your search/filters.
-        </p>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:block">
-          {visibleApps.map((app) => {
-            const isLocal = !staticApps.some((s) => s.id === app.id);
-            return (
-              <ApplicationCard
-                key={app.id}
-                application={app}
-                language={languageFor(app)}
-                status={app.status}
-                canUndo={historyFor(app).length > 1}
-                appliedDate={app.appliedDate}
-                interviewDate={app.interviewDate}
-                finalDecisionDate={app.finalDecisionDate}
-                notes={notes[app.id]}
-                onStatusChange={(action) => handleStatusChange(app, action)}
-                onNotesAdd={(text) => handleNotesAdd(app.id, text)}
-                onNotesDelete={(noteId) => handleNotesDelete(app.id, noteId)}
-                onDelete={isLocal ? () => handleDelete(app) : undefined}
-              />
-            );
-          })}
+          {allApps.length === 0 ? (
+            <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
+              no applications found.
+            </p>
+          ) : visibleApps.length === 0 ? (
+            <p className="[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-3)] py-10">
+              no applications match your search/filters.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:block">
+              {visibleApps.map((app) => {
+                const isLocal = !staticApps.some((s) => s.id === app.id);
+                return (
+                  <ApplicationCard
+                    key={app.id}
+                    application={app}
+                    language={languageFor(app)}
+                    status={app.status}
+                    canUndo={historyFor(app).length > 1}
+                    appliedDate={app.appliedDate}
+                    interviewDate={app.interviewDate}
+                    finalDecisionDate={app.finalDecisionDate}
+                    notes={notes[app.id]}
+                    onStatusChange={(action) => handleStatusChange(app, action)}
+                    onNotesAdd={(text) => handleNotesAdd(app.id, text)}
+                    onNotesDelete={(noteId) => handleNotesDelete(app.id, noteId)}
+                    onDelete={isLocal ? () => handleDelete(app) : undefined}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-      </div>
       </div>
 
       {importOpen && <ImportApplicationModal onClose={() => setImportOpen(false)} />}

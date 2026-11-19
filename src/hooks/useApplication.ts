@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import type { ApplicationConfig } from '../types';
-import {
-  getConfigOverride,
-  setConfigOverride,
-  clearConfigOverride,
-  hasConfigOverride,
-} from '../utils/appStorage';
+import { getConfigOverride, setConfigOverride, clearConfigOverride, hasConfigOverride } from '../utils/appStorage';
 import { setChangeMessage } from '../utils/storage';
 
 export function useApplication(staticApp: ApplicationConfig) {

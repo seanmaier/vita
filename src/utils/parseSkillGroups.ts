@@ -1,8 +1,6 @@
 import type { SkillGroup } from '../types.ts';
 
-export type SkillGroupsParseResult =
-  | { ok: true; skillGroups: SkillGroup[] }
-  | { ok: false; errors: string[] };
+export type SkillGroupsParseResult = { ok: true; skillGroups: SkillGroup[] } | { ok: false; errors: string[] };
 
 function isString(v: unknown): v is string {
   return typeof v === 'string';
@@ -21,7 +19,8 @@ export function validateSkillGroups(input: unknown): SkillGroupsParseResult {
       return;
     }
     const obj = item as Record<string, unknown>;
-    if (!isString(obj.label) || !obj.label.trim()) errors.push(`Item ${i}: "label" is required and must be a non-empty string.`);
+    if (!isString(obj.label) || !obj.label.trim())
+      errors.push(`Item ${i}: "label" is required and must be a non-empty string.`);
     if (!Array.isArray(obj.skills) || obj.skills.length === 0 || !obj.skills.every(isString)) {
       errors.push(`Item ${i}: "skills" must be a non-empty array of strings.`);
     }

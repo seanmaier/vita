@@ -31,7 +31,8 @@ const DEMO: DemoBase[] = [
     text: {
       en: {
         role: 'Frontend Engineer (React)',
-        notes: 'Technical interview with the frontend team lead.\nPrepare: component architecture, testing strategy, one accessibility example.',
+        notes:
+          'Technical interview with the frontend team lead.\nPrepare: component architecture, testing strategy, one accessibility example.',
         summaryOverride:
           'Frontend-focused developer with four years of React and TypeScript in production. I care about fast, accessible interfaces and component libraries that teams actually enjoy using.',
         recipientOrg: 'Nordlicht Software GmbH',
@@ -44,7 +45,8 @@ const DEMO: DemoBase[] = [
       },
       de: {
         role: 'Frontend Engineer (React)',
-        notes: 'Technisches Interview mit der Frontend-Teamleitung.\nVorbereiten: Komponentenarchitektur, Teststrategie, ein Beispiel zur Barrierefreiheit.',
+        notes:
+          'Technisches Interview mit der Frontend-Teamleitung.\nVorbereiten: Komponentenarchitektur, Teststrategie, ein Beispiel zur Barrierefreiheit.',
         summaryOverride:
           'Frontend-orientierter Entwickler mit vier Jahren React und TypeScript im Produktiveinsatz. Mir liegen schnelle, barrierefreie Oberflächen und Komponentenbibliotheken am Herzen, mit denen Teams gerne arbeiten.',
         recipientOrg: 'Nordlicht Software GmbH',
@@ -57,7 +59,8 @@ const DEMO: DemoBase[] = [
       },
       sv: {
         role: 'Frontendutvecklare (React)',
-        notes: 'Teknisk intervju med frontendteamets lead.\nFörbered: komponentarkitektur, teststrategi, ett exempel på tillgänglighet.',
+        notes:
+          'Teknisk intervju med frontendteamets lead.\nFörbered: komponentarkitektur, teststrategi, ett exempel på tillgänglighet.',
         summaryOverride:
           'Frontendinriktad utvecklare med fyra år av React och TypeScript i produktion. Jag brinner för snabba, tillgängliga gränssnitt och komponentbibliotek som team faktiskt tycker om att använda.',
         recipientOrg: 'Nordlicht Software AB',
@@ -174,13 +177,20 @@ const DEMO: DemoBase[] = [
 
 // Demo notes carry a plausible creation time (the day applied, when known) so
 // the timestamp badge has something to show instead of "undated".
-function demoNotes(id: string, language: AppLanguage, text: string | undefined, appliedDate: string | undefined): Note[] | undefined {
+function demoNotes(
+  id: string,
+  language: AppLanguage,
+  text: string | undefined,
+  appliedDate: string | undefined,
+): Note[] | undefined {
   if (!text) return undefined;
-  return [{
-    id: `${id}-${language}-note`,
-    text,
-    ...(appliedDate && { createdAt: `${appliedDate}T09:00:00.000Z` }),
-  }];
+  return [
+    {
+      id: `${id}-${language}-note`,
+      text,
+      ...(appliedDate && { createdAt: `${appliedDate}T09:00:00.000Z` }),
+    },
+  ];
 }
 
 function inLanguage({ text, ...base }: DemoBase, language: AppLanguage): ApplicationConfig {

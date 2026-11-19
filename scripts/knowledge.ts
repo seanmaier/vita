@@ -57,7 +57,9 @@ try {
       const local = existsSync(file) ? readFileSync(file, 'utf8') : null;
       const plan = planPull(local, server);
       if (plan === 'keep-local-missing-on-server') {
-        console.error(`${doc}: not saved in the app, local file kept — upload it with: node scripts/knowledge.ts push ${doc}`);
+        console.error(
+          `${doc}: not saved in the app, local file kept — upload it with: node scripts/knowledge.ts push ${doc}`,
+        );
       } else if (server === null) {
         console.error(`${doc}: not saved in the app yet, skipped.`);
       } else if (plan === 'unchanged') {
@@ -74,7 +76,10 @@ try {
       }
     }
     if (conflicts.length > 0) {
-      fail(`Differs from the app: ${conflicts.join(', ')}. Push the local file or replace it with the .server.md copy.`, 3);
+      fail(
+        `Differs from the app: ${conflicts.join(', ')}. Push the local file or replace it with the .server.md copy.`,
+        3,
+      );
     }
   } else {
     fail(USAGE);

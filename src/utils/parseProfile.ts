@@ -2,9 +2,7 @@ import type { Education, Experience, HumanLanguage, Profile, Project, SkillGroup
 
 const SKILL_GROUP_VARIANTS = ['default', 'learning'] as const;
 
-export type ParseResult =
-  | { ok: true; profile: Profile }
-  | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; profile: Profile } | { ok: false; errors: string[] };
 
 function isString(v: unknown): v is string {
   return typeof v === 'string';

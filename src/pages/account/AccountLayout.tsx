@@ -28,7 +28,10 @@ export function AccountLayout() {
   return (
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
       <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+        <Link
+          className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
+          to="/"
+        >
           ← Dashboard
         </Link>
         <span>

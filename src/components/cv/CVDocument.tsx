@@ -62,9 +62,21 @@ export function CVDocument({ profile, application }: Props) {
         <nav className="cv-contact" aria-label={t.contact}>
           {joinLines([
             profile.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>,
-            profile.website && <a href={`https://${profile.website}`} target="_blank" rel="noopener">{profile.website}</a>,
-            profile.github && <a href={`https://${profile.github}`} target="_blank" rel="noopener">{profile.github}</a>,
-            profile.linkedin && <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener">{profile.linkedin}</a>,
+            profile.website && (
+              <a href={`https://${profile.website}`} target="_blank" rel="noopener">
+                {profile.website}
+              </a>
+            ),
+            profile.github && (
+              <a href={`https://${profile.github}`} target="_blank" rel="noopener">
+                {profile.github}
+              </a>
+            ),
+            profile.linkedin && (
+              <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener">
+                {profile.linkedin}
+              </a>
+            ),
             profile.city,
           ])}
         </nav>
@@ -140,9 +152,7 @@ export function CVDocument({ profile, application }: Props) {
                 </div>
                 <div className="exp-company">
                   {exp.company}
-                  {exp.companyNote && (
-                    <span style={{ fontWeight: 400, opacity: 0.8 }}> · {exp.companyNote}</span>
-                  )}
+                  {exp.companyNote && <span style={{ fontWeight: 400, opacity: 0.8 }}> · {exp.companyNote}</span>}
                 </div>
                 <ul className="exp-bullets">
                   {exp.bullets.map((bullet, i) => (
@@ -165,12 +175,7 @@ export function CVDocument({ profile, application }: Props) {
                     )}
                   </span>
                   {project.link && (
-                    <a
-                      className="project-link"
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener"
-                    >
+                    <a className="project-link" href={project.link} target="_blank" rel="noopener">
                       {project.linkLabel ?? project.link}
                     </a>
                   )}

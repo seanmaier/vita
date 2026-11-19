@@ -65,18 +65,33 @@ function applyLocally(appId: string, result: HistoryResult): StatusTransition[] 
 }
 
 /** Performs a status action; resolves with the new history or rejects with a message to show. */
-export function changeStatus(appId: string, history: StatusTransition[], action: StatusAction): Promise<StatusTransition[]> {
+export function changeStatus(
+  appId: string,
+  history: StatusTransition[],
+  action: StatusAction,
+): Promise<StatusTransition[]> {
   if (action === 'undo') {
     if (isDemo) return Promise.resolve().then(() => applyLocally(appId, undoLast(history)));
     return request(appId, '/last', { method: 'DELETE' });
   }
   const date = todayIso();
-  if (isDemo) return Promise.resolve().then(() => applyLocally(appId, appendTransition(history, action, date, new Date().toISOString())));
-  return request(appId, '', { method: 'POST', body: JSON.stringify({ to: action, date, expected: statusOf(history) }) });
+  if (isDemo)
+    return Promise.resolve().then(() =>
+      applyLocally(appId, appendTransition(history, action, date, new Date().toISOString())),
+    );
+  return request(appId, '', {
+    method: 'POST',
+    body: JSON.stringify({ to: action, date, expected: statusOf(history) }),
+  });
 }
 
 /** Changes when step `index` of the history happened. */
-export function changeStepDate(appId: string, history: StatusTransition[], index: number, date: string): Promise<StatusTransition[]> {
+export function changeStepDate(
+  appId: string,
+  history: StatusTransition[],
+  index: number,
+  date: string,
+): Promise<StatusTransition[]> {
   if (isDemo) return Promise.resolve().then(() => applyLocally(appId, setTransitionDate(history, index, date)));
   return request(appId, `/${index}`, { method: 'PATCH', body: JSON.stringify({ date }) });
 }

@@ -68,8 +68,8 @@ const supportedSites = (
       ))}
     </ul>
     <p className={hint}>
-      Alerts from other sites (e.g. XING, Monster or the Arbeitsagentur) can't be read yet: they show up below as
-      "Could not process · unknown alert sender" and add no leads.
+      Alerts from other sites (e.g. XING, Monster or the Arbeitsagentur) can't be read yet: they show up below as "Could
+      not process · unknown alert sender" and add no leads.
     </p>
   </div>
 );
@@ -80,24 +80,20 @@ const providerSteps: Record<Provider, ReactNode[]> = {
     'In Gmail, open Settings → Forwarding and POP/IMAP and add the address as a forwarding address.',
     'The confirmation code from Google appears below; enter it in Gmail.',
     <>
-      Create a filter for your job-alert senders, e.g. <code>from:(jobalerts-noreply@linkedin.com)</code>, with
-      "Forward to" this address.
+      Create a filter for your job-alert senders, e.g. <code>from:(jobalerts-noreply@linkedin.com)</code>, with "Forward
+      to" this address.
     </>,
   ],
   outlook: [
-    <>
-      In Outlook, open Settings → Mail → Rules and add a rule: "From" contains e.g. {exampleSender}.
-    </>,
+    <>In Outlook, open Settings → Mail → Rules and add a rule: "From" contains e.g. {exampleSender}.</>,
     <>
       As action choose <strong>"Forward as attachment"</strong> to this address: only then does the original alert
-      arrive unchanged. "Redirect to" and "Forward to" rebuild the mail and lose links some sites (e.g. Instaffo)
-      keep only in its plain-text part.
+      arrive unchanged. "Redirect to" and "Forward to" rebuild the mail and lose links some sites (e.g. Instaffo) keep
+      only in its plain-text part.
     </>,
   ],
   icloud: [
-    <>
-      On icloud.com, open Mail → Settings → Rules and add a rule: "is from" e.g. {exampleSender}.
-    </>,
+    <>On icloud.com, open Mail → Settings → Rules and add a rule: "is from" e.g. {exampleSender}.</>,
     'As action choose "Forward to" this address.',
   ],
 };
@@ -228,13 +224,11 @@ export function JobAlertsSection() {
   const latestLeads = events.find((ev) => ev.kind === 'leads');
   const isSetUp = Boolean(config?.address) && Boolean(config?.forwardingFrom) && latestLeads !== undefined;
   const countRecent = (kind: InboundEvent['kind']) =>
-    events.filter((ev) => ev.kind === kind && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS)
-      .length;
+    events.filter((ev) => ev.kind === kind && Date.now() - parseTimestamp(ev.receivedAt).getTime() < 7 * DAY_MS).length;
   // The list is capped, so a full list that still reaches back less than 7 days may be missing newer-than-7-days mails.
   const oldest = events[events.length - 1];
   const countCapped =
-    events.length >= JOB_ALERT_EVENTS_LIMIT &&
-    Date.now() - parseTimestamp(oldest.receivedAt).getTime() < 7 * DAY_MS;
+    events.length >= JOB_ALERT_EVENTS_LIMIT && Date.now() - parseTimestamp(oldest.receivedAt).getTime() < 7 * DAY_MS;
   const formatCount = (n: number) => (countCapped ? `${n}+` : String(n));
   const alertsLast7Days = formatCount(countRecent('leads'));
   const failedCount = countRecent('failed');
@@ -244,14 +238,14 @@ export function JobAlertsSection() {
     <>
       <span className={nafLabel}>Setup</span>
       <p className={hint}>
-        Your mailbox forwards your job-alert mails from the supported job sites above to your personal address here,
-        and the jobs in them show up as leads.
+        Your mailbox forwards your job-alert mails from the supported job sites above to your personal address here, and
+        the jobs in them show up as leads.
       </p>
       <ol className={`${hint} list-decimal pl-4 m-0 flex flex-col gap-1`}>
         <li>Create your address above and save the address you forward from.</li>
         <li>
-          Send the address to the admin. It only receives mail once the admin has activated it; until then, mails
-          to it bounce with "rejected".
+          Send the address to the admin. It only receives mail once the admin has activated it; until then, mails to it
+          bounce with "rejected".
         </li>
       </ol>
       <label className="flex flex-col gap-1.5">
@@ -270,9 +264,9 @@ export function JobAlertsSection() {
         ))}
       </ol>
       <p className={hint}>
-        You can also forward a single alert by hand from the address you saved, e.g. to test the setup; the job
-        site is then read from the quoted header. Other mail providers may work if the forwarded mail is sent from
-        your own address; they are untested. Microsoft 365 work accounts do not work.
+        You can also forward a single alert by hand from the address you saved, e.g. to test the setup; the job site is
+        then read from the quoted header. Other mail providers may work if the forwarded mail is sent from your own
+        address; they are untested. Microsoft 365 work accounts do not work.
       </p>
     </>
   );

@@ -3,10 +3,15 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApplicationConfig, BaseProfile } from '../types';
 import {
-  applicationsUsingBaseProfile, deleteBaseProfilePermanently, getDeletedBaseProfiles, restoreBaseProfile,
+  applicationsUsingBaseProfile,
+  deleteBaseProfilePermanently,
+  getDeletedBaseProfiles,
+  restoreBaseProfile,
 } from '../utils/baseProfiles';
 import {
-  deleteLocalApplicationPermanently, getDeletedLocalApplications, restoreLocalApplication,
+  deleteLocalApplicationPermanently,
+  getDeletedLocalApplications,
+  restoreLocalApplication,
 } from '../utils/localApplications';
 import { purgeDate, TRASH_RETENTION_DAYS } from '../utils/trash';
 import { LANG_FLAGS } from '../utils/language';
@@ -14,7 +19,8 @@ import { LANG_FLAGS } from '../utils/language';
 const actionBtn =
   '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-2)] bg-transparent border border-[color:var(--rule)] rounded px-2.5 py-1 cursor-pointer transition-colors';
 const meta = '[font-family:var(--font-mono)] text-[11px] text-[color:var(--ink-3)]';
-const sectionLabel = '[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.14em] text-[color:var(--accent)] mb-2';
+const sectionLabel =
+  '[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.14em] text-[color:var(--accent)] mb-2';
 
 const formatDate = (iso: string | Date) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -38,14 +44,19 @@ function TrashRow({ title, deletedAt, extra, onRestore, onDeletePermanently }: R
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[color:var(--rule)] py-2.5">
       <div className="flex-1 min-w-[200px]">
-        <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">{title}</span>
+        <span className="block [font-family:var(--font-mono)] text-[12.5px] text-[color:var(--ink-invert)] truncate">
+          {title}
+        </span>
         <span className={`block ${meta} mt-0.5`}>
           deleted {formatDate(deletedAt)} · removed {formatDate(purgeDate(deletedAt))}
           {extra && ` · ${extra}`}
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <button className={`${actionBtn} hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]`} onClick={onRestore}>
+        <button
+          className={`${actionBtn} hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]`}
+          onClick={onRestore}
+        >
           restore
         </button>
         <button
@@ -78,17 +89,23 @@ export function TrashPage() {
   };
 
   const deleteApplication = (app: ApplicationConfig) => {
-    if (!confirm(`Delete "${app.company} – ${app.role}" permanently, with its cover letter and notes? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Delete "${app.company} – ${app.role}" permanently, with its cover letter and notes? This cannot be undone.`,
+      )
+    )
+      return;
     deleteLocalApplicationPermanently(app.id);
     reload();
   };
 
   const deleteProfile = (profile: BaseProfile) => {
     const usedBy = applicationsUsingBaseProfile(profile.id);
-    const fallback = usedBy.length > 0
-      ? ` ${plural(usedBy.length, 'application')} (${usedBy.map((a) => a.company).join(', ')}) ` +
-        'will fall back to the language default profile.'
-      : '';
+    const fallback =
+      usedBy.length > 0
+        ? ` ${plural(usedBy.length, 'application')} (${usedBy.map((a) => a.company).join(', ')}) ` +
+          'will fall back to the language default profile.'
+        : '';
     if (!confirm(`Delete "${profile.name}" permanently? This cannot be undone.${fallback}`)) return;
     deleteBaseProfilePermanently(profile.id);
     reload();
@@ -97,7 +114,10 @@ export function TrashPage() {
   return (
     <div className="min-h-screen bg-[color:var(--bg)] pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
       <header className="mb-6 sm:mb-8 [font-family:var(--font-mono)] text-[15px] flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]" to="/">
+        <Link
+          className="text-[11px] text-[color:var(--ink-3)] no-underline hover:text-[color:var(--ink-invert)]"
+          to="/"
+        >
           ← Dashboard
         </Link>
         <span>
@@ -118,7 +138,10 @@ export function TrashPage() {
             key={a.id}
             title={`${LANG_FLAGS[a.language ?? 'en']} ${a.company} – ${a.role}`}
             deletedAt={a.deletedAt!}
-            onRestore={() => { restoreLocalApplication(a.id); reload(); }}
+            onRestore={() => {
+              restoreLocalApplication(a.id);
+              reload();
+            }}
             onDeletePermanently={() => deleteApplication(a)}
           />
         ))}
@@ -133,7 +156,10 @@ export function TrashPage() {
               title={`${LANG_FLAGS[p.language]} ${p.name}`}
               deletedAt={p.deletedAt!}
               extra={usedBy > 0 ? `used by ${plural(usedBy, 'application')}` : undefined}
-              onRestore={() => { restoreBaseProfile(p.id); reload(); }}
+              onRestore={() => {
+                restoreBaseProfile(p.id);
+                reload();
+              }}
               onDeletePermanently={() => deleteProfile(p)}
             />
           );

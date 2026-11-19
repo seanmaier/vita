@@ -33,8 +33,12 @@
 }
 
 @keyframes seasonal-fall {
-  from { transform: translate(0, -10vh) rotate(0deg); }
-  to   { transform: translate(var(--drift), 110vh) rotate(360deg); }
+  from {
+    transform: translate(0, -10vh) rotate(0deg);
+  }
+  to {
+    transform: translate(var(--drift), 110vh) rotate(360deg);
+  }
 }
 
 /* ── Bottom ledge: a row of rounded mounds, like snow or sand piled up on a
@@ -78,8 +82,15 @@
 }
 
 @keyframes seasonal-sun-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.95; }
-  50%      { transform: scale(1.05); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
 }
 
 .seasonal-beach-prop {

@@ -21,8 +21,7 @@ interface AddressRow {
 
 function state(userId: number) {
   const row = db.prepare('SELECT local_part, forwarding_from FROM inbound_addresses WHERE user_id = ?').get(userId) as
-    | AddressRow
-    | undefined;
+    AddressRow | undefined;
   const domain = inboundDomain();
   return {
     available: domain !== null,
@@ -56,7 +55,8 @@ jobAlerts.put('/', async (c) => {
   const { forwardingFrom } = body;
   let value: string | null;
   if (forwardingFrom === null) value = null;
-  else if (typeof forwardingFrom === 'string' && normalizeAddress(forwardingFrom) !== null) value = forwardingFrom.trim();
+  else if (typeof forwardingFrom === 'string' && normalizeAddress(forwardingFrom) !== null)
+    value = forwardingFrom.trim();
   else return invalid(c, ['"forwardingFrom" must be an email address or null.']);
 
   const userId = c.get('user').id;

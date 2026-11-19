@@ -21,7 +21,11 @@ async function setup(gmail: string | null = 'owner.name@gmail.com') {
   const res = await app.request('/api/v1/job-alerts/address', { method: 'POST' });
   const { address } = (await res.json()) as { address: string };
   if (gmail) {
-    await app.request('/api/v1/job-alerts', { method: 'PUT', headers: json, body: JSON.stringify({ forwardingFrom: gmail }) });
+    await app.request('/api/v1/job-alerts', {
+      method: 'PUT',
+      headers: json,
+      body: JSON.stringify({ forwardingFrom: gmail }),
+    });
   }
   return { user, app, address };
 }
@@ -37,14 +41,22 @@ const eventsOf = async (app: App) =>
   (await app.request('/api/v1/job-alerts/events')).json() as Promise<{ kind: string; detail: string | null }[]>;
 
 test('an unknown recipient is 404', async () => {
-  const res = await deliver({ recipient: 'jobs-zzzzzzzzzz@alerts.example.org', envelopeFrom: 'a@gmail.com', kind: 'failed' });
+  const res = await deliver({
+    recipient: 'jobs-zzzzzzzzzz@alerts.example.org',
+    envelopeFrom: 'a@gmail.com',
+    kind: 'failed',
+  });
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: 'Unknown recipient.' });
 });
 
 test('a wrong domain is 404', async () => {
   const { address } = await setup();
-  const res = await deliver({ recipient: address.replace('alerts.example.org', 'example.net'), envelopeFrom: 'owner.name@gmail.com', kind: 'failed' });
+  const res = await deliver({
+    recipient: address.replace('alerts.example.org', 'example.net'),
+    envelopeFrom: 'owner.name@gmail.com',
+    kind: 'failed',
+  });
   assert.equal(res.status, 404);
 });
 
@@ -84,7 +96,12 @@ test('a re-forwarded alert repairs the leads it already created', async () => {
 
 test('leads from a foreign sender are refused and store nothing', async () => {
   const { app, address } = await setup();
-  const res = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com.evil.io', kind: 'leads', leads: [lead(1)] });
+  const res = await deliver({
+    recipient: address,
+    envelopeFrom: 'owner.name@gmail.com.evil.io',
+    kind: 'leads',
+    leads: [lead(1)],
+  });
   assert.equal(res.status, 403);
   assert.equal((await leadsOf(app)).length, 0);
 });
@@ -130,7 +147,12 @@ test('failed stores an event and truncates long fields', async () => {
 
 test('a confirmation needs no registered gmail, only the Google sender', async () => {
   const { app, address } = await setup(null);
-  const res = await deliver({ recipient: address, envelopeFrom: 'forwarding-noreply@google.com', kind: 'confirmation', subject: 'Confirm' });
+  const res = await deliver({
+    recipient: address,
+    envelopeFrom: 'forwarding-noreply@google.com',
+    kind: 'confirmation',
+    subject: 'Confirm',
+  });
   assert.equal(res.status, 201);
   assert.equal((await eventsOf(app))[0].kind, 'confirmation');
   const bad = await deliver({ recipient: address, envelopeFrom: 'owner.name@gmail.com', kind: 'confirmation' });
@@ -147,7 +169,9 @@ test('only the inbound:deliver scope may deliver', async () => {
 
 test('purgeOldInboundEvents deletes events older than 30 days only', async () => {
   const { user } = await setup();
-  const insert = db.prepare("INSERT INTO inbound_events (user_id, kind, received_at) VALUES (?, 'failed', datetime('now', ?))");
+  const insert = db.prepare(
+    "INSERT INTO inbound_events (user_id, kind, received_at) VALUES (?, 'failed', datetime('now', ?))",
+  );
   insert.run(user.id, '-31 days');
   insert.run(user.id, '-1 days');
   assert.equal(purgeOldInboundEvents(), 1);

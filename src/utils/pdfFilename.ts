@@ -9,7 +9,13 @@ const DOCUMENT_NAMES: Record<PrintTarget, Record<AppLanguage, string>> = {
 };
 
 const UMLAUTS: Record<string, string> = {
-  ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue', ß: 'ss',
+  ä: 'ae',
+  ö: 'oe',
+  ü: 'ue',
+  Ä: 'Ae',
+  Ö: 'Oe',
+  Ü: 'Ue',
+  ß: 'ss',
 };
 
 /** "IBS Schreiber" → "IBS_Schreiber", "Müller & Söhne" → "Mueller_Soehne": ASCII only, underscores as separators. */
@@ -27,7 +33,5 @@ function toFilenamePart(value: string): string {
  * document: Vorname_Nachname_Dokument_Firma, e.g. "Sean_Maier_Anschreiben_IBS_Schreiber".
  */
 export function buildPdfFilename(target: PrintTarget, language: AppLanguage, name: string, company: string): string {
-  return [toFilenamePart(name), DOCUMENT_NAMES[target][language], toFilenamePart(company)]
-    .filter(Boolean)
-    .join('_');
+  return [toFilenamePart(name), DOCUMENT_NAMES[target][language], toFilenamePart(company)].filter(Boolean).join('_');
 }

@@ -29,7 +29,11 @@ export function useDragReorder(onMove: (from: number, to: number) => void) {
       if (row) {
         const handle = e.currentTarget.getBoundingClientRect();
         const box = row.getBoundingClientRect();
-        e.dataTransfer.setDragImage(row, handle.left - box.left + handle.width / 2, handle.top - box.top + handle.height / 2);
+        e.dataTransfer.setDragImage(
+          row,
+          handle.left - box.left + handle.width / 2,
+          handle.top - box.top + handle.height / 2,
+        );
       }
       setDragIndex(index);
     },

@@ -23,7 +23,10 @@ const tag = (signature: string, name: string): string | null =>
  * What a forwarded mail tells us about its origin, for designing the sender check:
  * envelope, From and the authentication headers. Never the subject, body or signature data.
  */
-export function headerDiagnostics(envelope: { from: string; to: string }, parsed: ParsedMail | null): HeaderDiagnostics {
+export function headerDiagnostics(
+  envelope: { from: string; to: string },
+  parsed: ParsedMail | null,
+): HeaderDiagnostics {
   return {
     envelopeFrom: envelope.from,
     envelopeTo: envelope.to,

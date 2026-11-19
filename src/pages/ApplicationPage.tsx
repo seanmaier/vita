@@ -20,14 +20,20 @@ import { ApplicationTimeline } from '../components/ApplicationTimeline';
 import { createNote } from '../utils/notes';
 import { buildPdfFilename, type PrintTarget } from '../utils/pdfFilename';
 import {
-  sanitizeFolderName, renderPageCanvases, buildPdfBlob, writeApplicationPdfs, downloadPdfBlob,
+  sanitizeFolderName,
+  renderPageCanvases,
+  buildPdfBlob,
+  writeApplicationPdfs,
+  downloadPdfBlob,
 } from '../utils/pdfExport';
 import {
-  isFileSystemAccessSupported, getSavedExportFolder, chooseExportFolder, ensureExportFolderPermission,
+  isFileSystemAccessSupported,
+  getSavedExportFolder,
+  chooseExportFolder,
+  ensureExportFolderPermission,
 } from '../utils/exportFolder';
 import { LANGUAGE_LABELS, languageOf } from '../utils/language';
 import type { ApplicationConfig, AppFont, CoverLetter } from '../types';
-
 
 export function ApplicationPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +43,9 @@ export function ApplicationPage() {
     return (
       <div className="py-20 px-10 [font-family:var(--font-mono)] text-[color:var(--ink-2)] flex flex-col gap-4">
         <p>Application not found.</p>
-        <Link className="text-[color:var(--accent)]" to="/">← Back to dashboard</Link>
+        <Link className="text-[color:var(--accent)]" to="/">
+          ← Back to dashboard
+        </Link>
       </div>
     );
   }
@@ -91,7 +99,7 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
   const handleDownload = async () => {
     if (!profile.name.trim()) {
       const goToProfile = confirm(
-        'Your profile has no name set yet, so the exported files can\'t be named properly. Set one now?',
+        "Your profile has no name set yet, so the exported files can't be named properly. Set one now?",
       );
       if (goToProfile) navigate(app.baseProfileId ? `/profiles/${app.baseProfileId}` : '/profiles');
       return;
@@ -118,10 +126,10 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
     setDownloading(true);
     try {
       const cvPages = cvExportRef.current
-        ? Array.from(cvExportRef.current.querySelectorAll(':scope > .doc-page')) as HTMLElement[]
+        ? (Array.from(cvExportRef.current.querySelectorAll(':scope > .doc-page')) as HTMLElement[])
         : [];
       const clPages = clExportRef.current
-        ? Array.from(clExportRef.current.querySelectorAll(':scope > .doc-page')) as HTMLElement[]
+        ? (Array.from(clExportRef.current.querySelectorAll(':scope > .doc-page')) as HTMLElement[])
         : [];
 
       const cvCanvases = await renderPageCanvases(cvPages);
@@ -163,9 +171,18 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
           ← Dashboard
         </Link>
         <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-          <span className="text-[13px] font-semibold text-[color:var(--ink-invert)] whitespace-nowrap">{app.company}</span>
-          <span className="text-[12px] text-[color:var(--ink-3)] whitespace-nowrap overflow-hidden text-ellipsis">{app.role}</span>
-          <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.06em] leading-none text-[color:var(--ink-2)] border border-[color:var(--rule)] rounded px-1 py-[3px] shrink-0" title={LANGUAGE_LABELS[language]}>{language}</span>
+          <span className="text-[13px] font-semibold text-[color:var(--ink-invert)] whitespace-nowrap">
+            {app.company}
+          </span>
+          <span className="text-[12px] text-[color:var(--ink-3)] whitespace-nowrap overflow-hidden text-ellipsis">
+            {app.role}
+          </span>
+          <span
+            className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.06em] leading-none text-[color:var(--ink-2)] border border-[color:var(--rule)] rounded px-1 py-[3px] shrink-0"
+            title={LANGUAGE_LABELS[language]}
+          >
+            {language}
+          </span>
           {isDirty && (
             <span className="[font-family:var(--font-mono)] text-[9px] tracking-[0.1em] uppercase text-[color:var(--status-sent)] border border-[color:var(--status-sent)] rounded-[10px] py-px px-[7px] opacity-80">
               edited
@@ -237,9 +254,14 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
       {/* Documents with the notes panel beside them on wide windows; on
           narrower ones the panel moves above the documents. */}
       <div className="pt-6 px-3 sm:pt-10 sm:px-5 pb-20 flex flex-col items-center gap-6 min-[1200px]:flex-row min-[1200px]:items-start min-[1200px]:justify-center print:block print:p-0">
-        <aside aria-label="Notes" className="w-[794px] max-w-full min-[1200px]:w-[300px] min-[1200px]:order-last min-[1200px]:sticky min-[1200px]:top-[76px] shrink-0 bg-[color:var(--surface)] border border-[color:var(--rule)] rounded-md p-4 flex flex-col gap-3 print:hidden">
+        <aside
+          aria-label="Notes"
+          className="w-[794px] max-w-full min-[1200px]:w-[300px] min-[1200px]:order-last min-[1200px]:sticky min-[1200px]:top-[76px] shrink-0 bg-[color:var(--surface)] border border-[color:var(--rule)] rounded-md p-4 flex flex-col gap-3 print:hidden"
+        >
           <div className="flex items-center justify-between gap-2">
-            <span className="[font-family:var(--font-mono)] text-[9.5px] tracking-[0.14em] uppercase text-[color:var(--accent)]">Notes</span>
+            <span className="[font-family:var(--font-mono)] text-[9.5px] tracking-[0.14em] uppercase text-[color:var(--accent)]">
+              Notes
+            </span>
             <button
               className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-2)] border border-[color:var(--rule)] rounded px-2.5 py-1 cursor-pointer hover:text-[color:var(--ink-invert)] hover:border-[color:var(--ink-2)]"
               onClick={() => setNotesOpen(true)}
@@ -259,7 +281,14 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
             </a>
           )}
           <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-            <ApplicationTimeline app={app} history={history} status={status} language={language} onDeleteNote={handleNotesDelete} onChangeDate={changeDate} />
+            <ApplicationTimeline
+              app={app}
+              history={history}
+              status={status}
+              language={language}
+              onDeleteNote={handleNotesDelete}
+              onChangeDate={changeDate}
+            />
           </div>
         </aside>
 
@@ -308,12 +337,8 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
       </div>
 
       {exportOpen && (
-        <ExportModal
-          text={generateTextExport(profile, { ...app, status })}
-          onClose={() => setExportOpen(false)}
-        />
+        <ExportModal text={generateTextExport(profile, { ...app, status })} onClose={() => setExportOpen(false)} />
       )}
-
     </div>
   );
 }

@@ -47,7 +47,11 @@ export function setStorageBackend(backend: Backend): void {
   send = backend;
 }
 
-async function sendToServer(set: Record<string, string>, remove: string[], messages: Record<string, string>): Promise<void> {
+async function sendToServer(
+  set: Record<string, string>,
+  remove: string[],
+  messages: Record<string, string>,
+): Promise<void> {
   const res = await fetch('/api/data', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

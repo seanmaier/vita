@@ -162,11 +162,47 @@ const evaluated: ApplicationConfig = {
   },
 };
 
-const leads: { externalId: string; title: string; company: string; score: number | null; verdict: string | null; criteria?: FitCriterion[]; exclusion?: string }[] = [
-  { externalId: 'seed-1', title: 'Backend Entwickler .NET (m/w/d)', company: 'Elbtech Solutions', score: 78, verdict: 'Passt gut: .NET-Backend, 2 Tage Büro in Hamburg.', criteria: rate(100, 75, 100, 75, 50, 75, 50, 50) },
-  { externalId: 'seed-2', title: 'Softwareentwickler Java/Kotlin', company: 'Alster Logistik AG', score: 52, verdict: 'Bewerben, wenn C#-Erfahrung für Kotlin zählt.', criteria: rate(100, 50, 25, 75, 50, 50, 50, 50) },
-  { externalId: 'seed-3', title: 'Freelance .NET Consultant', company: 'Projektwerk Nord', score: 18, verdict: 'Freelance ist ausgeschlossen.', criteria: rate(0, 75, 100, 50, 50, 50, 50, 50), exclusion: 'Freelance / keine Festanstellung' },
-  { externalId: 'seed-4', title: 'IT-Systemadministrator', company: 'Stadtwerke Beispiel', score: 35, verdict: 'Anzeige nicht lesbar; nur aus dem Titel geschätzt.' },
+const leads: {
+  externalId: string;
+  title: string;
+  company: string;
+  score: number | null;
+  verdict: string | null;
+  criteria?: FitCriterion[];
+  exclusion?: string;
+}[] = [
+  {
+    externalId: 'seed-1',
+    title: 'Backend Entwickler .NET (m/w/d)',
+    company: 'Elbtech Solutions',
+    score: 78,
+    verdict: 'Passt gut: .NET-Backend, 2 Tage Büro in Hamburg.',
+    criteria: rate(100, 75, 100, 75, 50, 75, 50, 50),
+  },
+  {
+    externalId: 'seed-2',
+    title: 'Softwareentwickler Java/Kotlin',
+    company: 'Alster Logistik AG',
+    score: 52,
+    verdict: 'Bewerben, wenn C#-Erfahrung für Kotlin zählt.',
+    criteria: rate(100, 50, 25, 75, 50, 50, 50, 50),
+  },
+  {
+    externalId: 'seed-3',
+    title: 'Freelance .NET Consultant',
+    company: 'Projektwerk Nord',
+    score: 18,
+    verdict: 'Freelance ist ausgeschlossen.',
+    criteria: rate(0, 75, 100, 50, 50, 50, 50, 50),
+    exclusion: 'Freelance / keine Festanstellung',
+  },
+  {
+    externalId: 'seed-4',
+    title: 'IT-Systemadministrator',
+    company: 'Stadtwerke Beispiel',
+    score: 35,
+    verdict: 'Anzeige nicht lesbar; nur aus dem Titel geschätzt.',
+  },
   { externalId: 'seed-5', title: 'Junior Fullstack Developer', company: 'Kaiwerk Studio', score: null, verdict: null },
 ];
 
@@ -175,7 +211,9 @@ const leads: { externalId: string; title: string; company: string; score: number
 const passwordHash = await hashPassword(PASSWORD);
 transaction(() => {
   if (existing) db.prepare('DELETE FROM users WHERE id = ?').run(existing.id);
-  const { lastInsertRowid } = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(USERNAME, passwordHash);
+  const { lastInsertRowid } = db
+    .prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
+    .run(USERNAME, passwordHash);
   const userId = Number(lastInsertRowid);
 
   const current = history[history.length - 1].content;
@@ -186,9 +224,22 @@ transaction(() => {
      VALUES (?, 'arbeitsagentur', ?, ?, ?, 'Hamburg', ?, ?, ?, ?, ?, ?)`,
   );
   for (const l of leads) {
-    const rating = l.criteria ? JSON.stringify({ criteria: l.criteria, ...(l.exclusion && { exclusion: l.exclusion }) }) : null;
+    const rating = l.criteria
+      ? JSON.stringify({ criteria: l.criteria, ...(l.exclusion && { exclusion: l.exclusion }) })
+      : null;
     const rated = l.score !== null;
-    insertLead.run(userId, l.externalId, l.title, l.company, `https://example.com/jobs/${l.externalId}`, rated ? 'rated' : 'new', l.score, l.verdict, rated ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null, rating);
+    insertLead.run(
+      userId,
+      l.externalId,
+      l.title,
+      l.company,
+      `https://example.com/jobs/${l.externalId}`,
+      rated ? 'rated' : 'new',
+      l.score,
+      l.verdict,
+      rated ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null,
+      rating,
+    );
   }
   setJson(userId, KEYS.appConfig(APP_ID), current);
   setJson(userId, KEYS.statusHistory(APP_ID), [{ to: 'drafting', date: null, recordedAt: null }]);

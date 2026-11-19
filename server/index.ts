@@ -46,7 +46,9 @@ import { v1 } from './v1.ts';
 const PORT = Number(process.env.PORT ?? 3000);
 const STATIC_DIR = process.env.STATIC_DIR ?? './dist';
 // On in production (behind the HTTPS reverse proxy), off for local http dev.
-const SECURE_COOKIE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production';
+const SECURE_COOKIE = process.env.COOKIE_SECURE
+  ? process.env.COOKIE_SECURE === 'true'
+  : process.env.NODE_ENV === 'production';
 const COOKIE = 'session';
 
 const app = new Hono<{ Variables: { user: User; apiToken?: string } & RequestIdVariables }>();
@@ -242,15 +244,25 @@ app.put('/api/data', requireUser, async (c) => {
   const rawRemove = body?.remove ?? [];
   const rawMessages = body?.messages ?? {};
   if (
-    !isStringRecord(rawSet) || !isStringRecord(rawMessages) ||
-    !Array.isArray(rawRemove) || !rawRemove.every((k) => typeof k === 'string')
+    !isStringRecord(rawSet) ||
+    !isStringRecord(rawMessages) ||
+    !Array.isArray(rawRemove) ||
+    !rawRemove.every((k) => typeof k === 'string')
   ) {
-    return c.json({ error: 'Expected { set: Record<string, string>, remove: string[], messages?: Record<string, string> }.' }, 400);
+    return c.json(
+      { error: 'Expected { set: Record<string, string>, remove: string[], messages?: Record<string, string> }.' },
+      400,
+    );
   }
 
   const refused = refusedStorageKeys(Object.keys(rawSet));
   if (refused.length) {
-    return c.json({ error: `The status can only change through /api/v1/applications/:id/transitions; refused: ${refused.join(', ')}.` }, 400);
+    return c.json(
+      {
+        error: `The status can only change through /api/v1/applications/:id/transitions; refused: ${refused.join(', ')}.`,
+      },
+      400,
+    );
   }
 
   const userId = c.get('user').id;
@@ -264,7 +276,10 @@ app.put('/api/data', requireUser, async (c) => {
   transaction(() => {
     const listBefore = getJson<ApplicationConfig[]>(userId, KEYS.localApps);
     const listAfter = KEYS.localApps in set ? parseJson<ApplicationConfig[]>(set[KEYS.localApps]) : null;
-    const appIds = affectedAppIds([...remove, ...Object.keys(set)], KEYS.localApps in set ? [listBefore, listAfter] : []);
+    const appIds = affectedAppIds(
+      [...remove, ...Object.keys(set)],
+      KEYS.localApps in set ? [listBefore, listAfter] : [],
+    );
     const before = snapshot(userId, appIds);
 
     for (const key of remove) del.run(userId, key);
@@ -288,7 +303,10 @@ app.post('/api/import', requireUser, async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const userId = c.get('user').id;
   const outcome = transaction(() => {
-    const rows = db.prepare('SELECT key, value FROM kv WHERE user_id = ?').all(userId) as { key: string; value: string }[];
+    const rows = db.prepare('SELECT key, value FROM kv WHERE user_id = ?').all(userId) as {
+      key: string;
+      value: string;
+    }[];
     const result = mergeBackup(Object.fromEntries(rows.map((r) => [r.key, r.value])), parsed.backup);
     if (!result.ok) return result;
     const before = snapshot(userId, result.added);

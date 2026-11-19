@@ -7,15 +7,15 @@
 /* ── Page shell ─────────────────────────────────────── */
 .doc-page {
   /* Pin documents to light theme regardless of app theme */
-  --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  --ink:        #141C2E;
-  --ink-2:      #4A5568;
-  --ink-3:      #8896AB;
-  --accent:     #2563EB;
-  --accent-bg:  #EEF2FF;
-  --bg:         #E5E9F0;
-  --surface:    #FFFFFF;
-  --rule:       #DDE3EE;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --ink: #141c2e;
+  --ink-2: #4a5568;
+  --ink-3: #8896ab;
+  --accent: #2563eb;
+  --accent-bg: #eef2ff;
+  --bg: #e5e9f0;
+  --surface: #ffffff;
+  --rule: #dde3ee;
 
   position: relative;
   font-family: var(--font-sans);
@@ -24,7 +24,7 @@
   width: 794px;
   margin: 0 auto 48px;
   padding: 52px 52px 56px;
-  box-shadow: 0 2px 20px rgba(20, 28, 46, 0.10);
+  box-shadow: 0 2px 20px rgba(20, 28, 46, 0.1);
 }
 
 /* ── Off-screen measuring clone for JS-based print-page preview ── */
@@ -60,7 +60,7 @@
    lower than on screen. Barely visible in running text, but it pushes
    skill tag labels onto the bottom edge of their tags. Keep the probe
    inline so the measurement matches what the browser actually renders. */
-img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"] {
+img[src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'] {
   display: inline;
 }
 
@@ -137,7 +137,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
 }
 
 /* Sidebar */
-.sidebar-section { margin-bottom: 20px; }
+.sidebar-section {
+  margin-bottom: 20px;
+}
 
 .skill-tags {
   display: flex;
@@ -162,9 +164,21 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   border: 1px solid var(--rule);
 }
 
-.edu-degree { font-size: 12px; font-weight: 600; }
-.edu-school { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
-.edu-year   { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+.edu-degree {
+  font-size: 12px;
+  font-weight: 600;
+}
+.edu-school {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+.edu-year {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
 
 .sidebar-list {
   list-style: none;
@@ -174,7 +188,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
 }
 
 /* Main column */
-.main-section { margin-bottom: 20px; }
+.main-section {
+  margin-bottom: 20px;
+}
 
 .summary-text {
   font-size: 12.5px;
@@ -190,7 +206,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   transition: border-color 0.15s;
 }
 
-.exp-entry:hover { border-left-color: var(--accent); }
+.exp-entry:hover {
+  border-left-color: var(--accent);
+}
 
 .exp-header {
   display: flex;
@@ -250,7 +268,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   transition: border-color 0.15s;
 }
 
-.project-entry:hover { border-left-color: var(--accent); }
+.project-entry:hover {
+  border-left-color: var(--accent);
+}
 
 .project-header {
   display: flex;
@@ -259,7 +279,10 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   gap: 8px;
 }
 
-.project-name { font-size: 12.5px; font-weight: 600; }
+.project-name {
+  font-size: 12.5px;
+  font-weight: 600;
+}
 
 .project-hackathon {
   font-weight: 400;
@@ -275,7 +298,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   flex-shrink: 0;
 }
 
-.project-link:hover { text-decoration: underline; }
+.project-link:hover {
+  text-decoration: underline;
+}
 
 .project-stack {
   font-family: var(--font-mono);
@@ -323,7 +348,10 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   line-height: 1.85;
 }
 
-.cl-contact-right a { color: var(--accent); text-decoration: none; }
+.cl-contact-right a {
+  color: var(--accent);
+  text-decoration: none;
+}
 
 .cl-meta {
   display: flex;
@@ -369,7 +397,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   line-height: 2.2;
 }
 
-.cl-sign-name { font-weight: 600; }
+.cl-sign-name {
+  font-weight: 600;
+}
 
 /* ── Print ──────────────────────────────────────────── */
 @media print {
@@ -396,7 +426,9 @@ img[src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
   }
 
   .exp-entry,
-  .project-entry { border-left-color: var(--accent) !important; }
+  .project-entry {
+    border-left-color: var(--accent) !important;
+  }
 
   /* Content taller than one A4 page flows onto a following page instead of
      being clipped — keep individual entries/paragraphs from splitting mid-block */

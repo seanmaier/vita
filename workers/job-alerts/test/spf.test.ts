@@ -31,7 +31,10 @@ test('helo pass only', () => {
 });
 
 test('mailfrom differs', () => {
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=other@example.org'], 'a@example.org'), false);
+  assert.equal(
+    cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=other@example.org'], 'a@example.org'),
+    false,
+  );
 });
 
 test('case-insensitive', () => {
@@ -44,7 +47,10 @@ test('quoted mailfrom', () => {
 });
 
 test('forged lower header', () => {
-  const headers = ['mx.cloudflare.net; spf=fail smtp.mailfrom=a@example.org', 'mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'];
+  const headers = [
+    'mx.cloudflare.net; spf=fail smtp.mailfrom=a@example.org',
+    'mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org',
+  ];
   assert.equal(cloudflareSpfPass(headers, 'a@example.org'), false);
 });
 
@@ -62,7 +68,8 @@ test('no header', () => {
 });
 
 test('a comment cannot smuggle in a pass', () => {
-  const h = 'mx.cloudflare.net; spf=fail (looks like; spf=pass smtp.mailfrom=a@example.org) smtp.mailfrom=a@example.org';
+  const h =
+    'mx.cloudflare.net; spf=fail (looks like; spf=pass smtp.mailfrom=a@example.org) smtp.mailfrom=a@example.org';
   assert.equal(cloudflareSpfPass([h], 'a@example.org'), false);
 });
 
@@ -82,5 +89,8 @@ test('a pass smuggled in through a quoted HELO does not count', () => {
 
 test('mailfrom followed by end of header or by another property', () => {
   assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org'], 'a@example.org'), true);
-  assert.equal(cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org x=y'], 'a@example.org'), true);
+  assert.equal(
+    cloudflareSpfPass(['mx.cloudflare.net; spf=pass smtp.mailfrom=a@example.org x=y'], 'a@example.org'),
+    true,
+  );
 });

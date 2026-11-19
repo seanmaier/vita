@@ -15,7 +15,11 @@ interface Props {
 // first — and bare http(s) URLs become links.
 export function NotesView({ notes, language, className = '', onDelete }: Props) {
   if (notes.length === 0) {
-    return <p className={`[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] italic m-0 ${className}`}>No notes yet.</p>;
+    return (
+      <p className={`[font-family:var(--font-mono)] text-[12px] text-[color:var(--ink-2)] italic m-0 ${className}`}>
+        No notes yet.
+      </p>
+    );
   }
 
   return (
@@ -30,7 +34,10 @@ export function NotesView({ notes, language, className = '', onDelete }: Props) 
               <button
                 type="button"
                 className="[font-family:var(--font-mono)] text-[10px] text-[color:var(--ink-3)] bg-transparent border-none cursor-pointer opacity-0 group-hover/note:opacity-100 hover:text-[color:var(--status-rejected)] transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(note.id);
+                }}
                 aria-label="Delete note"
               >
                 ✕

@@ -15,7 +15,13 @@ function check(value: unknown) {
 
 test('the score of a breakdown is the rounded weighted sum', () => {
   assert.equal(criteriaScore(criteria), 60);
-  assert.equal(criteriaScore([{ name: 'A', weight: 15, fulfilled: 50 }, { name: 'B', weight: 85, fulfilled: 0 }]), 8);
+  assert.equal(
+    criteriaScore([
+      { name: 'A', weight: 15, fulfilled: 50 },
+      { name: 'B', weight: 85, fulfilled: 0 },
+    ]),
+    8,
+  );
 });
 
 test('a valid breakdown is returned with trimmed names', () => {
@@ -29,7 +35,10 @@ test('a breakdown is rejected unless it is a list of 1 to 20 criteria', () => {
   for (const value of [[], many, 'A', null]) {
     const { result, errors } = check(value);
     assert.equal(result, undefined);
-    assert.ok(errors.some((e) => e.startsWith('"fit.criteria"')), String(value));
+    assert.ok(
+      errors.some((e) => e.startsWith('"fit.criteria"')),
+      String(value),
+    );
   }
 });
 

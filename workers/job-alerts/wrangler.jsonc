@@ -12,8 +12,8 @@
   "observability": {
     "logs": {
       "enabled": true,
-      "invocation_logs": true
-    }
+      "invocation_logs": true,
+    },
   },
   // Secrets (the repo is public, so no tokens, addresses or domains here).
   // Set each with `npx wrangler secret put <NAME>`:

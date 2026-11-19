@@ -18,14 +18,22 @@ interface Props {
 
 /** A row of small KPI cards summarising the whole application list, shown above the filters. Click one to filter the list to it. */
 export function StatsBar({ applications, activeFilter, onSelect }: Props) {
-  const stats = useMemo<Stat[]>(() => [
-    { key: 'total', label: 'total', value: countStat(applications, 'total') },
-    { key: 'thisMonth', label: 'this month', value: countStat(applications, 'thisMonth') },
-    { key: 'active', label: 'active', value: countStat(applications, 'active'), color: STATUS_COLORS.sent },
-    { key: 'interviews', label: 'interviews', value: countStat(applications, 'interviews'), color: STATUS_COLORS.interview },
-    { key: 'offers', label: 'offers', value: countStat(applications, 'offers'), color: STATUS_COLORS.offer },
-    { key: 'ghosted', label: 'ghosted', value: countStat(applications, 'ghosted'), color: STATUS_COLORS.ghosted },
-  ], [applications]);
+  const stats = useMemo<Stat[]>(
+    () => [
+      { key: 'total', label: 'total', value: countStat(applications, 'total') },
+      { key: 'thisMonth', label: 'this month', value: countStat(applications, 'thisMonth') },
+      { key: 'active', label: 'active', value: countStat(applications, 'active'), color: STATUS_COLORS.sent },
+      {
+        key: 'interviews',
+        label: 'interviews',
+        value: countStat(applications, 'interviews'),
+        color: STATUS_COLORS.interview,
+      },
+      { key: 'offers', label: 'offers', value: countStat(applications, 'offers'), color: STATUS_COLORS.offer },
+      { key: 'ghosted', label: 'ghosted', value: countStat(applications, 'ghosted'), color: STATUS_COLORS.ghosted },
+    ],
+    [applications],
+  );
 
   if (applications.length === 0) return null;
 
@@ -45,7 +53,10 @@ export function StatsBar({ applications, activeFilter, onSelect }: Props) {
                 : 'border-[color:var(--rule)] hover:border-[color:var(--ink-2)]'
             }`}
           >
-            <div className="[font-family:var(--font-mono)] text-[20px] leading-none" style={{ color: stat.color ?? 'var(--ink-invert)' }}>
+            <div
+              className="[font-family:var(--font-mono)] text-[20px] leading-none"
+              style={{ color: stat.color ?? 'var(--ink-invert)' }}
+            >
               {stat.value}
             </div>
             <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[color:var(--ink-3)] mt-1">

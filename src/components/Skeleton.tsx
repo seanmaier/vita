@@ -27,14 +27,20 @@ function DashboardSkeleton() {
       <div className="flex items-center justify-between gap-4 mb-8">
         <Skeleton className="h-6 w-48" />
         <div className="hidden sm:flex gap-2">
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-7 w-16" />)}
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-7 w-16" />
+          ))}
         </div>
       </div>
       <div className="flex gap-2 mb-8">
-        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-7 w-24" />)}
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-7 w-24" />
+        ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-6">
-        {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[56px] flex-1 min-w-[108px]" />)}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-[56px] flex-1 min-w-[108px]" />
+        ))}
       </div>
       <div className="flex gap-2 mb-6">
         <Skeleton className="h-8 flex-1" />
@@ -73,10 +79,14 @@ function DocumentSheetSkeleton() {
       <div className="h-px bg-[color:var(--rule)] my-2" />
       <div className="grid grid-cols-[1fr_2.2fr] gap-8">
         <div className="flex flex-col gap-3">
-          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-3 w-4/5" />)}
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-3 w-4/5" />
+          ))}
         </div>
         <div className="flex flex-col gap-3">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <Skeleton key={i} className={`h-3 ${i % 3 === 2 ? 'w-3/5' : 'w-full'}`} />)}
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <Skeleton key={i} className={`h-3 ${i % 3 === 2 ? 'w-3/5' : 'w-full'}`} />
+          ))}
         </div>
       </div>
     </div>
@@ -114,7 +124,9 @@ function ApplicationSkeleton() {
       <div className={darkBar}>
         <Skeleton className="h-3 w-28" />
         <div className="flex gap-2">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-7 w-20" />)}
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-7 w-20" />
+          ))}
         </div>
       </div>
       <div className="p-4 sm:p-10">
@@ -180,7 +192,10 @@ export function TokenListSkeleton() {
   return (
     <Loading className="flex flex-col gap-2">
       {[0, 1].map((i) => (
-        <div key={i} className="flex items-center justify-between gap-3 border border-[color:var(--rule)] rounded-[5px] px-3 py-2.5">
+        <div
+          key={i}
+          className="flex items-center justify-between gap-3 border border-[color:var(--rule)] rounded-[5px] px-3 py-2.5"
+        >
           <div className="flex flex-col gap-2 flex-1">
             <Skeleton className="h-3.5 w-32" />
             <Skeleton className="h-2.5 w-64 max-w-full" />
@@ -204,7 +219,9 @@ export function LeadListSkeleton() {
           </div>
           <Skeleton className="h-3 w-40" />
           <div className="flex gap-2">
-            {[0, 1, 2].map((j) => <Skeleton key={j} className="h-6 w-16" />)}
+            {[0, 1, 2].map((j) => (
+              <Skeleton key={j} className="h-6 w-16" />
+            ))}
           </div>
         </div>
       ))}

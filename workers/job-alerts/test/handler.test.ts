@@ -28,7 +28,8 @@ function rawMail(fromHeader: string, html: string, contentType = 'text/html'): s
 
 /** By default Cloudflare's topmost header confirms the envelope sender by SPF, as for real forwards. */
 function fakeMessage(from: string, raw: string, { spf = true } = {}) {
-  if (spf) raw = `Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=${from}
+  if (spf)
+    raw = `Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=${from}
 ${raw}`;
   const rejects: string[] = [];
   return {
@@ -281,7 +282,11 @@ test('leads are capped at 100 per batch and titles at 300 chars', async () => {
 
 test('sanitize drops https urls that do not parse', () => {
   const lead = (url: string) => ({ source: 'linkedin' as const, externalId: '1', title: 'T', url });
-  const clean = sanitize([lead('https://'), lead('https://exa mple.com/x'), lead('https://www.linkedin.com/jobs/view/1/')]);
+  const clean = sanitize([
+    lead('https://'),
+    lead('https://exa mple.com/x'),
+    lead('https://www.linkedin.com/jobs/view/1/'),
+  ]);
   assert.deepEqual(
     clean.map((l) => l.url),
     ['https://www.linkedin.com/jobs/view/1/'],
@@ -363,8 +368,21 @@ test('a forward whose text part is one long line (iCloud after Outlook) still fi
   const html =
     '<div>From: Me &lt;me@outlook.example&gt;</div><div>Von: Indeed &lt;donotreply@jobalert.indeed.com&gt;</div>' +
     '<a href="https://de.indeed.com/rc/clk/dl?jk=abcdefabcdef0123&amp;from=ja">Backend Dev</a>';
-  const multipart = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', text, '--b1', 'Content-Type: text/html; charset=utf-8', '', html, '--b1--'].join('\r\n');
-  const m = fakeMessage('me@icloud.example', rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'));
+  const multipart = [
+    '--b1',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    text,
+    '--b1',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+    '--b1--',
+  ].join('\r\n');
+  const m = fakeMessage(
+    'me@icloud.example',
+    rawMail('Me <me@icloud.example>', multipart, 'multipart/alternative; boundary="b1"'),
+  );
   const f = fakeFetch(201);
   assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
   assert.equal(bodyOf(f).kind, 'leads');
@@ -393,8 +411,21 @@ function forwardedAsAttachment(original: string, disposition = 'attachment; file
 
 const instaffoOriginal = () => {
   const part = (name: string) => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
-  const body = ['--b1', 'Content-Type: text/plain; charset=utf-8', '', part('instaffo-top-match.txt'), '--b1', 'Content-Type: text/html; charset=utf-8', '', part('instaffo-top-match.html'), '--b1--'].join('\r\n');
-  return rawMail('Instaffo <notifications@app.instaffo.com>', body, 'multipart/alternative; boundary="b1"').replace('Subject: Neue Jobs', 'Subject: Neuer Top-Match');
+  const body = [
+    '--b1',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    part('instaffo-top-match.txt'),
+    '--b1',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    part('instaffo-top-match.html'),
+    '--b1--',
+  ].join('\r\n');
+  return rawMail('Instaffo <notifications@app.instaffo.com>', body, 'multipart/alternative; boundary="b1"').replace(
+    'Subject: Neue Jobs',
+    'Subject: Neuer Top-Match',
+  );
 };
 
 test('a mail forwarded as attachment is read from the attached original, text part included', async () => {
@@ -454,7 +485,9 @@ test('without LOG_HEADERS no header diagnostics are logged', async (t) => {
 });
 
 test('a LinkedIn alert without Cloudflare SPF pass is posted as failed, not as leads', async () => {
-  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml), { spf: false });
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('LinkedIn <jobalerts-noreply@linkedin.com>', linkedinHtml), {
+    spf: false,
+  });
   const f = fakeFetch(201);
   assert.equal(await handleEmail(m.message, env, f.impl, noSleep), 'delivered');
   const body = bodyOf(f);

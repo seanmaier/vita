@@ -12,9 +12,11 @@ function extractParagraphs(raw: string): string[] {
     return parsed;
   }
   if (
-    parsed !== null && typeof parsed === 'object' && 'paragraphs' in parsed
-    && Array.isArray((parsed as { paragraphs: unknown }).paragraphs)
-    && (parsed as { paragraphs: unknown[] }).paragraphs.every((p) => typeof p === 'string')
+    parsed !== null &&
+    typeof parsed === 'object' &&
+    'paragraphs' in parsed &&
+    Array.isArray((parsed as { paragraphs: unknown }).paragraphs) &&
+    (parsed as { paragraphs: unknown[] }).paragraphs.every((p) => typeof p === 'string')
   ) {
     return (parsed as { paragraphs: string[] }).paragraphs;
   }
@@ -55,12 +57,19 @@ export function ImportParagraphsControl({ onImport }: Props) {
         className={nafTextarea}
         placeholder='["First paragraph...", "Second paragraph..."]'
         value={text}
-        onChange={(e) => { setText(e.target.value); setError(null); }}
+        onChange={(e) => {
+          setText(e.target.value);
+          setError(null);
+        }}
       />
       {error && <span className="text-[11px] text-[color:var(--status-rejected)]">{error}</span>}
       <div className="flex gap-2">
-        <button className={editSaveBtn} onClick={handleApply}>Apply</button>
-        <button className={nafRemoveBtn} onClick={close}>Cancel</button>
+        <button className={editSaveBtn} onClick={handleApply}>
+          Apply
+        </button>
+        <button className={nafRemoveBtn} onClick={close}>
+          Cancel
+        </button>
       </div>
     </div>
   );

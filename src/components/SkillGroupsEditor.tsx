@@ -4,9 +4,17 @@ import { DragHandle } from './DragHandle';
 import { move } from '../utils/move';
 import { useDragReorder } from '../hooks/useDragReorder';
 import {
-  nafSection, nafRow, nafLabel, nafInput, nafParagraphRow,
-  nafRemoveBtn, nafAddBtn, nafCheckboxLabel, nafCheckboxInput,
-  dropBefore, dropAfter,
+  nafSection,
+  nafRow,
+  nafLabel,
+  nafInput,
+  nafParagraphRow,
+  nafRemoveBtn,
+  nafAddBtn,
+  nafCheckboxLabel,
+  nafCheckboxInput,
+  dropBefore,
+  dropAfter,
 } from '../styles/formStyles';
 
 interface Props {
@@ -42,7 +50,11 @@ export function SkillGroupsEditor({ skillGroups, onChange }: Props) {
             <div className={`${nafRow} flex-1`}>
               <div className={nafSection}>
                 <span className={nafLabel}>Label</span>
-                <input className={nafInput} value={group.label} onChange={(e) => setGroup(gi, { label: e.target.value })} />
+                <input
+                  className={nafInput}
+                  value={group.label}
+                  onChange={(e) => setGroup(gi, { label: e.target.value })}
+                />
               </div>
               <div className="flex items-end pb-1">
                 <label className={nafCheckboxLabel}>
@@ -59,7 +71,9 @@ export function SkillGroupsEditor({ skillGroups, onChange }: Props) {
           </div>
           <SkillList skills={group.skills} onChange={(skills) => setGroup(gi, { skills })} />
           <div className="flex justify-between">
-            <button className={nafRemoveBtn} onClick={() => onChange(without(skillGroups, gi))}>Remove</button>
+            <button className={nafRemoveBtn} onClick={() => onChange(without(skillGroups, gi))}>
+              Remove
+            </button>
             <MoveButtons index={gi} length={skillGroups.length} onMove={(to) => onChange(move(skillGroups, gi, to))} />
           </div>
         </div>
@@ -86,16 +100,24 @@ function SkillList({ skills, onChange }: { skills: string[]; onChange: (next: st
           className={`${nafParagraphRow} rounded ${dropClass(drag.dropSide(si))} ${drag.isDragging(si) ? 'opacity-40' : ''}`}
         >
           <DragHandle {...drag.handleProps(si)} />
-          <input className={nafInput} value={skill} onChange={(e) => onChange(skills.map((s, i) => (i === si ? e.target.value : s)))} />
+          <input
+            className={nafInput}
+            value={skill}
+            onChange={(e) => onChange(skills.map((s, i) => (i === si ? e.target.value : s)))}
+          />
           {skills.length > 1 && (
             <>
               <MoveButtons index={si} length={skills.length} onMove={(to) => onChange(move(skills, si, to))} />
-              <button className={nafRemoveBtn} onClick={() => onChange(without(skills, si))}>✕</button>
+              <button className={nafRemoveBtn} onClick={() => onChange(without(skills, si))}>
+                ✕
+              </button>
             </>
           )}
         </div>
       ))}
-      <button className={nafAddBtn} onClick={() => onChange([...skills, ''])}>+ Add skill</button>
+      <button className={nafAddBtn} onClick={() => onChange([...skills, ''])}>
+        + Add skill
+      </button>
     </div>
   );
 }

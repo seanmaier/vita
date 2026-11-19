@@ -19,7 +19,10 @@ const raw = [
 
 test('collects envelope, From and authentication headers, but no subject, body or signature', async () => {
   const parsed = await PostalMime.parse(raw);
-  const d = headerDiagnostics({ from: 'SRS0=x=linkedin.com=jobalerts@outlook.com', to: 'jobs-k7x2@alerts.example.org' }, parsed);
+  const d = headerDiagnostics(
+    { from: 'SRS0=x=linkedin.com=jobalerts@outlook.com', to: 'jobs-k7x2@alerts.example.org' },
+    parsed,
+  );
 
   assert.equal(d.envelopeFrom, 'SRS0=x=linkedin.com=jobalerts@outlook.com');
   assert.equal(d.envelopeTo, 'jobs-k7x2@alerts.example.org');

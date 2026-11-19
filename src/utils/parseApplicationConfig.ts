@@ -1,16 +1,36 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, AppFont, CoverLetter, FitRecommendation, JobFit, Note } from '../types.ts';
+import type {
+  ApplicationConfig,
+  ApplicationStatus,
+  AppLanguage,
+  AppFont,
+  CoverLetter,
+  FitRecommendation,
+  JobFit,
+  Note,
+} from '../types.ts';
 import { slugify } from './slug.ts';
 import { isAppLanguage, LANGUAGE_ERROR } from './language.ts';
 import { normalizeNotes } from './notes.ts';
 import { criteriaScore, validateCriteria, validateExclusion } from './fitCriteria.ts';
 
-const STATUSES: ApplicationStatus[] = ['drafting', 'ready', 'sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn', 'accepted', 'declined', 'evaluated', 'skipped'];
+const STATUSES: ApplicationStatus[] = [
+  'drafting',
+  'ready',
+  'sent',
+  'interview',
+  'offer',
+  'rejected',
+  'ghosted',
+  'withdrawn',
+  'accepted',
+  'declined',
+  'evaluated',
+  'skipped',
+];
 const FONTS: AppFont[] = ['sans', 'serif', 'mono'];
 export const FIT_RECOMMENDATIONS: FitRecommendation[] = ['apply', 'apply-if', 'unlikely', 'exclude'];
 
-export type ParseResult =
-  | { ok: true; config: ApplicationConfig }
-  | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; config: ApplicationConfig } | { ok: false; errors: string[] };
 
 function isString(v: unknown): v is string {
   return typeof v === 'string';
@@ -27,11 +47,14 @@ function validateCoverLetter(value: unknown, errors: string[]): CoverLetter | un
     return undefined;
   }
   const clErrors: string[] = [];
-  if (!isString(value.recipientOrg) || !value.recipientOrg.trim()) clErrors.push('"coverLetter.recipientOrg" is required and must be a non-empty string.');
+  if (!isString(value.recipientOrg) || !value.recipientOrg.trim())
+    clErrors.push('"coverLetter.recipientOrg" is required and must be a non-empty string.');
   if (!isString(value.date)) clErrors.push('"coverLetter.date" must be a string.');
   if (!isString(value.subjectRole)) clErrors.push('"coverLetter.subjectRole" must be a string.');
-  if (!Array.isArray(value.paragraphs) || !value.paragraphs.every(isString)) clErrors.push('"coverLetter.paragraphs" must be an array of strings.');
-  if (value.recipientName !== undefined && !isString(value.recipientName)) clErrors.push('"coverLetter.recipientName" must be a string.');
+  if (!Array.isArray(value.paragraphs) || !value.paragraphs.every(isString))
+    clErrors.push('"coverLetter.paragraphs" must be an array of strings.');
+  if (value.recipientName !== undefined && !isString(value.recipientName))
+    clErrors.push('"coverLetter.recipientName" must be a string.');
   if (value.closing !== undefined && !isString(value.closing)) clErrors.push('"coverLetter.closing" must be a string.');
 
   errors.push(...clErrors);
@@ -57,7 +80,8 @@ function validateFit(value: unknown, errors: string[]): JobFit | undefined {
   }
   const before = errors.length;
   if (!isPercent(value.score)) errors.push('"fit.score" must be a number from 0 to 100.');
-  if (value.cappedScore !== undefined && !isPercent(value.cappedScore)) errors.push('"fit.cappedScore" must be a number from 0 to 100.');
+  if (value.cappedScore !== undefined && !isPercent(value.cappedScore))
+    errors.push('"fit.cappedScore" must be a number from 0 to 100.');
   if (!FIT_RECOMMENDATIONS.includes(value.recommendation as FitRecommendation)) {
     errors.push(`"fit.recommendation" must be one of: ${FIT_RECOMMENDATIONS.join(', ')}.`);
   }
@@ -94,12 +118,11 @@ export function validateApplicationConfig(input: unknown): ParseResult {
 
   const errors: string[] = [];
 
-  if (!isString(input.company) || !input.company.trim()) errors.push('"company" is required and must be a non-empty string.');
+  if (!isString(input.company) || !input.company.trim())
+    errors.push('"company" is required and must be a non-empty string.');
   if (!isString(input.role) || !input.role.trim()) errors.push('"role" is required and must be a non-empty string.');
 
-  const id = isString(input.id) && input.id.trim()
-    ? input.id
-    : slugify(isString(input.company) ? input.company : '');
+  const id = isString(input.id) && input.id.trim() ? input.id : slugify(isString(input.company) ? input.company : '');
 
   let status: ApplicationStatus = 'drafting';
   if (input.status !== undefined) {
@@ -128,7 +151,14 @@ export function validateApplicationConfig(input: unknown): ParseResult {
     }
   }
 
-  for (const key of ['appliedDate', 'interviewDate', 'finalDecisionDate', 'url', 'baseProfileId', 'summaryOverride'] as const) {
+  for (const key of [
+    'appliedDate',
+    'interviewDate',
+    'finalDecisionDate',
+    'url',
+    'baseProfileId',
+    'summaryOverride',
+  ] as const) {
     if (input[key] !== undefined && !isString(input[key])) {
       errors.push(`"${key}" must be a string.`);
     }
@@ -145,8 +175,10 @@ export function validateApplicationConfig(input: unknown): ParseResult {
     }
   }
 
-  if (input.featuredProjectIds !== undefined
-    && (!Array.isArray(input.featuredProjectIds) || !input.featuredProjectIds.every(isString))) {
+  if (
+    input.featuredProjectIds !== undefined &&
+    (!Array.isArray(input.featuredProjectIds) || !input.featuredProjectIds.every(isString))
+  ) {
     errors.push('"featuredProjectIds" must be an array of strings.');
   }
 

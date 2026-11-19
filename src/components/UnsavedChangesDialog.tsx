@@ -29,9 +29,7 @@ export function UnsavedChangesDialog({
         <div className="[font-family:var(--font-mono)] text-[12px] font-semibold tracking-[0.04em] uppercase text-[color:var(--ink-invert)]">
           Unsaved changes
         </div>
-        <p className="text-[13px] text-[color:var(--ink-2)] leading-[1.55] m-0">
-          {message}
-        </p>
+        <p className="text-[13px] text-[color:var(--ink-2)] leading-[1.55] m-0">{message}</p>
         <div className="flex justify-end gap-2 mt-1">
           <button
             className="[font-family:var(--font-mono)] text-[11px] bg-transparent text-[color:var(--ink-3)] border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-[color:var(--ink-invert)]"

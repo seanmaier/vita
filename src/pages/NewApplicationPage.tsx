@@ -16,16 +16,41 @@ import { MoveButtons } from '../components/MoveButtons';
 import { move } from '../utils/move';
 import { formatDateLong } from '../utils/date';
 import {
-  nafSection, nafRow, nafLabel, nafOptional, nafInput, nafTextarea,
-  nafCheckboxLabel, nafCheckboxInput, nafParagraphRow, nafRemoveBtn, nafAddBtn,
-  newAppPage, newAppHeader, newAppBack, newAppTitle, newAppBody, newAppForm,
-  newAppPreview, napHeader, napFilename, napCopyBtn, napCopyBtnCopied, napCode, napHint, napHintCode,
+  nafSection,
+  nafRow,
+  nafLabel,
+  nafOptional,
+  nafInput,
+  nafTextarea,
+  nafCheckboxLabel,
+  nafCheckboxInput,
+  nafParagraphRow,
+  nafRemoveBtn,
+  nafAddBtn,
+  newAppPage,
+  newAppHeader,
+  newAppBack,
+  newAppTitle,
+  newAppBody,
+  newAppForm,
+  newAppPreview,
+  napHeader,
+  napFilename,
+  napCopyBtn,
+  napCopyBtnCopied,
+  napCode,
+  napHint,
+  napHintCode,
   editSaveBtn,
 } from '../styles/formStyles';
 
-
 function toId(company: string): string {
-  return company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-app';
+  return (
+    company
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'new-app'
+  );
 }
 
 function buildConfig(
@@ -84,7 +109,9 @@ function ImportJsonButton() {
 // ── base profile selection screen ────────────────────────────────────────────
 
 function ChooseBaseProfileScreen({
-  baseProfiles, onChoose, onSkip,
+  baseProfiles,
+  onChoose,
+  onSkip,
 }: {
   baseProfiles: BaseProfile[];
   onChoose: (bp: BaseProfile) => void;
@@ -93,7 +120,9 @@ function ChooseBaseProfileScreen({
   return (
     <div className={newAppPage}>
       <div className={newAppHeader}>
-        <Link className={newAppBack} to="/">← Dashboard</Link>
+        <Link className={newAppBack} to="/">
+          ← Dashboard
+        </Link>
         <span className={newAppTitle}>New Application</span>
         <ImportJsonButton />
       </div>
@@ -117,7 +146,9 @@ function ChooseBaseProfileScreen({
                 onClick={() => onChoose(bp)}
               >
                 <span className="text-[14px] leading-none">{LANG_FLAGS[bp.language]}</span>
-                <span className="[font-family:var(--font-sans)] text-[13px] text-[color:var(--ink-invert)]">{bp.name}</span>
+                <span className="[font-family:var(--font-sans)] text-[13px] text-[color:var(--ink-invert)]">
+                  {bp.name}
+                </span>
               </button>
             ))}
           </div>
@@ -151,9 +182,7 @@ export function NewApplicationPage() {
   const navigate = useNavigate();
   const [baseProfiles] = useState(() => getBaseProfiles());
 
-  const [step, setStep] = useState<'select-profile' | 'form'>(
-    baseProfiles.length > 0 ? 'select-profile' : 'form',
-  );
+  const [step, setStep] = useState<'select-profile' | 'form'>(baseProfiles.length > 0 ? 'select-profile' : 'form');
   const [baseProfileId, setBaseProfileId] = useState<string | undefined>(undefined);
 
   const [company, setCompany] = useState('');
@@ -170,9 +199,9 @@ export function NewApplicationPage() {
   // Populated once a base profile is chosen (or skipped) below — except when
   // there are no base profiles to choose from at all, in which case the form
   // step renders immediately and this needs its usual default up front.
-  const [featuredIds, setFeaturedIds] = useState<string[]>(() => (
-    baseProfiles.length === 0 ? getProfile('en').projects.map((p) => p.id) : []
-  ));
+  const [featuredIds, setFeaturedIds] = useState<string[]>(() =>
+    baseProfiles.length === 0 ? getProfile('en').projects.map((p) => p.id) : [],
+  );
 
   const selectedBaseProfile = baseProfileId ? baseProfiles.find((p) => p.id === baseProfileId) : undefined;
   const profile = selectedBaseProfile?.profile ?? getProfile(language);
@@ -204,7 +233,19 @@ export function NewApplicationPage() {
   const addParagraph = () => setParagraphs((prev) => [...prev, '']);
   const removeParagraph = (i: number) => setParagraphs((prev) => prev.filter((_, idx) => idx !== i));
 
-  const config = buildConfig(company, role, url, language, font, baseProfileId, featuredIds, hasCoverLetter, formatDateLong(dateISO, language), subjectRole, paragraphs.filter(Boolean));
+  const config = buildConfig(
+    company,
+    role,
+    url,
+    language,
+    font,
+    baseProfileId,
+    featuredIds,
+    hasCoverLetter,
+    formatDateLong(dateISO, language),
+    subjectRole,
+    paragraphs.filter(Boolean),
+  );
   const code = JSON.stringify(config, null, 2);
   const filename = `${config.id || 'company'}.json`;
 
@@ -225,7 +266,9 @@ export function NewApplicationPage() {
   return (
     <div className={newAppPage}>
       <div className={newAppHeader}>
-        <Link className={newAppBack} to="/">← Dashboard</Link>
+        <Link className={newAppBack} to="/">
+          ← Dashboard
+        </Link>
         <span className={newAppTitle}>New Application</span>
         <ImportJsonButton />
       </div>
@@ -233,7 +276,10 @@ export function NewApplicationPage() {
       <MobilePanelSwitch
         value={mobilePanel}
         onChange={setMobilePanel}
-        options={[{ value: 'form', label: 'form' }, { value: 'json', label: 'JSON' }]}
+        options={[
+          { value: 'form', label: 'form' },
+          { value: 'json', label: 'JSON' },
+        ]}
       />
 
       <div className={newAppBody}>
@@ -249,7 +295,9 @@ export function NewApplicationPage() {
                     {selectedBaseProfile.name}
                   </>
                 ) : (
-                  <span className={nafOptional}>{LANG_FLAGS[language]} {LANGUAGE_LABELS[language]} default</span>
+                  <span className={nafOptional}>
+                    {LANG_FLAGS[language]} {LANGUAGE_LABELS[language]} default
+                  </span>
                 )}
               </span>
               <button
@@ -282,7 +330,9 @@ export function NewApplicationPage() {
           </div>
 
           <div className={nafSection}>
-            <span className={nafLabel}>Job posting URL <span className={nafOptional}>(optional)</span></span>
+            <span className={nafLabel}>
+              Job posting URL <span className={nafOptional}>(optional)</span>
+            </span>
             <input
               className={nafInput}
               placeholder="https://..."
@@ -294,13 +344,11 @@ export function NewApplicationPage() {
           <div className={nafRow}>
             <div className={nafSection}>
               <span className={nafLabel}>Font</span>
-              <select
-                className={nafInput}
-                value={font}
-                onChange={(e) => setFont(e.target.value as AppFont)}
-              >
+              <select className={nafInput} value={font} onChange={(e) => setFont(e.target.value as AppFont)}>
                 {ALL_FONTS.map((f) => (
-                  <option key={f} value={f}>{FONT_LABELS[f]}</option>
+                  <option key={f} value={f}>
+                    {FONT_LABELS[f]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -336,7 +384,9 @@ export function NewApplicationPage() {
                   />
                 </div>
                 <div className={nafSection}>
-                  <span className={nafLabel}>Subject role <span className={nafOptional}>(if different)</span></span>
+                  <span className={nafLabel}>
+                    Subject role <span className={nafOptional}>(if different)</span>
+                  </span>
                   <input
                     className={nafInput}
                     placeholder="defaults to Role"
@@ -360,13 +410,21 @@ export function NewApplicationPage() {
                     />
                     {paragraphs.length > 1 && (
                       <>
-                        <MoveButtons index={i} length={paragraphs.length} onMove={(to) => setParagraphs(move(paragraphs, i, to))} />
-                        <button className={nafRemoveBtn} onClick={() => removeParagraph(i)}>✕</button>
+                        <MoveButtons
+                          index={i}
+                          length={paragraphs.length}
+                          onMove={(to) => setParagraphs(move(paragraphs, i, to))}
+                        />
+                        <button className={nafRemoveBtn} onClick={() => removeParagraph(i)}>
+                          ✕
+                        </button>
                       </>
                     )}
                   </div>
                 ))}
-                <button className={nafAddBtn} onClick={addParagraph}>+ Add paragraph</button>
+                <button className={nafAddBtn} onClick={addParagraph}>
+                  + Add paragraph
+                </button>
               </div>
             </>
           )}
@@ -385,18 +443,14 @@ export function NewApplicationPage() {
         <div className={`${newAppPreview} ${mobilePanel === 'json' ? '' : 'max-lg:hidden'}`}>
           <div className={napHeader}>
             <span className={napFilename}>private/applications/{filename}</span>
-            <button
-              className={copied ? napCopyBtnCopied : napCopyBtn}
-              onClick={handleCopy}
-            >
+            <button className={copied ? napCopyBtnCopied : napCopyBtn} onClick={handleCopy}>
               {copied ? 'Copied!' : 'Copy JSON'}
             </button>
           </div>
           <pre className={napCode}>{code}</pre>
           <p className={napHint}>
-            To commit permanently, save as{' '}
-            <code className={napHintCode}>private/applications/{filename}</code> and add the import to{' '}
-            <code className={napHintCode}>src/data/applications/index.ts</code>.
+            To commit permanently, save as <code className={napHintCode}>private/applications/{filename}</code> and add
+            the import to <code className={napHintCode}>src/data/applications/index.ts</code>.
           </p>
         </div>
       </div>
