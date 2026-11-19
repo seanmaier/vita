@@ -1,5 +1,5 @@
-import type { AppLanguage } from '../types';
-import { isAppLanguage, LANGUAGES } from '../utils/language';
+import type { AppLanguage } from '#shared/types.ts';
+import { isAppLanguage, LANGUAGES } from '#shared/utils/language.ts';
 import { browserLanguage } from '../utils/browserLanguage';
 
 // The demo lives under /demo of the same build: no login, fictional sample

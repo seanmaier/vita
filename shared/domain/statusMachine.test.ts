@@ -1,5 +1,5 @@
 import { assert, expect, test } from 'vitest';
-import type { StatusTransition, StoredStatus } from '../types.ts';
+import type { StatusTransition, StoredStatus } from '#shared/types.ts';
 import {
   allowedNext,
   appendTransition,
@@ -10,7 +10,7 @@ import {
   TRANSITIONS,
   undoLast,
   validateHistory,
-} from './statusMachine.ts';
+} from '#shared/domain/statusMachine.ts';
 
 const NOW = '2026-11-16T10:00:00.000Z';
 const entry = (to: StoredStatus, date: string | null = null): StatusTransition => ({ to, date, recordedAt: null });

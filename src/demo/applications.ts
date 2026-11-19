@@ -1,5 +1,5 @@
-import type { AppLanguage, ApplicationConfig, Note } from '../types';
-import { formatDateLong } from '../utils/date';
+import type { AppLanguage, ApplicationConfig, Note } from '#shared/types.ts';
+import { formatDateLong } from '#shared/utils/date.ts';
 import { demoLocale } from './demoMode';
 
 // Fictional applications for the /demo, one per stage of the pipeline so the

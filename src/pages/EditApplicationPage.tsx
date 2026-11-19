@@ -5,7 +5,7 @@ import { getProfile } from '../data/profiles';
 import { getAllLocalApplications } from '../utils/localApplications';
 import { getBaseProfiles } from '../utils/baseProfiles';
 import type { DiffNames } from '../utils/versionDiff';
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { useApplication } from '../hooks/useApplication';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { isDemo } from '../demo/demoMode';

@@ -1,7 +1,7 @@
 // The edit form's state as one object, and the two conversions between it and
 // an application: what the form starts with, and what saving it stores.
-import type { ApplicationConfig, AppFont, AppLanguage, Profile, SkillGroup } from '../../types.ts';
-import { formatDateLong, parseToIsoDate } from '../../utils/date.ts';
+import type { ApplicationConfig, AppFont, AppLanguage, Profile, SkillGroup } from '#shared/types.ts';
+import { formatDateLong, parseToIsoDate } from '#shared/utils/date.ts';
 
 export interface EditForm {
   company: string;

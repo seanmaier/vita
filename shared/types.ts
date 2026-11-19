@@ -97,7 +97,7 @@ export interface FitCriterion {
   fulfilled: number;
 }
 
-/** A status that is recorded in an application's history; "ghosted" is only ever derived (see src/domain/statusMachine.ts). */
+/** A status that is recorded in an application's history; "ghosted" is only ever derived (see shared/domain/statusMachine.ts). */
 export type StoredStatus = Exclude<ApplicationStatus, 'ghosted'>;
 
 /** One step in an application's status history (kv key `status-history-<id>`), oldest first. */

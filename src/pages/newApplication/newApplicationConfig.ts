@@ -1,6 +1,6 @@
-import type { AppFont, AppLanguage, ApplicationConfig } from '../../types.ts';
-import { formatDateLong } from '../../utils/date.ts';
-import { applicationIdFor } from '../../utils/slug.ts';
+import type { AppFont, AppLanguage, ApplicationConfig } from '#shared/types.ts';
+import { formatDateLong } from '#shared/utils/date.ts';
+import { applicationIdFor } from '#shared/utils/slug.ts';
 
 export interface NewApplicationForm {
   company: string;

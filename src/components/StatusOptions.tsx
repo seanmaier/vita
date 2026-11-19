@@ -1,6 +1,6 @@
-import { allowedNext } from '../domain/statusMachine';
+import { allowedNext } from '#shared/domain/statusMachine.ts';
 import { STATUS_LABELS } from '../utils/status';
-import type { ApplicationStatus } from '../types';
+import type { ApplicationStatus } from '#shared/types.ts';
 
 const optionClass = 'text-[color:var(--ink-invert)] bg-[color:var(--surface)]';
 

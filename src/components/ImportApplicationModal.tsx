@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ApplicationConfig } from '../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { applications } from '../data/applications';
 import { getLocalApplications, saveLocalApplication } from '../utils/localApplications';
-import { parseApplicationConfig } from '../utils/parseApplicationConfig';
-import { uniqueId } from '../utils/slug';
+import { parseApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
+import { uniqueId } from '#shared/utils/slug.ts';
 import { ApplicationConfigPreview } from './ApplicationConfigPreview';
 import { JsonFileButton } from './JsonFileButton';
 

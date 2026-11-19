@@ -1,5 +1,5 @@
-import type { AppLanguage, Note } from '../types';
-import { formatDateTime } from '../utils/date';
+import type { AppLanguage, Note } from '#shared/types.ts';
+import { formatDateTime } from '#shared/utils/date.ts';
 import { linkify } from '../utils/linkify';
 
 interface Props {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { AppLanguage, BaseProfile } from '../../types';
-import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '../../utils/language';
+import type { AppLanguage, BaseProfile } from '#shared/types.ts';
+import { LANG_FLAGS, LANGUAGE_LABELS, LANGUAGES } from '#shared/utils/language.ts';
 import { ImportApplicationModal } from '../../components/ImportApplicationModal';
 import { newAppBack, newAppHeader, newAppPage, newAppTitle } from '../../styles/formStyles';
 

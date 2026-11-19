@@ -1,6 +1,6 @@
 import { assert, expect, test } from 'vitest';
-import type { ApplicationConfig, BaseProfile } from '../types.ts';
-import { mergeBackup, parseBackup, type DataBackup } from './backupMerge.ts';
+import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
+import { mergeBackup, parseBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
 
 const app = (id: string, extra: Partial<ApplicationConfig> = {}): ApplicationConfig =>
   ({ id, company: id, role: 'Dev', status: 'drafting', ...extra });

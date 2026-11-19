@@ -1,7 +1,8 @@
-import type { AppLanguage, Profile } from '../types';
+import type { AppLanguage, Profile } from '#shared/types.ts';
 import { storage } from './storage';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
-const key = (lang: AppLanguage) => `profile-override-${lang}`;
+const key = (lang: AppLanguage) => STORAGE_KEYS.profileOverride(lang);
 
 export function getProfileOverride(lang: AppLanguage): Profile | null {
   try {

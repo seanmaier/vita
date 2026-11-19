@@ -1,4 +1,4 @@
-import type { AppLanguage } from '../types.ts';
+import type { AppLanguage } from '#shared/types.ts';
 
 export const LANGUAGES: AppLanguage[] = ['en', 'de', 'sv'];
 
@@ -16,5 +16,7 @@ export function isAppLanguage(value: unknown): value is AppLanguage {
   return LANGUAGES.includes(value as AppLanguage);
 }
 
+/** The end of the message for an unknown language, after the field's name. */
+export const LANGUAGE_MESSAGE = `must be one of ${LANGUAGES.map((l) => `"${l}"`).join(', ')}.`;
 /** The validation message for a field that must hold one of LANGUAGES. */
-export const LANGUAGE_ERROR = `"language" must be one of ${LANGUAGES.map((l) => `"${l}"`).join(', ')}.`;
+export const LANGUAGE_ERROR = `"language" ${LANGUAGE_MESSAGE}`;

@@ -4,8 +4,8 @@
 // with "drafting" (or "evaluated" for a checked job). The current status is the last step, except that a "sent"
 // application without an answer for GHOSTED_AFTER_DAYS shows as "ghosted";
 // that is derived, never stored, so a late answer is an ordinary next step.
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, StatusTransition, StoredStatus } from '../types.ts';
-import { formatDateNumeric, numericDateToIso, toIsoDate } from '../utils/date.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, StatusTransition, StoredStatus } from '#shared/types.ts';
+import { formatDateNumeric, numericDateToIso, toIsoDate } from '#shared/utils/date.ts';
 
 /** A sent application without any response for this many days counts as ghosted. */
 export const GHOSTED_AFTER_DAYS = 30;

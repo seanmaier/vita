@@ -17,16 +17,17 @@ import { FONT_LABELS, ALL_FONTS } from '../utils/fonts';
 import { generateTextExport } from '../utils/textExport';
 import { NotesDialog } from '../components/NotesDialog';
 import { ApplicationTimeline } from '../components/ApplicationTimeline';
-import { createNote } from '../utils/notes';
+import { createNote } from '#shared/utils/notes.ts';
 import { buildPdfFilename, type PrintTarget } from '../utils/pdfFilename';
 import {
-  sanitizeFolderName, renderPageCanvases, buildPdfBlob, writeApplicationPdfs, downloadPdfBlob,
+  sanitizeFolderName, writeApplicationPdfs, downloadPdfBlob,
 } from '../utils/pdfExport';
+import { pagesToTextPdf } from '../utils/pdfText';
 import {
   isFileSystemAccessSupported, getSavedExportFolder, chooseExportFolder, ensureExportFolderPermission,
 } from '../utils/exportFolder';
-import { LANGUAGE_LABELS, languageOf } from '../utils/language';
-import type { ApplicationConfig, AppFont, CoverLetter } from '../types';
+import { LANGUAGE_LABELS, languageOf } from '#shared/utils/language.ts';
+import type { ApplicationConfig, AppFont, CoverLetter } from '#shared/types.ts';
 
 
 export function ApplicationPage() {
@@ -124,17 +125,14 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
         ? Array.from(clExportRef.current.querySelectorAll(':scope > .doc-page')) as HTMLElement[]
         : [];
 
-      const cvCanvases = await renderPageCanvases(cvPages);
-      const clCanvases = clPages.length > 0 ? await renderPageCanvases(clPages) : [];
-
       const lang = app.language ?? 'en';
       const pdfName = (target: PrintTarget) => `${buildPdfFilename(target, lang, profile.name, app.company)}.pdf`;
       const files: Array<{ filename: string; blob: Blob }> = [
-        { filename: pdfName('cv'), blob: buildPdfBlob(cvCanvases) },
+        { filename: pdfName('cv'), blob: pagesToTextPdf(cvPages) },
       ];
-      if (clCanvases.length > 0) {
-        files.push({ filename: pdfName('coverLetter'), blob: buildPdfBlob(clCanvases) });
-        files.push({ filename: pdfName('both'), blob: buildPdfBlob([...cvCanvases, ...clCanvases]) });
+      if (clPages.length > 0) {
+        files.push({ filename: pdfName('coverLetter'), blob: pagesToTextPdf(clPages) });
+        files.push({ filename: pdfName('both'), blob: pagesToTextPdf([...cvPages, ...clPages]) });
       }
 
       // The company is already part of every filename, so plain downloads need no extra prefix.
@@ -288,10 +286,11 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
         />
       )}
 
-      {/* Off-screen, A4-accurate copies rasterized for the PDF download — kept
+      {/* Off-screen, A4-accurate copies the PDF download is written from — kept
           separate from the on-screen view above so its layout never affects it. */}
-      {/* Intentionally off-screen rather than visibility/display-hidden — html2canvas
-          needs the browser to actually paint this content, which hidden elements aren't. */}
+      {/* Intentionally off-screen rather than visibility/display-hidden — the PDF
+          writer reads where the browser laid out every line, and hidden elements
+          have no layout. */}
       <div className="pdf-export-root" style={{ position: 'absolute', top: 0, left: '-9999px' }}>
         <div ref={cvExportRef}>
           <CVDocument profile={profile} application={{ ...app, status }} />

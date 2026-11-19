@@ -7,11 +7,12 @@ import { applications } from '../data/applications';
 import { getLocalApplications } from '../utils/localApplications';
 import { isDemo } from '../demo/demoMode';
 import { onStartTour } from './tourControl';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
 // Stored with the user's data, so the tour opens once per account rather
 // than once per device. In the demo that storage is the browser tab, so a
 // reset or a language switch brings the tour back.
-const SEEN_KEY = 'tour-seen';
+const SEEN_KEY = STORAGE_KEYS.tourSeen;
 
 // The tour shows the first application on the dashboard, as it is when the tour starts.
 function currentSteps(): TourStep[] {

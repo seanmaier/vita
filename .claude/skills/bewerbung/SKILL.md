@@ -39,7 +39,7 @@ node scripts/api.ts GET "applications?trash=true"           # Bewerbungen im Pap
 - Bei `HTTP 400` stehen in `details` alle Validierungsfehler: korrigieren und erneut senden.
 - Felder einer Bewerbung: `id, company, role, language, font, notes, url, baseProfileId,
   summaryOverride, featuredProjectIds, skillGroupsOverride, coverLetter` (siehe
-  `src/types.ts`). `PATCH` überschreibt nur die übergebenen Felder; `null` entfernt ein
+  `shared/types.ts`). `PATCH` überschreibt nur die übergebenen Felder; `null` entfernt ein
   optionales Feld.
 - `fit` (Passung aus `/stellencheck`) setzt nur `/stellencheck`.
 - `status`, `appliedDate`, `interviewDate`, `finalDecisionDate` und `statusHistory` sind

@@ -1,4 +1,4 @@
-import type { Project } from '../types';
+import type { Project } from '#shared/types.ts';
 import { MoveButtons } from './MoveButtons';
 import { move } from '../utils/move';
 import { nafCheckboxes, nafCheckboxLabel, nafCheckboxInput } from '../styles/formStyles';

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { ApplicationConfig, CoverLetter, Profile } from '../../types';
+import type { ApplicationConfig, CoverLetter, Profile } from '#shared/types.ts';
 import { CVDocument } from '../../components/cv/CVDocument';
 import { CoverLetterDocument } from '../../components/cover-letter/CoverLetterDocument';
 import { FitToWidth } from '../../components/FitToWidth';
 import { JsonConfigPanel } from '../../components/JsonConfigPanel';
-import { applicationIdFor } from '../../utils/slug';
+import { applicationIdFor } from '#shared/utils/slug.ts';
 import { napFilename, napHeader, napHint, newAppPreview } from '../../styles/formStyles';
 
 interface Props {

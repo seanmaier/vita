@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "imports": {
+    "#shared/*": "./shared/*"
+  },
   "scripts": {
     "dev": "vite",
     "dev:server": "node --watch --env-file-if-exists=.env server/index.ts",
@@ -16,21 +19,23 @@
     "test": "node scripts/vitest.ts run",
     "test:watch": "node scripts/vitest.ts",
     "test:coverage": "node scripts/vitest.ts run --coverage",
+    "test:e2e": "vite build && playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
     "diff": "9.0.0",
     "hono": "^4.13.16",
-    "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.1",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",

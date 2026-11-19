@@ -1,4 +1,4 @@
-import type { AppLanguage } from '../types';
+import type { AppLanguage } from '#shared/types.ts';
 
 /**
  * Every text a tour step can show. Welcome and finish differ between the

@@ -1,4 +1,4 @@
-import type { AppFont } from '../../types';
+import type { AppFont } from '#shared/types.ts';
 import { ALL_FONTS, FONT_LABELS } from '../../utils/fonts';
 import { nafInput, nafRow } from '../../styles/formStyles';
 import { Field } from './fields';

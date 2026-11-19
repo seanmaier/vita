@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ApplicationConfig } from '../../types';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { napCode, napCopyBtn, napCopyBtnCopied, napFilename, napHeader, napHint, napHintCode, newAppPreview } from '../../styles/formStyles';
 
 /** The new application as JSON, to copy into private/applications/ instead of saving it to the account. */

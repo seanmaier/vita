@@ -4,7 +4,7 @@
 // snapshot is a few KB, so storing whole ones costs next to nothing and keeps
 // every version readable and restorable on its own, even after the config
 // format changes.
-import type { ApplicationConfig } from '../src/types.ts';
+import type { ApplicationConfig } from '#shared/types.ts';
 import { db } from './db.ts';
 import { getJson, KEYS } from './store.ts';
 

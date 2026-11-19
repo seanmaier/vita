@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { SkillGroup } from '../types';
+import type { SkillGroup } from '#shared/types.ts';
 import { nafAddBtn } from '../styles/formStyles';
 
 interface Props {

@@ -2,6 +2,8 @@
 // stay synchronous against an in-memory copy loaded once after login, and
 // writes are batched into a single request to the server shortly after.
 
+import { client } from './apiClient';
+
 const data = new Map<string, string>();
 const pendingSet = new Map<string, string>();
 const pendingRemove = new Set<string>();
@@ -48,12 +50,10 @@ export function setStorageBackend(backend: Backend): void {
 }
 
 async function sendToServer(set: Record<string, string>, remove: string[], messages: Record<string, string>): Promise<void> {
-  const res = await fetch('/api/data', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ set, remove, ...(Object.keys(messages).length && { messages }) }),
-  });
-  if (res.status === 401) {
+  const res = await client.api.data.$put({ json: { set, remove, ...(Object.keys(messages).length && { messages }) } });
+  // The route's type doesn't list the 401: it comes from the requireUser
+  // middleware, whose answers Hono's RPC types leave out.
+  if ((res.status as number) === 401) {
     // Session expired mid-edit: the login screen is the only way forward.
     window.location.reload();
     return;

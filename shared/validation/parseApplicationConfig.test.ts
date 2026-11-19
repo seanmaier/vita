@@ -1,5 +1,5 @@
 import { assert, expect, test } from 'vitest';
-import { validateApplicationConfig } from './parseApplicationConfig.ts';
+import { validateApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
 
 const base = { company: 'Acme', role: 'Dev' };
 const fit = { score: 72, recommendation: 'apply-if', reason: 'Fits if hybrid in Hamburg.', evaluatedAt: '2026-11-16T10:00:00.000Z' };

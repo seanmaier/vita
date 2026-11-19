@@ -25,14 +25,10 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY server ./server
-# The server shares types, plain helpers (parsers, language, trash) and the
-# domain logic (status state machine, backup merge) with the frontend. Whole
-# folders are copied rather than a list of files, so a newly shared module
-# can't be forgotten and crash the server on start. Only what the server
-# imports is ever loaded.
-COPY src/types.ts ./src/types.ts
-COPY src/utils ./src/utils
-COPY src/domain ./src/domain
+# Types, parsers, helpers and the domain logic the server shares with the
+# frontend live in shared/ (imported as #shared/...); the server never imports
+# from src/, so frontend code stays out of the image.
+COPY shared ./shared
 COPY --from=builder /app/dist ./dist
 
 # /backups exists owned by node, so a fresh volume mounted there is writable.
