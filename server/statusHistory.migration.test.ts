@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 test('old statuses become seeded histories, once', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-status-')), 'app.db');
@@ -34,8 +34,16 @@ test('old statuses become seeded histories, once', async () => {
   put.run('status-history-done', kept);
   old.close();
 
+  const lines: string[] = [];
+  vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+    lines.push(String(chunk));
+    return true;
+  });
   process.env.DB_PATH = dbPath;
   const { db, migrate } = await import('./db.ts');
+  const seededLogs = () => lines.filter((line) => line.includes('migration=status-histories'));
+  // listed, ghost and bundled get a history; done already had one.
+  expect(seededLogs()).toEqual([expect.stringMatching(/msg="Migration applied" migration=status-histories rows=3\n$/)]);
   const history = (id: string) => {
     const row = db.prepare('SELECT value FROM kv WHERE user_id = 1 AND key = ?').get(`status-history-${id}`) as
       { value: string } | undefined;
@@ -62,4 +70,6 @@ test('old statuses become seeded histories, once', async () => {
   const before = db.prepare('SELECT key, value FROM kv ORDER BY key').all();
   migrate();
   expect(db.prepare('SELECT key, value FROM kv ORDER BY key').all()).toEqual(before);
+  expect(seededLogs()).toHaveLength(1);
+  vi.restoreAllMocks();
 });
