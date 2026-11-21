@@ -1,13 +1,13 @@
 // Points DB_PATH elsewhere than the setup file (server/test/env.ts) did and
 // imports server/db.ts only then: it needs a database created with
-// the old job_leads schema (no rating column) before server/db.ts opens it.
+// the old job_leads schema (no rating or snippet column) before server/db.ts opens it.
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from 'vitest';
 
-test('the rating migration adds the column, keeps old leads and is idempotent', async () => {
+test('the lead migrations add the rating and snippet columns, keep old leads and are idempotent', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-')), 'app.db');
   const old = new DatabaseSync(dbPath);
   old.exec(`
@@ -31,6 +31,7 @@ test('the rating migration adds the column, keeps old leads and is idempotent', 
   migrate();
   const columns = (db.prepare('PRAGMA table_info(job_leads)').all() as { name: string }[]).map((c) => c.name);
   expect(columns).toContain('rating');
+  expect(columns).toContain('snippet');
   const row = db.prepare("SELECT score, verdict, rating FROM job_leads WHERE external_id = 'e1'").get();
   expect({ ...row }).toEqual({ score: 71, verdict: 'Passt', rating: null });
 });

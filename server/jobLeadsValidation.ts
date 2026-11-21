@@ -25,9 +25,13 @@ const trimmed = (min: number, max: number) =>
     .refine((s) => s.length >= min && s.length <= max, { error: `must be ${min}-${max} characters` });
 
 /** An optional text: missing, null and blank all mean "not given". */
-const optionalText = trimmed(0, 200)
-  .nullish()
-  .transform((s) => s || undefined);
+const optionalText = (max: number) =>
+  trimmed(0, max)
+    .nullish()
+    .transform((s) => s || undefined);
+
+/** The longest snippet an alert may carry. */
+export const MAX_SNIPPET = 500;
 
 const leadSchema: z.ZodType<JobLeadInput> = z
   .strictObject(
@@ -35,8 +39,9 @@ const leadSchema: z.ZodType<JobLeadInput> = z
       source: z.enum(LEAD_SOURCES, { error: `must be one of ${LEAD_SOURCES.join(', ')}` }),
       externalId: trimmed(1, 200),
       title: trimmed(1, 300),
-      company: optionalText,
-      location: optionalText,
+      company: optionalText(200),
+      location: optionalText(200),
+      snippet: optionalText(MAX_SNIPPET),
       url: z.preprocess(
         (v) => (typeof v === 'string' ? v.trim() : ''),
         z
@@ -50,13 +55,14 @@ const leadSchema: z.ZodType<JobLeadInput> = z
         issue.code === 'unrecognized_keys' ? `unknown field(s): ${issue.keys.join(', ')}` : 'must be an object',
     },
   )
-  .transform(({ source, externalId, title, company, location, url }) => ({
+  .transform(({ source, externalId, title, company, location, snippet, url }) => ({
     source,
     externalId,
     title,
     url,
     ...(company && { company }),
     ...(location && { location }),
+    ...(snippet && { snippet }),
   }));
 
 export function validateLeadInput(input: unknown): Validated<JobLeadInput> {

@@ -40,7 +40,9 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    nicht neu an, sondern frischt nur Titel, URL, Firma und Ort auf. Bei Fehler
    einer Suche mit den übrigen weitermachen und den Fehler am Ende nennen.
 3. **Offene Leads holen:** `node scripts/api.ts GET "job-leads?status=new&limit=200"`
-   (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url`).
+   (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url` und, bei
+   Leads aus Alert-Mails, oft `snippet`: was die Mail sonst zum Job sagt, z. B. Gehalt,
+   Remote-Modell, Alter der Anzeige).
    Davon die **ältesten** N bewerten (N = „Höchstens bewertet pro Lauf“), also die letzten N
    der Liste; so bleibt kein Lead dauerhaft liegen.
 4. **Bewerten.** Jede Anzeige (`url`) mit dem Tool **WebFetch** lesen (nicht mit `curl`
@@ -50,8 +52,9 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
    als `priorities.md` und `about-me.md`. Den Abgleich „Schon bekannt?“ mit
    `GET applications` aus Schritt 1 dort **überspringen**: Der Radar-Token darf das nicht,
    und Dubletten unter den Leads fängt der Server schon ab. Ist die Anzeige nicht
-   lesbar (Login-Wand, Captcha, 403/404, kein Anzeigentext): `score` nur aus Titel, Firma
-   und Ort schätzen und das `verdict` mit „Anzeige nicht lesbar“ beginnen.
+   lesbar (Login-Wand, Captcha, 403/404, kein Anzeigentext): `score` nur aus Titel, Firma,
+   Ort und `snippet` schätzen und das `verdict` mit „Anzeige nicht lesbar“ beginnen; was der
+   `snippet` beitrug (z. B. Gehalt, Hybrid), im `verdict` nennen.
 5. **Speichern.** Je Lead eine Datei mit `{ "status": "rated", "score": <0–100>, "basis": "read", "verdict": "<ein Satz mit dem wichtigsten Grund>", "criteria": [{ "name": "<Kriterium>", "weight": <Gewicht>, "fulfilled": <0–100> }, …], "exclusion": "<nur wenn ein Ausschlusskriterium griff>" }`
    anlegen und `node scripts/api.ts PATCH job-leads/<id> <datei.json>` ausführen.
    `criteria` wie bei `/stellencheck` (Namen und Gewichte wörtlich aus `priorities.md`).
