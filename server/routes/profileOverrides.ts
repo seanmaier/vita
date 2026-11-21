@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import type { AppLanguage, Profile } from '#shared/types.ts';
 import { LANGUAGES } from '#shared/utils/language.ts';
 import { requireUser, type SessionEnv } from '../session.ts';
-import { getJson, KEYS } from '../store.ts';
+import { profileOverride } from '../data/documents.ts';
 
 export const profileOverrideRoutes = new Hono<SessionEnv>()
   .use('*', requireUser)
@@ -15,7 +15,7 @@ export const profileOverrideRoutes = new Hono<SessionEnv>()
     const userId = c.get('user').id;
     const overrides: Partial<Record<AppLanguage, Profile>> = {};
     for (const language of LANGUAGES) {
-      const profile = getJson<Profile>(userId, KEYS.profileOverride(language));
+      const profile = profileOverride(userId, language);
       if (profile) overrides[language] = profile;
     }
     return c.json(overrides);

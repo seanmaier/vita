@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
 import type { ApplicationConfig } from '#shared/types.ts';
 import { todayIso } from '#shared/utils/date.ts';
-import { getJson, KEYS, setJson, setValue } from './store.ts';
+import { saveApplicationList, setLegacyStatus, setSavedEdits } from './data/applications.ts';
+import { recordedSteps } from './data/statusTransitions.ts';
 import { createTestUser, testApp } from './test/testApp.ts';
 
 type App = ReturnType<typeof testApp>;
@@ -19,7 +20,7 @@ function setup(
   ],
 ) {
   const user = createTestUser();
-  setJson(user.id, KEYS.localApps, apps);
+  saveApplicationList(user.id, apps as ApplicationConfig[]);
   return { user, app: testApp(user) };
 }
 
@@ -29,8 +30,8 @@ const get = async (app: App, id = 'acme') => (await (await app.request(`/api/v1/
 
 test('an application without a history reads its old status and dates', async () => {
   const { user, app } = setup([{ id: 'acme', company: 'Acme', role: 'Dev', status: 'drafting', language: 'de' }]);
-  setValue(user.id, KEYS.status('acme'), 'rejected');
-  setJson(user.id, KEYS.appConfig('acme'), {
+  setLegacyStatus(user.id, 'acme', 'rejected');
+  setSavedEdits(user.id, 'acme', {
     id: 'acme',
     company: 'Acme',
     role: 'Dev',
@@ -50,7 +51,7 @@ test('a transition is recorded with its date and drives status and dates', async
   const body = (await res.json()) as Json;
   expect(body.status).toBe('sent');
   expect(body.appliedDate).toBe('10.11.2026');
-  const stored = getJson<{ to: string; date: string }[]>(user.id, KEYS.statusHistory('acme'))!;
+  const stored = recordedSteps(user.id, 'acme') as { to: string; date: string }[];
   expect(stored.map((t) => [t.to, t.date])).toEqual([
     ['drafting', null],
     ['sent', '2026-11-10'],
@@ -85,7 +86,7 @@ test('an application the server does not know starts from the expected status', 
   const { user, app } = setup([]);
   const res = await step(app, 'bundled', { to: 'interview', expected: 'sent' });
   expect(res.status).toBe(200);
-  const stored = getJson<{ to: string }[]>(user.id, KEYS.statusHistory('bundled'))!;
+  const stored = recordedSteps(user.id, 'bundled') as { to: string }[];
   expect(stored.map((t) => t.to)).toEqual(['drafting', 'sent', 'interview']);
   expect((await step(app, 'unknown', { to: 'sent' })).status).toBe(404);
 });
@@ -148,7 +149,7 @@ test('POST starts a draft with a history and refuses dates', async () => {
   expect(created.status).toBe(201);
   const body = (await created.json()) as Json;
   expect(body.status).toBe('drafting');
-  expect(getJson(user.id, KEYS.statusHistory(body.id))).toBeTruthy();
+  expect(recordedSteps(user.id, body.id as string)).toBeTruthy();
   const dated = await app.request(
     '/api/v1/applications',
     json('POST', { company: 'Gamma', role: 'Dev', appliedDate: '01.10.2026' }),

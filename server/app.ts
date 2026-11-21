@@ -7,6 +7,8 @@ import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { requestId, type RequestIdVariables } from 'hono/request-id';
+// Moves data still in the old format into the tables before anything reads it.
+import './data/migrate.ts';
 import { accessLog, log, requestFields } from './log.ts';
 import { applicationRoutes } from './routes/applications.ts';
 import { authRoutes } from './routes/auth.ts';

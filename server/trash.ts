@@ -1,7 +1,8 @@
 import { isPurgeDue } from '#shared/utils/trash.ts';
-import { transaction } from './db.ts';
+import { db, transaction } from './db.ts';
+import { applicationList, removeApplicationData, saveApplicationList } from './data/applications.ts';
+import { baseProfileList, saveBaseProfileList } from './data/baseProfiles.ts';
 import { deleteVersions } from './history.ts';
-import { KEYS, removeValue, setJson, valuesOfAllUsers } from './store.ts';
 
 interface Trashable {
   id: string;
@@ -9,30 +10,27 @@ interface Trashable {
 }
 
 /**
- * Removes the entries of one stored list (local-apps or base-profiles) whose
- * time in the trash is up, for every user, and returns them per user.
+ * Takes the entries whose time in the trash is up out of one list (the
+ * applications or the base profiles), for every user, and returns them per
+ * user. `read` and `save` are that list's functions.
  */
-function purgeList(key: string, now: number): { userId: number; purged: Trashable[] }[] {
-  const result: { userId: number; purged: Trashable[] }[] = [];
-  for (const { userId, value } of valuesOfAllUsers(key)) {
-    let list: unknown;
-    try {
-      list = JSON.parse(value);
-    } catch {
-      continue; // Leave a corrupt value for the user to notice rather than erasing it.
-    }
-    if (!Array.isArray(list)) continue;
-    const due = (item: Trashable) => !!item.deletedAt && isPurgeDue(item.deletedAt, now);
-    const purged = (list as Trashable[]).filter(due);
-    if (!purged.length) continue;
-    setJson(
+function purgeList<T extends Trashable>(
+  now: number,
+  read: (userId: number) => T[] | null,
+  save: (userId: number, list: T[]) => void,
+): { userId: number; purged: T[] }[] {
+  const users = db.prepare('SELECT id FROM users ORDER BY id').all() as { id: number }[];
+  const due = (item: T) => !!item.deletedAt && isPurgeDue(item.deletedAt, now);
+  return users.flatMap(({ id: userId }) => {
+    const list = read(userId) ?? [];
+    const purged = list.filter(due);
+    if (!purged.length) return [];
+    save(
       userId,
-      key,
-      (list as Trashable[]).filter((item) => !due(item)),
+      list.filter((item) => !due(item)),
     );
-    result.push({ userId, purged });
-  }
-  return result;
+    return [{ userId, purged }];
+  });
 }
 
 /**
@@ -43,17 +41,15 @@ function purgeList(key: string, now: number): { userId: number; purged: Trashabl
  */
 export function purgeTrash(now: number = Date.now()): { applications: number; baseProfiles: number } {
   return transaction(() => {
-    const apps = purgeList(KEYS.localApps, now);
+    const apps = purgeList(now, applicationList, saveApplicationList);
     for (const { userId, purged } of apps) {
       for (const app of purged) {
-        removeValue(userId, KEYS.appConfig(app.id));
-        removeValue(userId, KEYS.status(app.id));
-        removeValue(userId, KEYS.statusHistory(app.id));
+        removeApplicationData(userId, app.id);
         deleteVersions(userId, app.id);
       }
     }
-    const profiles = purgeList(KEYS.baseProfiles, now);
-    const count = (r: { purged: Trashable[] }[]) => r.reduce((n, { purged }) => n + purged.length, 0);
+    const profiles = purgeList(now, baseProfileList, saveBaseProfileList);
+    const count = (r: { purged: unknown[] }[]) => r.reduce((n, { purged }) => n + purged.length, 0);
     return { applications: count(apps), baseProfiles: count(profiles) };
   });
 }
