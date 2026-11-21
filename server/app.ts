@@ -8,6 +8,7 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { requestId, type RequestIdVariables } from 'hono/request-id';
 import { accessLog, log, requestFields } from './log.ts';
+import { applicationRoutes } from './routes/applications.ts';
 import { authRoutes } from './routes/auth.ts';
 import { baseProfileRoutes } from './routes/baseProfiles.ts';
 import { profileOverrideRoutes } from './routes/profileOverrides.ts';
@@ -66,6 +67,7 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   const api = app
     .route('/api', authRoutes)
     .route('/api/tokens', tokenRoutes)
+    .route('/api/applications', applicationRoutes)
     .route('/api/base-profiles', baseProfileRoutes)
     .route('/api/profile-overrides', profileOverrideRoutes)
     .route('/api', dataRoutes)

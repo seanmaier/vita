@@ -6,7 +6,8 @@ import './styles/seasonalEffect.css';
 import './index.css';
 import { App } from './App';
 import { applyStoredTheme } from './hooks/useTheme';
-import { DataBackendProvider, localBackend, serverBackend } from './api/backend';
+import { DataBackendProvider, serverBackend } from './api/backend';
+import { localBackend } from './api/localBackend';
 import { isDemo } from './demo/demoMode';
 
 applyStoredTheme();

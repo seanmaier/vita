@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ApplicationConfig } from '#shared/types.ts';
-import { applications } from '../data/applications';
-import { getLocalApplications, saveLocalApplication } from '../utils/localApplications';
+import { useApplicationMutations, useApplications } from '../api/applications';
 import { parseApplicationConfig } from '#shared/validation/parseApplicationConfig.ts';
 import { uniqueId } from '#shared/utils/slug.ts';
 import { ApplicationConfigPreview } from './ApplicationConfigPreview';
@@ -21,6 +20,8 @@ const PLACEHOLDER = `{
 
 export function ImportApplicationModal({ onClose }: Props) {
   const navigate = useNavigate();
+  const records = useApplications().data ?? [];
+  const { save } = useApplicationMutations();
   const [text, setText] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [previewConfig, setPreviewConfig] = useState<ApplicationConfig | null>(null);
@@ -49,7 +50,7 @@ export function ImportApplicationModal({ onClose }: Props) {
     }
     setErrors([]);
 
-    const existingIds = new Set([...applications, ...getLocalApplications()].map((a) => a.id));
+    const existingIds = new Set(records.map((r) => r.app.id));
     let config = result.config;
     if (existingIds.has(config.id)) {
       const newId = uniqueId(config.id, existingIds);
@@ -68,9 +69,13 @@ export function ImportApplicationModal({ onClose }: Props) {
 
   const handleImport = () => {
     if (!previewConfig) return;
-    saveLocalApplication(previewConfig);
-    onClose();
-    navigate(`/application/${previewConfig.id}`);
+    save.mutate(previewConfig, {
+      onSuccess: () => {
+        onClose();
+        navigate(`/application/${previewConfig.id}`);
+      },
+      onError: (e) => setErrors([e.message]),
+    });
   };
 
   return (
@@ -98,8 +103,9 @@ export function ImportApplicationModal({ onClose }: Props) {
                 <button
                   className="font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110"
                   onClick={handleImport}
+                  disabled={save.isPending}
                 >
-                  Create application
+                  {save.isPending ? 'Creating…' : 'Create application'}
                 </button>
               </>
             ) : (

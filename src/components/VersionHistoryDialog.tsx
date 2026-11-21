@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { diffWords } from 'diff';
+import { useQueryClient } from '@tanstack/react-query';
 import { fetchVersions, restoreVersion } from '../utils/api';
+import { applicationsKey } from '../api/applications';
 import { diffVersions, type AppVersion, type DiffNames, type FieldChange } from '../utils/versionDiff';
 import { authorLabel, formatTime } from './versionLabels';
 import { VersionHistorySkeleton } from './Skeleton';
@@ -115,6 +117,7 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
     [selected, previous, names],
   );
 
+  const queryClient = useQueryClient();
   const handleRestore = async () => {
     if (!selected) return;
     const warning = hasUnsavedEdits ? '\n\nYour unsaved edits in the form will be discarded.' : '';
@@ -122,6 +125,7 @@ export function VersionHistoryDialog({ appId, company, names, hasUnsavedEdits, o
     setRestoring(true);
     try {
       await restoreVersion(appId, selected.id);
+      await queryClient.invalidateQueries({ queryKey: applicationsKey });
       onRestored();
     } catch (e) {
       setError((e as Error).message);

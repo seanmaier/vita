@@ -1,13 +1,16 @@
-// Where the app's data comes from: the server for a logged-in user, or this
-// browser tab for the demo (and for component tests). Each resource's hooks
-// (e.g. useAllBaseProfiles in ./baseProfiles.ts) go through whichever backend
-// the DataBackendProvider above them holds.
+// Where the app's data comes from: the server for a logged-in user (here), or
+// this browser tab for the demo and component tests (./localBackend.ts). Each
+// resource's hooks (e.g. useAllBaseProfiles in ./baseProfiles.ts) go through
+// whichever backend the DataBackendProvider above them holds.
 import { createContext, useContext } from 'react';
-import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
-import { LANGUAGES } from '#shared/utils/language.ts';
-import { STORAGE_KEYS } from '#shared/storageKeys.ts';
+import type { AppLanguage, ApplicationConfig, BaseProfile, Profile, StatusTransition } from '#shared/types.ts';
+import type { StoredApplication } from '../../server/routes/applications.ts';
+import { todayIso } from '#shared/utils/date.ts';
 import { client, errorFrom } from '../utils/apiClient';
-import { storage } from '../utils/storage';
+import { statusOf, type StatusAction } from '../utils/statusTransitions';
+
+export type { StoredApplication };
+export type StoredConfig = Omit<ApplicationConfig, 'status'>;
 
 /** Every write answers with the whole list, trash included. */
 export interface BaseProfilesBackend {
@@ -28,7 +31,25 @@ export interface ProfileOverridesBackend {
   list(): Promise<ProfileOverrides>;
 }
 
+/** Every write except a status step answers with all applications, trash included. */
+export interface ApplicationsBackend {
+  list(): Promise<StoredApplication[]>;
+  /** Adds the application to the list or replaces its entry. */
+  save(config: ApplicationConfig): Promise<StoredApplication[]>;
+  /** `message` says what changed, for the version history. */
+  saveEdits(id: string, config: StoredConfig, message?: string): Promise<StoredApplication[]>;
+  resetEdits(id: string): Promise<StoredApplication[]>;
+  trash(id: string): Promise<StoredApplication[]>;
+  restore(id: string): Promise<StoredApplication[]>;
+  remove(id: string): Promise<StoredApplication[]>;
+  /** Takes a status step from `history` (as the app shows it); resolves to the new history. */
+  changeStatus(id: string, history: StatusTransition[], action: StatusAction): Promise<StatusTransition[]>;
+  /** Changes when step `index` happened. */
+  changeStepDate(id: string, history: StatusTransition[], index: number, date: string): Promise<StatusTransition[]>;
+}
+
 export interface DataBackend {
+  applications: ApplicationsBackend;
   baseProfiles: BaseProfilesBackend;
   profileOverrides: ProfileOverridesBackend;
 }
@@ -46,9 +67,38 @@ async function ok<T>(
 }
 
 const routes = client.api['base-profiles'];
+const appRoutes = client.api.applications[':id'];
+const transitions = client.api.v1.applications[':id'].transitions;
 const param = (id: string) => ({ param: { id: encodeURIComponent(id) } });
 
+/** The new history from a transitions answer. */
+const historyFrom = (request: Parameters<typeof ok>[0]) =>
+  ok<{ statusHistory: StatusTransition[] }>(request, 'Changing the status failed').then((r) => r.statusHistory);
+
 export const serverBackend: DataBackend = {
+  applications: {
+    list: () => ok(client.api.applications.$get(), 'Loading the applications failed'),
+    save: (config) => ok(appRoutes.$put({ ...param(config.id), json: config }), 'Saving the application failed'),
+    saveEdits: (id, config, message) =>
+      ok(
+        appRoutes['saved-edits'].$put({ ...param(id), json: { config, ...(message && { message }) } }),
+        'Saving your changes failed',
+      ),
+    resetEdits: (id) => ok(appRoutes['saved-edits'].$delete(param(id)), 'Resetting the application failed'),
+    trash: (id) => ok(appRoutes.trash.$post(param(id)), 'Moving the application to the trash failed'),
+    restore: (id) => ok(appRoutes.restore.$post(param(id)), 'Restoring the application failed'),
+    remove: (id) => ok(appRoutes.$delete(param(id)), 'Deleting the application failed'),
+    changeStatus: (id, history, action) =>
+      historyFrom(
+        action === 'undo'
+          ? transitions.last.$delete(param(id))
+          : transitions.$post({ ...param(id), json: { to: action, date: todayIso(), expected: statusOf(history) } }),
+      ),
+    changeStepDate: (id, _history, index, date) =>
+      historyFrom(
+        transitions[':index'].$patch({ param: { id: encodeURIComponent(id), index: String(index) }, json: { date } }),
+      ),
+  },
   baseProfiles: {
     list: () => ok(routes.$get(), 'Loading the base profiles failed'),
     seed: (defaults) => ok(routes.seed.$post({ json: defaults }), 'Setting up the base profiles failed'),
@@ -60,71 +110,6 @@ export const serverBackend: DataBackend = {
   },
   profileOverrides: {
     list: () => ok(client.api['profile-overrides'].$get(), 'Loading the profiles failed'),
-  },
-};
-
-// ---- This browser tab ---------------------------------------------------------------
-// The demo keeps everything in the tab (src/utils/storage.ts, written to
-// sessionStorage), with the same behaviour as the server routes.
-
-function readList(): BaseProfile[] | null {
-  try {
-    const raw = storage.getItem(STORAGE_KEYS.baseProfiles);
-    return raw ? (JSON.parse(raw) as BaseProfile[]) : null;
-  } catch {
-    return null;
-  }
-}
-
-function changeList(change: (list: BaseProfile[]) => BaseProfile[] | null): Promise<BaseProfile[]> {
-  const next = change(readList() ?? []);
-  if (!next) return Promise.reject(new Error('No such base profile.'));
-  storage.setItem(STORAGE_KEYS.baseProfiles, JSON.stringify(next));
-  return Promise.resolve(next);
-}
-
-const known = (list: BaseProfile[], id: string) => list.some((p) => p.id === id);
-
-export const localBackend: DataBackend = {
-  baseProfiles: {
-    list: () => Promise.resolve(readList()),
-    seed: (defaults) => {
-      const current = readList();
-      return current ? Promise.resolve(current) : changeList(() => defaults);
-    },
-    save: (profile) =>
-      changeList((list) =>
-        known(list, profile.id) ? list.map((p) => (p.id === profile.id ? profile : p)) : [...list, profile],
-      ),
-    trash: (id) => {
-      const deletedAt = new Date().toISOString();
-      return changeList((list) => (known(list, id) ? list.map((p) => (p.id === id ? { ...p, deletedAt } : p)) : null));
-    },
-    restore: (id) =>
-      changeList((list) =>
-        known(list, id)
-          ? list.map((p) => {
-              if (p.id !== id) return p;
-              const { deletedAt: _deletedAt, ...rest } = p;
-              return rest;
-            })
-          : null,
-      ),
-    remove: (id) => changeList((list) => (known(list, id) ? list.filter((p) => p.id !== id) : null)),
-  },
-  profileOverrides: {
-    list: () => {
-      const overrides: ProfileOverrides = {};
-      for (const language of LANGUAGES) {
-        try {
-          const raw = storage.getItem(STORAGE_KEYS.profileOverride(language));
-          if (raw) overrides[language] = JSON.parse(raw) as Profile;
-        } catch {
-          // A corrupt one reads as missing.
-        }
-      }
-      return Promise.resolve(overrides);
-    },
   },
 };
 

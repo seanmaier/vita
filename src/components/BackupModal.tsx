@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { exportAllData, downloadBackup, parseBackup, importBackup } from '../utils/dataBackup';
 import type { DataBackup } from '../utils/dataBackup';
 import { useAllBaseProfiles } from '../api/baseProfiles';
+import { useStoredApplications } from '../api/applications';
+import { useProfileOverrides } from '../api/languageProfiles';
+import { combine } from '../api/combine';
 
 interface Props {
   onClose: () => void;
@@ -21,9 +24,13 @@ export function BackupModal({ onClose }: Props) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const baseProfiles = useAllBaseProfiles();
+  const source = combine({
+    baseProfiles: useAllBaseProfiles(),
+    applications: useStoredApplications(),
+    profileOverrides: useProfileOverrides(),
+  });
   const handleExport = () => {
-    if (baseProfiles.data) downloadBackup(exportAllData(baseProfiles.data));
+    if (source.data) downloadBackup(exportAllData(source.data));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +106,7 @@ export function BackupModal({ onClose }: Props) {
             <button
               className="self-start font-mono text-[11px] bg-accent text-ink font-semibold border-none rounded px-4 py-1.5 cursor-pointer transition-[filter] duration-150 hover:brightness-110 disabled:opacity-60 disabled:cursor-default"
               onClick={handleExport}
-              disabled={!baseProfiles.data}
+              disabled={!source.data}
             >
               Download backup (.json)
             </button>

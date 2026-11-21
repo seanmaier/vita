@@ -15,6 +15,12 @@ export function languageProfiles(overrides: ProfileOverrides): LanguageProfiles 
   return Object.fromEntries(LANGUAGES.map((l) => [l, overrides[l] ?? getStaticProfile(l)])) as LanguageProfiles;
 }
 
+/** The user's old edits to the language defaults, as stored. */
+export function useProfileOverrides() {
+  const backend = useBackend().profileOverrides;
+  return useQuery({ queryKey: profileOverridesKey, queryFn: backend.list });
+}
+
 export function useLanguageProfiles() {
   const backend = useBackend().profileOverrides;
   return useQuery({ queryKey: profileOverridesKey, queryFn: backend.list, select: languageProfiles });
