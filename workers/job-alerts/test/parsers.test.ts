@@ -67,7 +67,7 @@ test('stepstone: id from inline.html link, url without query', async () => {
   });
 });
 
-test('indeed: id from jk parameter, company and location from the card', async () => {
+test('indeed: id from jk parameter, company, location and the rest of the card as snippet', async () => {
   const leads = await parseAlert('indeed', fixture('indeed'));
   expect(leads).toEqual([
     {
@@ -76,6 +76,7 @@ test('indeed: id from jk parameter, company and location from the card', async (
       title: 'Frontend Developer React (m/w/d)',
       company: 'Beispiel Firma GmbH',
       location: 'Berlin',
+      snippet: 'Einfach bewerben · Gerade geschaltet',
       url: 'https://de.indeed.com/viewjob?jk=1a2b3c4d5e6f7a8b',
     },
     {
@@ -84,6 +85,7 @@ test('indeed: id from jk parameter, company and location from the card', async (
       title: 'TypeScript Entwickler & Architekt',
       company: '100 - Muster Logistik SE & Co. KG',
       location: 'Hamburg',
+      snippet: '65.000 € – 90.000 € pro Jahr · Vor 1 Tag',
       url: 'https://de.indeed.com/viewjob?jk=ffeeddccbbaa9988',
     },
     {
@@ -106,6 +108,7 @@ test('glassdoor: a card that is one big link yields the bold title plus company 
       title: 'Frontend Engineer – Web & Mobile (m/w/d)',
       company: 'Beispiel Firma GmbH',
       location: 'Hamburg',
+      snippet: '2.6 ★ · 11T',
       url: 'https://www.glassdoor.de/job-listing/index.htm?jl=1009876543210',
     },
     {
@@ -114,6 +117,7 @@ test('glassdoor: a card that is one big link yields the bold title plus company 
       title: 'Fullstack Entwickler',
       company: 'Muster AG',
       location: 'Remote',
+      snippet: '24h',
       url: 'https://www.glassdoor.de/job-listing/index.htm?jl=1009876500001',
     },
   ]);
@@ -140,6 +144,7 @@ test('instaffo: digest titles from the html, job urls from the text part, withou
       title: 'Softwareentwickler Fullstack (m/w/d)',
       company: 'Beispiel Products AG',
       location: 'Münster',
+      snippet: 'Gehalt: Entspricht deinem Wunschgehalt · Remote: Hybrid',
       url: 'https://app.instaffo.com/candidate/job/04bb1c47-dbd8-4106-ae2a-d0c7e6c9f54d',
     },
     {
@@ -148,6 +153,7 @@ test('instaffo: digest titles from the html, job urls from the text part, withou
       title: 'Fullstack-Developer (m/w/d) für C# & An…',
       company: 'Muster GmbH',
       location: 'Mannheim',
+      snippet: 'Gehalt: 40.000 € – 65.000 €',
       url: 'https://app.instaffo.com/candidate/job/d0c595df-ae1b-4d91-b4ca-4c67c997a676',
     },
   ]);
