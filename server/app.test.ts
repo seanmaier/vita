@@ -49,12 +49,12 @@ describe('session login', () => {
     expect((await app.request('/api/me')).status).toBe(401);
   });
 
-  it('logs in with a cookie that works for /api/me, /api/data and /api/v1', async () => {
+  it('logs in with a cookie that works for /api/me, the app routes and /api/v1', async () => {
     const user = await createUser();
     const cookie = await sessionCookie(user.username);
     const me = await app.request('/api/me', { headers: { cookie } });
     expect(await me.json()).toMatchObject({ username: user.username, admin: false });
-    expect((await app.request('/api/data', { headers: { cookie } })).status).toBe(200);
+    expect((await app.request('/api/settings', { headers: { cookie } })).status).toBe(200);
     expect((await app.request('/api/v1/me', { headers: { cookie } })).status).toBe(200);
   });
 
@@ -75,10 +75,9 @@ describe('CSRF', () => {
   it('refuses a cookie-authenticated form post from another site', async () => {
     const user = await createUser();
     const cookie = await sessionCookie(user.username);
-    const res = await app.request('/api/data', {
+    const res = await app.request('/api/settings/tour-seen', {
       method: 'PUT',
       headers: { cookie, origin: 'https://evil.example', 'content-type': 'text/plain' },
-      body: JSON.stringify({ set: { x: 'y' } }),
     });
     expect(res.status).toBe(403);
   });
@@ -137,7 +136,7 @@ describe('API tokens', () => {
   it('is not accepted outside /api/v1', async () => {
     const user = await createUser();
     const authorization = `Bearer ${tokenFor(user.id, 'full')}`;
-    expect((await app.request('/api/data', { headers: { authorization } })).status).toBe(401);
+    expect((await app.request('/api/settings', { headers: { authorization } })).status).toBe(401);
     expect((await app.request('/api/tokens', { headers: { authorization } })).status).toBe(401);
   });
 });

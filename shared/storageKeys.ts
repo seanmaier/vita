@@ -1,6 +1,7 @@
-// Every key of a user's stored data: the rows of the server's kv table, which
-// the browser keeps an in-memory copy of (src/utils/storage.ts). Frontend,
-// server and backups all name keys through this file.
+// Every key of a user's stored data. The server maps each to its table rows
+// (server/userData.ts), backup files are made of them, and the demo keeps its
+// data in the tab under them (src/utils/storage.ts). All of them name keys
+// through this file.
 //
 // Renaming a key orphans everything already stored under the old name, in the
 // database and in backup files: that needs a migration (see /datenmigration).

@@ -72,16 +72,12 @@ describe('app application routes', () => {
     expect(bundled).toMatchObject({ id: 'from-file', config: null, savedEdits: { company: 'F' }, statusHistory: null });
   });
 
-  it('are closed to API tokens and refuse raw writes from the old version', async () => {
-    const { app, userId, raw } = await session();
+  it('are closed to API tokens', async () => {
+    const { app, userId } = await session();
     const token = createApiToken(userId, 'apps-test', 'full');
     if (!token.ok) throw new Error(token.error);
     expect(
       (await app.request('/api/applications', { headers: { authorization: `Bearer ${token.token}` } })).status,
     ).toBe(401);
-    for (const key of ['local-apps', 'app-config-acme', 'status-history-acme']) {
-      const res = await raw('PUT', '/api/data', { set: {}, remove: [key] });
-      expect(res.status, key).toBe(400);
-    }
   });
 });
