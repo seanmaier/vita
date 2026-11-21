@@ -1,6 +1,8 @@
 # Replacing the kv rows with tables
 
-Status: proposal, waiting for a decision before anything is implemented.
+Status: approved. Step 1 is implemented (server/userData.ts). Decisions:
+a backup before the deploy is the rollback for step 1 (no double writes);
+step 2 uses TanStack Query; step 3 follows once step 1 has run in production.
 
 ## Problem
 

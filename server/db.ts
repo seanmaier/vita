@@ -32,7 +32,9 @@ db.exec(`
   );
 
   -- Mirrors the browser's former localStorage layout: one row per key, value
-  -- kept as the exact string the frontend wrote, scoped per user.
+  -- kept as the exact string the frontend wrote, scoped per user. Read only
+  -- by the one-off move into tables (server/userData.ts); kept untouched so
+  -- the previous version still finds its data after a rollback.
   CREATE TABLE IF NOT EXISTS kv (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     key     TEXT NOT NULL,
@@ -80,6 +82,12 @@ db.exec(`
     forwarding_from TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  -- Facts about the database itself, e.g. when a one-off migration ran.
+  CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS inbound_events (
     id           INTEGER PRIMARY KEY,
     user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -116,7 +124,8 @@ export function migrate(): void {
     // regular user; admins are made only with the CLI (server/cli.ts admin).
     db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
   }
-  migrateStatusHistories();
+  // Works on the kv rows, so only before they were moved into tables.
+  if (!db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()) migrateStatusHistories();
 }
 
 function parseJsonValue<T>(raw: string | undefined): T | null {

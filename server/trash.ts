@@ -1,7 +1,7 @@
 import { isPurgeDue } from '#shared/utils/trash.ts';
-import { db, transaction } from './db.ts';
+import { transaction } from './db.ts';
 import { deleteVersions } from './history.ts';
-import { KEYS, removeValue, setJson } from './store.ts';
+import { KEYS, removeValue, setJson, valuesOfAllUsers } from './store.ts';
 
 interface Trashable {
   id: string;
@@ -13,15 +13,11 @@ interface Trashable {
  * time in the trash is up, for every user, and returns them per user.
  */
 function purgeList(key: string, now: number): { userId: number; purged: Trashable[] }[] {
-  const rows = db.prepare('SELECT user_id, value FROM kv WHERE key = ?').all(key) as {
-    user_id: number;
-    value: string;
-  }[];
   const result: { userId: number; purged: Trashable[] }[] = [];
-  for (const row of rows) {
+  for (const { userId, value } of valuesOfAllUsers(key)) {
     let list: unknown;
     try {
-      list = JSON.parse(row.value);
+      list = JSON.parse(value);
     } catch {
       continue; // Leave a corrupt value for the user to notice rather than erasing it.
     }
@@ -30,11 +26,11 @@ function purgeList(key: string, now: number): { userId: number; purged: Trashabl
     const purged = (list as Trashable[]).filter(due);
     if (!purged.length) continue;
     setJson(
-      row.user_id,
+      userId,
       key,
       (list as Trashable[]).filter((item) => !due(item)),
     );
-    result.push({ userId: row.user_id, purged });
+    result.push({ userId, purged });
   }
   return result;
 }
