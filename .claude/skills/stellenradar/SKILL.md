@@ -34,11 +34,14 @@ Radar entscheidet nichts und bewirbt sich nirgends; es sortiert nur vor.
 2. **Einsammeln.** Für jede Suche (`"<Begriff>" in <Ort>, <km> km`):
    ```bash
    node scripts/arbeitsagentur.ts --was "<Begriff>" --wo "<Ort>" --umkreis <km> --tage 1 --body > <datei.json>
-   node scripts/api.ts POST job-leads <datei.json>
+   node -e "process.exit(JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).leads.length ? 0 : 3)" <datei.json> && node scripts/api.ts POST job-leads <datei.json>
    ```
-   Die Antwort nennt `created`, `duplicates` und `updated`; bekannte Leads legt der Server
-   nicht neu an, sondern frischt nur Titel, URL, Firma und Ort auf. Bei Fehler
-   einer Suche mit den übrigen weitermachen und den Fehler am Ende nennen.
+   Die mittlere Zeile prüft, ob die Suche Treffer hat: Bei `"leads": []` endet sie mit Exit 3
+   und der POST entfällt, denn der Server lehnt eine leere Liste mit 400 ab. Das zählt im
+   Ergebnis als „0 Treffer“, nicht als Fehler. Die Antwort des POST nennt `created`,
+   `duplicates` und `updated`; bekannte Leads legt der Server nicht neu an, sondern frischt
+   nur Titel, URL, Firma und Ort auf. Bei Fehler einer Suche mit den übrigen weitermachen
+   und den Fehler am Ende nennen.
 3. **Offene Leads holen:** `node scripts/api.ts GET "job-leads?status=new&limit=200"`
    (neueste zuerst, Liste von Leads mit `id`, `title`, `company`, `location`, `url` und, bei
    Leads aus Alert-Mails, oft `snippet`: was die Mail sonst zum Job sagt, z. B. Gehalt,
