@@ -1,6 +1,6 @@
 // Pure validation for job leads, shared by the POST and PATCH routes.
 import { z } from 'zod';
-import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus } from '#shared/types.ts';
+import type { FitCriterion, JobLeadInput, JobLeadSource, JobLeadStatus, RatingBasis } from '#shared/types.ts';
 import { criteriaScore, validateCriteria, validateExclusion } from '#shared/utils/fitCriteria.ts';
 import { check } from '#shared/validation/issues.ts';
 import type { Body, Validated } from './http.ts';
@@ -15,6 +15,7 @@ export const LEAD_SOURCES = [
   'other',
 ] as const satisfies readonly JobLeadSource[];
 export const LEAD_STATUSES = ['new', 'rated', 'dismissed', 'applied'] as const satisfies readonly JobLeadStatus[];
+export const RATING_BASES = ['read', 'estimated'] as const satisfies readonly RatingBasis[];
 
 /** A trimmed string of min–max characters. */
 const trimmed = (min: number, max: number) =>
@@ -24,9 +25,13 @@ const trimmed = (min: number, max: number) =>
     .refine((s) => s.length >= min && s.length <= max, { error: `must be ${min}-${max} characters` });
 
 /** An optional text: missing, null and blank all mean "not given". */
-const optionalText = trimmed(0, 200)
-  .nullish()
-  .transform((s) => s || undefined);
+const optionalText = (max: number) =>
+  trimmed(0, max)
+    .nullish()
+    .transform((s) => s || undefined);
+
+/** The longest snippet an alert may carry. */
+export const MAX_SNIPPET = 500;
 
 const leadSchema: z.ZodType<JobLeadInput> = z
   .strictObject(
@@ -34,8 +39,9 @@ const leadSchema: z.ZodType<JobLeadInput> = z
       source: z.enum(LEAD_SOURCES, { error: `must be one of ${LEAD_SOURCES.join(', ')}` }),
       externalId: trimmed(1, 200),
       title: trimmed(1, 300),
-      company: optionalText,
-      location: optionalText,
+      company: optionalText(200),
+      location: optionalText(200),
+      snippet: optionalText(MAX_SNIPPET),
       url: z.preprocess(
         (v) => (typeof v === 'string' ? v.trim() : ''),
         z
@@ -49,13 +55,14 @@ const leadSchema: z.ZodType<JobLeadInput> = z
         issue.code === 'unrecognized_keys' ? `unknown field(s): ${issue.keys.join(', ')}` : 'must be an object',
     },
   )
-  .transform(({ source, externalId, title, company, location, url }) => ({
+  .transform(({ source, externalId, title, company, location, snippet, url }) => ({
     source,
     externalId,
     title,
     url,
     ...(company && { company }),
     ...(location && { location }),
+    ...(snippet && { snippet }),
   }));
 
 export function validateLeadInput(input: unknown): Validated<JobLeadInput> {
@@ -70,12 +77,14 @@ export interface LeadPatch {
   /** The breakdown of the rating; only together with `score`, null removes it. */
   criteria?: FitCriterion[] | null;
   exclusion?: string | null;
+  /** What the rating rests on; only together with `score`. A breakdown implies `read`. */
+  basis?: RatingBasis;
 }
 
-export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion'] as const;
+export const PATCH_FIELDS = ['status', 'score', 'verdict', 'applicationId', 'criteria', 'exclusion', 'basis'] as const;
 
-// The plain fields of a patch; criteria and exclusion depend on each other
-// and on the score, so validateRating checks those.
+// The plain fields of a patch; criteria, exclusion and basis depend on each
+// other and on the score, so validateRating checks those.
 const patchSchema = z.object({
   status: z.enum(LEAD_STATUSES, { error: `must be one of ${LEAD_STATUSES.join(', ')}` }).optional(),
   score: z
@@ -114,8 +123,20 @@ export function validatePatch(body: Body): Validated<LeadPatch> {
   return errors.length ? { ok: false, errors } : { ok: true, value: patch };
 }
 
-/** The criteria breakdown must come with the score it explains; the score may sit below it after a cap. */
+/**
+ * The criteria breakdown must come with the score it explains; the score may sit below it after a cap.
+ * An estimated rating (the posting was not readable) has no breakdown but may still name an exclusion.
+ */
 function validateRating(body: Body, patch: LeadPatch, errors: string[]): void {
+  if ('basis' in body) {
+    if (!(RATING_BASES as readonly unknown[]).includes(body.basis)) {
+      errors.push(`basis: must be one of ${RATING_BASES.join(', ')}`);
+    } else if (typeof patch.score !== 'number') errors.push('basis: needs a score in the same request');
+    else patch.basis = body.basis as RatingBasis;
+  }
+  if (patch.basis === 'estimated' && 'criteria' in body && body.criteria !== null) {
+    errors.push('criteria: an estimated rating has no breakdown');
+  }
   if ('criteria' in body && body.criteria !== null) {
     const criteria = validateCriteria(body.criteria, 'criteria', errors);
     if (typeof patch.score !== 'number') errors.push('criteria: needs a score in the same request');
@@ -125,9 +146,10 @@ function validateRating(body: Body, patch: LeadPatch, errors: string[]): void {
     if (criteria) patch.criteria = criteria;
   } else if ('criteria' in body) patch.criteria = null;
   if ('exclusion' in body) {
-    // Also for null: an exclusion only ever travels with its breakdown.
-    if (!patch.criteria) errors.push('exclusion: needs a criteria breakdown');
-    else if (body.exclusion !== null) {
+    // Also for null: an exclusion only ever travels with its breakdown, or with an estimate.
+    if (!patch.criteria && patch.basis !== 'estimated') {
+      errors.push('exclusion: needs a criteria breakdown or basis "estimated"');
+    } else if (body.exclusion !== null) {
       const exclusion = validateExclusion(body.exclusion, 'exclusion', errors);
       if (exclusion) patch.exclusion = exclusion;
     }
