@@ -1,10 +1,16 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, StatusTransition } from '#shared/types.ts';
+import type {
+  ApplicationConfig,
+  ApplicationStatus,
+  AppLanguage,
+  BaseProfile,
+  Profile,
+  StatusTransition,
+} from '#shared/types.ts';
 import { BACKUP_KEYS, mergeBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
 import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 import { isDemo } from '../demo/demoMode';
 import { client, errorFrom } from './apiClient';
 import { storage, flush } from './storage';
-import { getAllBaseProfiles } from './baseProfiles';
 
 export type { DataBackup } from '#shared/domain/backupMerge.ts';
 export { parseBackup, type ParseBackupResult } from '#shared/domain/backupMerge.ts';
@@ -18,8 +24,13 @@ function parse<T>(raw: string | null): T | null {
   }
 }
 
-/** Gathers every application, status history, saved edit, base profile, and profile customization stored for the logged-in user. */
-export function exportAllData(): DataBackup {
+/**
+ * Gathers every application, status history, saved edit, base profile, and
+ * profile customization stored for the logged-in user. `baseProfiles` is the
+ * whole list from useAllBaseProfiles, trash included, so importing keeps
+ * trashed ones restorable.
+ */
+export function exportAllData(baseProfiles: BaseProfile[]): DataBackup {
   const localApps = parse<ApplicationConfig[]>(storage.getItem(BACKUP_KEYS.localApps)) ?? [];
   const statusHistories: Record<string, StatusTransition[]> = {};
   const legacyStatuses: Record<string, ApplicationStatus> = {};
@@ -46,11 +57,6 @@ export function exportAllData(): DataBackup {
     if (!statusHistories[id])
       statusHistories[id] = seedHistory(status, configOverrides[id] ?? localApps.find((a) => a.id === id) ?? {});
   }
-
-  // Goes through getAllBaseProfiles so an account that never opened the profiles
-  // page still exports the profiles it would show (seeded from the legacy ones).
-  // Trashed profiles are included, so importing keeps them restorable.
-  const baseProfiles = getAllBaseProfiles();
 
   return {
     version: 3,

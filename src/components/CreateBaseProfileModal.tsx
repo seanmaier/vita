@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { AppLanguage, BaseProfile, Profile } from '#shared/types.ts';
 import { getStaticProfile } from '../data/profiles';
-import { blankProfile, saveBaseProfile, uniqueBaseProfileId } from '../utils/baseProfiles';
+import { blankProfile, uniqueBaseProfileId } from '../utils/baseProfiles';
+import { useAllBaseProfiles, useBaseProfileMutations } from '../api/baseProfiles';
+import { Spinner } from './Skeleton';
 import { parseProfile } from '#shared/validation/parseProfile.ts';
 import { JsonFileButton } from './JsonFileButton';
 import { nafSection, nafLabel, nafInput, nafAddBtn } from '../styles/formStyles';
@@ -21,8 +23,11 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
   const [startFrom, setStartFrom] = useState<StartFrom>('language-default');
   const [jsonText, setJsonText] = useState('');
   const [jsonErrors, setJsonErrors] = useState<string[]>([]);
+  // Trashed profiles keep their id until purged, so new ids avoid them too.
+  const allProfiles = useAllBaseProfiles().data ?? existingProfiles;
+  const { save } = useBaseProfileMutations();
 
-  const canCreate = name.trim() !== '' && (startFrom !== 'json' || jsonText.trim() !== '');
+  const canCreate = name.trim() !== '' && (startFrom !== 'json' || jsonText.trim() !== '') && !save.isPending;
 
   const handleCreate = () => {
     if (!canCreate) return;
@@ -44,10 +49,9 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
             : { ...existingProfiles.find((p) => p.id === startFrom.slice('duplicate:'.length))!.profile };
     }
 
-    const id = uniqueBaseProfileId(name);
+    const id = uniqueBaseProfileId(name, allProfiles);
     const baseProfile: BaseProfile = { id, name: name.trim(), language, profile };
-    saveBaseProfile(baseProfile);
-    onCreated(id);
+    save.mutate(baseProfile, { onSuccess: () => onCreated(id) });
   };
 
   return (
@@ -139,6 +143,12 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
           </div>
         )}
 
+        {save.error && (
+          <p role="alert" className="font-mono text-[11px] text-status-rejected m-0">
+            {save.error.message}
+          </p>
+        )}
+
         <div className="flex justify-end gap-2 mt-1">
           <button
             className="font-mono text-[11px] bg-transparent text-ink-3 border border-white/12 rounded px-3.5 py-[6px] cursor-pointer hover:text-ink-invert"
@@ -151,7 +161,7 @@ export function CreateBaseProfileModal({ existingProfiles, onClose, onCreated }:
             onClick={handleCreate}
             disabled={!canCreate}
           >
-            Create
+            {save.isPending ? <Spinner /> : 'Create'}
           </button>
         </div>
       </div>

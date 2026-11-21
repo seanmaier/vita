@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { hydrate, setStorageBackend } from '../utils/storage';
 import { getConfigOverride } from '../utils/appStorage';
 import { EditApplicationPage } from './EditApplicationPage';
+import { withData } from '../test/withData';
 
 const stored = {
   id: 'acme',
@@ -15,7 +16,8 @@ const stored = {
   appliedDate: '2026-11-01',
 };
 
-function renderEditor() {
+/** Opens the editor and waits for it to load. */
+async function renderEditor() {
   // A data router, since the page blocks leaving with unsaved edits.
   const router = createMemoryRouter(
     [
@@ -25,7 +27,8 @@ function renderEditor() {
     ],
     { initialEntries: ['/application/acme/edit'] },
   );
-  render(<RouterProvider router={router} />);
+  render(withData(<RouterProvider router={router} />));
+  await screen.findByDisplayValue('Developer');
 }
 
 function Opened() {
@@ -39,7 +42,7 @@ describe('EditApplicationPage', () => {
   });
 
   it('saves the edited role as the application’s saved edits and opens it', async () => {
-    renderEditor();
+    await renderEditor();
     fireEvent.change(screen.getByDisplayValue('Developer'), { target: { value: 'Senior Developer' } });
     // The header's button; the change bar under the form has one too.
     await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
@@ -49,7 +52,7 @@ describe('EditApplicationPage', () => {
   });
 
   it('asks before leaving with unsaved edits, and stays on "Cancel"', async () => {
-    renderEditor();
+    await renderEditor();
     fireEvent.change(screen.getByDisplayValue('Acme'), { target: { value: 'Acme GmbH' } });
     await userEvent.click(screen.getByRole('link', { name: '← Acme' }));
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
@@ -59,7 +62,7 @@ describe('EditApplicationPage', () => {
   });
 
   it('shows the cover letter fields once it is switched on', async () => {
-    renderEditor();
+    await renderEditor();
     await userEvent.click(screen.getByRole('checkbox', { name: 'Include cover letter' }));
     expect(screen.getByPlaceholderText('defaults to Hiring Team')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Paragraph 1')).toBeInTheDocument();

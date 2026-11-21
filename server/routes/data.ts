@@ -14,6 +14,13 @@ import { allValues, getJson, KEYS, parseJson, removeValue, setValue } from '../s
 // Mounted at /api, so requireUser goes on each route: a wildcard middleware
 // here would also catch /api/login and /api/v1.
 
+/**
+ * Keys the app now saves through their own routes (e.g. /api/base-profiles)
+ * rather than as raw storage. Refused here, so a tab still running the
+ * previous version can't overwrite them with its stale copy.
+ */
+const MOVED_KEYS: readonly string[] = [KEYS.baseProfiles];
+
 const isStringRecord = (v: unknown): v is Record<string, string> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === 'string');
 
@@ -48,6 +55,11 @@ export const dataRoutes = new Hono<SessionEnv>()
         },
         400,
       );
+    }
+
+    const moved = [...Object.keys(rawSet), ...(rawRemove as string[])].filter((k) => MOVED_KEYS.includes(k));
+    if (moved.length) {
+      return c.json({ error: `These are saved differently now; reload the page. Refused: ${moved.join(', ')}.` }, 400);
     }
 
     const userId = c.get('user').id;

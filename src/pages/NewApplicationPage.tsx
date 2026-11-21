@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import type { AppLanguage, BaseProfile } from '#shared/types.ts';
 import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
 import { getProfile } from '../data/profiles';
-import { getBaseProfiles } from '../utils/baseProfiles';
+import { useBaseProfiles } from '../api/baseProfiles';
+import { QueryState } from '../components/QueryState';
 import { saveLocalApplication } from '../utils/localApplications';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
@@ -16,8 +17,13 @@ import { JsonPreviewPanel } from './newApplication/JsonPreviewPanel';
 import { newApplicationConfig, type NewApplicationForm } from './newApplication/newApplicationConfig';
 
 export function NewApplicationPage() {
+  return (
+    <QueryState query={useBaseProfiles()}>{(profiles) => <NewApplicationContent baseProfiles={profiles} />}</QueryState>
+  );
+}
+
+function NewApplicationContent({ baseProfiles }: { baseProfiles: BaseProfile[] }) {
   const navigate = useNavigate();
-  const [baseProfiles] = useState(() => getBaseProfiles());
   const [step, setStep] = useState<'select-profile' | 'form'>(baseProfiles.length > 0 ? 'select-profile' : 'form');
   const [mobilePanel, setMobilePanel] = useState<'form' | 'json'>('form');
 
