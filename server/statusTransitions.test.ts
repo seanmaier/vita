@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest';
 import type { ApplicationConfig } from '#shared/types.ts';
 import { todayIso } from '#shared/utils/date.ts';
-import { refusedStorageKeys } from './statusHistory.ts';
 import { getJson, KEYS, setJson, setValue } from './store.ts';
 import { createTestUser, testApp } from './test/testApp.ts';
 
@@ -155,11 +154,4 @@ test('POST starts a draft with a history and refuses dates', async () => {
     json('POST', { company: 'Gamma', role: 'Dev', appliedDate: '01.10.2026' }),
   );
   expect(dated.status).toBe(400);
-});
-
-test('raw storage writes may not set status keys', () => {
-  expect(refusedStorageKeys(['app-config-a', 'status-a', 'status-history-a', 'local-apps'])).toEqual([
-    'status-a',
-    'status-history-a',
-  ]);
 });

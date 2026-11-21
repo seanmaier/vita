@@ -38,12 +38,3 @@ export function historyFor(
 export function writeHistory(userId: number, appId: string, history: StatusTransition[]): void {
   setJson(userId, KEYS.statusHistory(appId), history);
 }
-
-/**
- * Keys a raw storage write (PUT /api/data) may not set: the status changes
- * only through the transitions API, which enforces the rules. Removing them
- * stays allowed; the app does that when an application is deleted for good.
- */
-export function refusedStorageKeys(keys: string[]): string[] {
-  return keys.filter((k) => k.startsWith(KEYS.status('')));
-}

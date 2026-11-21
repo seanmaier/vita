@@ -1,8 +1,9 @@
-// Each user's stored data, in tables. The frontend still reads and writes
-// whole storage keys (local-apps, app-config-<id>, status-history-<id>, …;
+// Each user's stored data, in tables. Server code still names values by their
+// former storage keys (local-apps, app-config-<id>, status-history-<id>, …;
 // see shared/storageKeys.ts), so this module maps every key to rows and back:
 // reading a key returns exactly what was last written to it. Code that works
-// with a key goes through server/store.ts, which uses these functions.
+// with a key goes through server/store.ts, which uses these functions. Backup
+// files use the same keys.
 //
 // Lists (applications, base profiles, a status history) become one row per
 // entry, so SQL can see ids, order and trash state. A value that can't be
@@ -10,9 +11,9 @@
 // user_settings, the same place as keys without a table of their own, so
 // nothing written is ever lost.
 //
-// The plan this is step 1 of: docs/superpowers/specs/2026-11-19-kv-to-tables-design.md.
+// The plan behind this: docs/superpowers/specs/2026-11-19-kv-to-tables-design.md.
 import { KEY_PREFIXES, STORAGE_KEYS } from '#shared/storageKeys.ts';
-import { db } from './db.ts';
+import { db, hasKvTable } from './db.ts';
 
 db.exec(`
   -- One row per application the user has: its entry in their list (config,
@@ -403,21 +404,26 @@ export function valuesOfAllUsers(key: string): { userId: number; value: string }
 // ---- One-off move from the kv table ---------------------------------------------------
 
 /**
- * Copies every user's kv rows into the tables, once. Idempotent: skipped when
- * the `kv_moved_at` marker is set. The kv rows themselves stay untouched, so
- * the previous version still finds its data after a rollback (minus whatever
- * was written after the move).
+ * Moves a database from before tables (every value a kv row) into the tables
+ * and drops the kv table, in one transaction. A database whose rows were
+ * already copied (`kv_moved_at` set; the previous release kept them for a
+ * rollback) only loses the table. Without a kv table there is nothing to do,
+ * so restoring an old backup file still works.
  */
 export function moveKvToTables(): void {
-  if (db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()) return;
-  const rows = db.prepare('SELECT user_id, key, value FROM kv ORDER BY user_id, key').all() as {
-    user_id: number;
-    key: string;
-    value: string;
-  }[];
+  if (!hasKvTable()) return;
+  const moved = db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get() !== undefined;
   atomic(() => {
-    for (const row of rows) setValue(row.user_id, row.key, row.value);
-    db.prepare("INSERT INTO meta (key, value) VALUES ('kv_moved_at', ?)").run(new Date().toISOString());
+    if (!moved) {
+      const rows = db.prepare('SELECT user_id, key, value FROM kv ORDER BY user_id, key').all() as {
+        user_id: number;
+        key: string;
+        value: string;
+      }[];
+      for (const row of rows) setValue(row.user_id, row.key, row.value);
+      db.prepare("INSERT INTO meta (key, value) VALUES ('kv_moved_at', ?)").run(new Date().toISOString());
+    }
+    db.exec('DROP TABLE kv');
   });
 }
 

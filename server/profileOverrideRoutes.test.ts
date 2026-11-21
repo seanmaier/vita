@@ -16,9 +16,3 @@ it('lists only the languages with an old edit, to the session only', async () =>
   const byToken = await app.request('/api/profile-overrides', { headers: { authorization: `Bearer ${token.token}` } });
   expect(byToken.status).toBe(401);
 });
-
-it('refuses raw writes of an old edit from a tab on the old version', async () => {
-  const { call } = await loggedIn();
-  const res = await call('PUT', '/api/data', { set: { 'profile-override-en': '{}' }, remove: [] });
-  expect(res.status).toBe(400);
-});

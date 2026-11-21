@@ -13,7 +13,7 @@ import { authRoutes } from './routes/auth.ts';
 import { baseProfileRoutes } from './routes/baseProfiles.ts';
 import { profileOverrideRoutes } from './routes/profileOverrides.ts';
 import { settingsRoutes } from './routes/settings.ts';
-import { dataRoutes } from './routes/data.ts';
+import { importRoutes } from './routes/import.ts';
 import { tokenRoutes } from './routes/tokens.ts';
 import { requireUserOrToken } from './session.ts';
 import { v1 } from './v1.ts';
@@ -72,7 +72,7 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
     .route('/api/base-profiles', baseProfileRoutes)
     .route('/api/profile-overrides', profileOverrideRoutes)
     .route('/api/settings', settingsRoutes)
-    .route('/api', dataRoutes)
+    .route('/api', importRoutes)
     .route('/api/v1', v1);
 
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404));

@@ -1,7 +1,7 @@
 // Resource-oriented API for scripts and assistants (authenticated with an API
-// token or the session cookie). Unlike /api/data, which the frontend uses to
-// sync raw storage keys, these routes work on one application or base profile
-// at a time and return the merged, effective view of it.
+// token or the session cookie). Unlike the app's own routes (server/routes/),
+// these are strict: they work on one application or base profile at a time,
+// return the merged, effective view of it, and never delete for good.
 import { Hono, type Context } from 'hono';
 import {
   allowedNext,

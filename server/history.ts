@@ -155,16 +155,3 @@ export function getVersion(userId: number, appId: string, versionId: number): Ap
 export function deleteVersions(userId: number, appId: string): void {
   db.prepare('DELETE FROM app_versions WHERE user_id = ? AND app_id = ?').run(userId, appId);
 }
-
-/**
- * The application ids a raw storage write (PUT /api/data) may change the
- * content of: every saved-edits key it sets or removes, plus every entry of
- * the stored list when that is rewritten.
- */
-export function affectedAppIds(keys: string[], localAppsLists: (ApplicationConfig[] | null)[]): Set<string> {
-  const prefix = KEYS.appConfig('');
-  const ids = new Set<string>();
-  for (const key of keys) if (key.startsWith(prefix)) ids.add(key.slice(prefix.length));
-  for (const list of localAppsLists) for (const app of list ?? []) ids.add(app.id);
-  return ids;
-}

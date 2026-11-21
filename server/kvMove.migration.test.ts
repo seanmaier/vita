@@ -36,7 +36,7 @@ const user2: Record<string, string> = {
   'status-history-a': history,
 };
 
-test('every kv row moves into the tables and reads back the same, once', async () => {
+test('every kv row moves into the tables and reads back the same, then the kv table goes', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-move-kv-')), 'app.db');
   const old = new DatabaseSync(dbPath);
   old.exec(`
@@ -56,7 +56,6 @@ test('every kv row moves into the tables and reads back the same, once', async (
 
   process.env.DB_PATH = dbPath;
   const { db } = await import('./db.ts');
-  const kvBefore = db.prepare('SELECT user_id, key, value FROM kv ORDER BY user_id, key').all();
   const { allValues, getValue, moveKvToTables, setValue } = await import('./userData.ts');
 
   expect(allValues(1)).toEqual(user1);
@@ -73,12 +72,19 @@ test('every kv row moves into the tables and reads back the same, once', async (
     deleted_at: '2026-11-15T10:00:00.000Z',
   });
 
-  // The kv rows stay as they were, for a rollback to the previous version.
-  expect(db.prepare('SELECT user_id, key, value FROM kv ORDER BY user_id, key').all()).toEqual(kvBefore);
+  expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'kv'").get()).toBeUndefined();
   expect(db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()).toBeTruthy();
 
   // Once only: later changes in the tables survive another start.
   setValue(1, 'tour-seen', '2');
   moveKvToTables();
   expect(getValue(1, 'tour-seen')).toBe('2');
+
+  // A database the previous release already moved (its kv rows kept for a
+  // rollback) only loses the table; the stale rows don't overwrite anything.
+  db.exec('CREATE TABLE kv (user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL)');
+  db.prepare("INSERT INTO kv (user_id, key, value) VALUES (1, 'tour-seen', 'stale')").run();
+  moveKvToTables();
+  expect(getValue(1, 'tour-seen')).toBe('2');
+  expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'kv'").get()).toBeUndefined();
 });

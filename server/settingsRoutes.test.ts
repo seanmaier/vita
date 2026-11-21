@@ -10,12 +10,11 @@ describe('app settings routes', () => {
     expect(await (await call('GET', '/api/settings')).json()).toEqual({ tourSeen: true });
   });
 
-  it('are closed to API tokens and refuse the raw key from the old version', async () => {
-    const { app, userId, call } = await loggedIn();
+  it('are closed to API tokens', async () => {
+    const { app, userId } = await loggedIn();
     const token = createApiToken(userId, 'settings-test', 'full');
     if (!token.ok) throw new Error(token.error);
     const res = await app.request('/api/settings', { headers: { authorization: `Bearer ${token.token}` } });
     expect(res.status).toBe(401);
-    expect((await call('PUT', '/api/data', { set: { 'tour-seen': '1' }, remove: [] })).status).toBe(400);
   });
 });

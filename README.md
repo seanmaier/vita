@@ -215,7 +215,7 @@ the `key=value` format of Go's `slog`, Heroku and Grafana Loki. Every event
 is exactly one line and starts with `time`, `level` and `msg`:
 
 ```
-time=2026-11-10T09:12:03.512Z level=INFO msg=request method=PUT path=/api/data status=204 ms=4 user=sean ip=203.0.113.7 rid=3ca15044-…
+time=2026-11-10T09:12:03.512Z level=INFO msg=request method=PUT path=/api/applications/acme status=200 ms=4 user=sean ip=203.0.113.7 rid=3ca15044-…
 time=2026-11-10T09:12:41.020Z level=WARN msg="Login failed" user=sean ip=203.0.113.7
 ```
 

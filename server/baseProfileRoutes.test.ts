@@ -56,10 +56,4 @@ describe('app base profile routes', () => {
     const res = await app.request('/api/base-profiles', { headers: { authorization: `Bearer ${created.token}` } });
     expect(res.status).toBe(401);
   });
-
-  it('refuse raw writes of the list from a tab on the old version', async () => {
-    const res = await session('PUT', '/api/data', { set: { 'base-profiles': '[]' }, remove: [] });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ error: expect.stringContaining('reload the page') });
-  });
 });
