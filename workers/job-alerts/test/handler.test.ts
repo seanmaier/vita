@@ -245,6 +245,51 @@ test('two 502s lead to a temporary rejection after one retry', async () => {
   expect(m.rejects).toEqual(['Vita is unavailable right now; please forward this mail again later']);
 });
 
+test('every app call carries one X-Request-Id per mail, kept on the retry and logged as rid', async () => {
+  const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
+  const f = fakeFetch(502, 201);
+  const logs = await captureLogs(() => handleEmail(m.message, env, f.impl, noSleep));
+  const ids = f.calls.map((call) => (call.init.headers as Record<string, string>)['X-Request-Id']);
+  expect(ids[0]).toMatch(/^[0-9a-f-]{36}$/);
+  expect(ids[1]).toBe(ids[0]);
+  expect(logs).toEqual([expect.stringMatching(new RegExp(`^job-alerts: delivered .* rid=${ids[0]}$`))]);
+});
+
+test('two mails get different request IDs', async () => {
+  const idOf = async () => {
+    const f = fakeFetch(201);
+    await handleEmail(
+      fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml)).message,
+      env,
+      f.impl,
+      noSleep,
+    );
+    return (f.calls[0].init.headers as Record<string, string>)['X-Request-Id'];
+  };
+  expect(await idOf()).not.toBe(await idOf());
+});
+
+test('rejections and failures are logged with the request ID too', async () => {
+  const rejected = await captureLogs(() =>
+    handleEmail(
+      fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml)).message,
+      env,
+      fakeFetch(403).impl,
+      noSleep,
+    ),
+  );
+  const unavailable = await captureLogs(() =>
+    handleEmail(
+      fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml)).message,
+      env,
+      fakeFetch(502).impl,
+      noSleep,
+    ),
+  );
+  expect(rejected[0]).toMatch(/^job-alerts: rejected .* rid=[0-9a-f-]{36}/);
+  expect(unavailable[0]).toMatch(/^job-alerts: unavailable .* rid=[0-9a-f-]{36}/);
+});
+
 test('a network error followed by success is delivered', async () => {
   const m = fakeMessage(GMAIL_ENVELOPE, rawMail('jobalerts-noreply@linkedin.com', linkedinHtml));
   const f = fakeFetch(new Error('boom'), 201);
