@@ -71,6 +71,7 @@ db.exec(`
     rated_at       TEXT,
     application_id TEXT,
     rating         TEXT,
+    snippet        TEXT,
     UNIQUE (user_id, source, external_id)
   );
 
@@ -112,6 +113,10 @@ export function migrate(): void {
   if (!leadColumns.some((c) => c.name === 'rating')) {
     // The criteria breakdown of a rating; leads rated before it stay without one.
     db.exec('ALTER TABLE job_leads ADD COLUMN rating TEXT');
+  }
+  if (!leadColumns.some((c) => c.name === 'snippet')) {
+    // What the alert said beyond title, company and location; older leads have none.
+    db.exec('ALTER TABLE job_leads ADD COLUMN snippet TEXT');
   }
   const userColumns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
   if (!userColumns.some((c) => c.name === 'role')) {

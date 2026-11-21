@@ -1,16 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLeads, updateLead } from '../utils/api';
 import type { JobLead, JobLeadStatus } from '#shared/types.ts';
-import { CriteriaBreakdown } from '../components/CriteriaBreakdown';
 import { LeadListSkeleton } from '../components/Skeleton';
+import { actionButton, LeadRow, type LeadAction } from '../components/leads/LeadRow';
+import { UndoBar } from '../components/leads/UndoBar';
+import { byScoreDesc, groupLeads, TRIAGE_GROUPS, type TriageGroup } from '../utils/leadTriage';
 
 type Filter = Extract<JobLeadStatus, 'rated' | 'new' | 'dismissed'>;
 
 const FILTERS: { status: Filter; label: string }[] = [
-  { status: 'rated', label: 'Rated' },
-  { status: 'new', label: 'New' },
+  { status: 'rated', label: 'To decide' },
+  { status: 'new', label: 'Unrated' },
   { status: 'dismissed', label: 'Dismissed' },
+];
+
+const OPEN_ACTIONS: LeadAction[] = [
+  { label: 'Dismiss', status: 'dismissed' },
+  { label: 'Mark as applied', status: 'applied' },
+];
+
+/** A dismissed lead goes back to where it came from: rated if it has a score, else unrated. */
+const restoreAction = (lead: JobLead): LeadAction[] => [
+  { label: 'Restore', status: lead.score === null ? 'new' : 'rated' },
 ];
 
 const tabClass = (active: boolean) =>
@@ -18,64 +30,84 @@ const tabClass = (active: boolean) =>
     active ? 'border-accent text-accent' : 'border-transparent text-ink-3 hover:text-ink-invert'
   }`;
 
-const actionButton =
-  'font-mono text-[11px] bg-transparent border border-rule text-ink-2 rounded px-3 py-1.5 cursor-pointer transition-colors duration-150 hover:text-ink-invert hover:border-ink-2';
+const VERB: Partial<Record<JobLeadStatus, string>> = { dismissed: 'Dismissed', applied: 'Marked as applied' };
 
-/** Best score first; leads without a score last. */
-function byScoreDesc(a: JobLead, b: JobLead): number {
-  return (b.score ?? -1) - (a.score ?? -1);
+interface Counts {
+  rated: number;
+  new: number;
+  estimated: number;
 }
 
-/** Server order: newest first. */
-function byNewest(a: JobLead, b: JobLead): number {
-  return b.receivedAt.localeCompare(a.receivedAt);
+/** A change the user can still take back: the leads as they were before it. */
+interface Undoable {
+  message: string;
+  before: JobLead[];
+  /** The change itself, so an undo never overtakes it. */
+  saving: Promise<unknown>;
 }
 
-function scoreClass(score: number): string {
-  if (score >= 75) return 'text-status-offer border-status-offer';
-  if (score >= 50) return 'text-ink-2 border-ink-2';
-  return 'text-ink-3 border-rule';
+function sortFor(filter: Filter, leads: JobLead[]): JobLead[] {
+  return filter === 'rated'
+    ? [...leads].sort(byScoreDesc)
+    : [...leads].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 }
 
-function LeadCard({ lead, onSet }: { lead: JobLead; onSet: (status: 'dismissed' | 'applied') => void }) {
-  const meta = [lead.company, lead.location, lead.source].filter(Boolean).join(' · ');
+const message = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
+
+function Summary({ counts }: { counts: Counts | null }) {
+  if (!counts) return null;
+  const parts = [`${counts.rated} to decide`, `${counts.new} unrated`];
+  if (counts.estimated) parts.push(`${counts.estimated} of them estimated`);
+  return <p className="font-mono text-[11px] text-ink-3 m-0 mb-4">{parts.join(' · ')}</p>;
+}
+
+function GroupSection({
+  group,
+  leads,
+  onlyGroup,
+  onAction,
+  onDismissAll,
+}: {
+  group: (typeof TRIAGE_GROUPS)[number];
+  leads: JobLead[];
+  onlyGroup: boolean;
+  onAction: (lead: JobLead, status: JobLeadStatus) => void;
+  onDismissAll: () => void;
+}) {
+  const heading = (
+    <span className="font-mono text-[12px] text-ink-invert">
+      {group.label} <span className="text-ink-3">({leads.length})</span>
+      <span className="text-ink-3 text-[11px] ml-2">{group.hint}</span>
+    </span>
+  );
+  const list = (
+    <ul className="list-none p-0 m-0 mt-2 flex flex-col gap-2">
+      {leads.map((lead) => (
+        <LeadRow key={lead.id} lead={lead} actions={OPEN_ACTIONS} onAction={(status) => onAction(lead, status)} />
+      ))}
+    </ul>
+  );
+  if (group.group !== 'unlikely') {
+    return (
+      <section aria-label={group.label}>
+        <h2 className="m-0">{heading}</h2>
+        {list}
+      </section>
+    );
+  }
+  // Unlikely leads stay folded unless they are all there is, and can go in one step.
   return (
-    <li className="bg-surface border border-rule rounded-[5px] p-4 flex flex-col gap-2.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold text-ink-invert break-words m-0">{lead.title}</h2>
-          <p className="font-mono text-[11px] text-ink-3 break-words m-0 mt-1">{meta}</p>
-        </div>
-        {lead.score !== null && (
-          <span
-            className={`font-mono text-[12px] font-semibold border rounded px-2 py-0.5 shrink-0 ${scoreClass(lead.score)}`}
-            title="Match score"
-          >
-            {lead.score}%
-          </span>
-        )}
-      </div>
-      {lead.verdict && <p className="text-[12.5px] leading-[1.55] text-ink-2 m-0">{lead.verdict}</p>}
-      <CriteriaBreakdown criteria={lead.criteria} exclusion={lead.exclusion} />
-      <div className="flex flex-wrap items-center gap-2">
-        <a
-          className="font-mono text-[11px] text-accent no-underline hover:underline mr-2"
-          href={lead.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open posting ↗
-        </a>
-        {lead.status !== 'dismissed' && (
-          <button className={actionButton} type="button" onClick={() => onSet('dismissed')}>
-            Dismiss
+    <section aria-label={group.label}>
+      <details open={onlyGroup}>
+        <summary className="cursor-pointer select-none text-ink-3">{heading}</summary>
+        <div className="mt-2">
+          <button className={actionButton} type="button" onClick={onDismissAll}>
+            Dismiss all {leads.length}
           </button>
-        )}
-        <button className={actionButton} type="button" onClick={() => onSet('applied')}>
-          Mark as applied
-        </button>
-      </div>
-    </li>
+        </div>
+        {list}
+      </details>
+    </section>
   );
 }
 
@@ -83,11 +115,27 @@ export function LeadsPage() {
   const [filter, setFilter] = useState<Filter>('rated');
   // null while loading.
   const [leads, setLeads] = useState<JobLead[] | null>(null);
+  const [counts, setCounts] = useState<Counts | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  // The tab currently shown, so a late failure can tell whether it still applies.
+  const [undoable, setUndoable] = useState<Undoable | null>(null);
+  // The tab currently shown, so a late result can tell whether it still applies.
   const filterRef = useRef(filter);
   filterRef.current = filter;
+
+  const refreshCounts = useCallback(() => {
+    Promise.all([fetchLeads('rated'), fetchLeads('new')])
+      .then(([rated, unrated]) =>
+        setCounts({
+          rated: rated.length,
+          new: unrated.length,
+          estimated: rated.filter((l) => l.basis === 'estimated').length,
+        }),
+      )
+      .catch(() => setCounts(null));
+  }, []);
+
+  useEffect(refreshCounts, [refreshCounts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,33 +144,66 @@ export function LeadsPage() {
     setActionError(null);
     fetchLeads(filter)
       .then((list) => {
-        if (!cancelled) setLeads(filter === 'rated' ? [...list].sort(byScoreDesc) : list);
+        if (!cancelled) setLeads(sortFor(filter, list));
       })
       .catch((e) => {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Loading the job leads failed.');
+        if (!cancelled) setLoadError(message(e, 'Loading the job leads failed.'));
       });
     return () => {
       cancelled = true;
     };
   }, [filter]);
 
-  // Removes the lead right away and puts it back if the server refuses.
-  const setStatus = async (lead: JobLead, status: 'dismissed' | 'applied') => {
+  /** Puts leads back into the list shown, if they belong to the tab that is still open. */
+  const putBack = (from: Filter, back: JobLead[]) => {
+    if (filterRef.current !== from) return;
+    setLeads((cur) => cur && sortFor(from, [...cur.filter((l) => !back.some((b) => b.id === l.id)), ...back]));
+  };
+
+  // Takes the leads out right away and puts back those the server refuses.
+  const move = async (moved: JobLead[], status: JobLeadStatus, what: string) => {
     const from = filter;
     setActionError(null);
-    setLeads((cur) => cur && cur.filter((l) => l.id !== lead.id));
-    try {
-      await updateLead(lead.id, { status });
-    } catch (e) {
-      // The tab changed meanwhile: its list is reloaded anyway, and this lead doesn't belong in it.
-      if (filterRef.current !== from) return;
-      setActionError(e instanceof Error ? e.message : 'Updating the job lead failed.');
-      setLeads((cur) => {
-        if (!cur || cur.some((l) => l.id === lead.id)) return cur;
-        return [...cur, lead].sort(from === 'rated' ? byScoreDesc : byNewest);
-      });
+    setLeads((cur) => cur && cur.filter((l) => !moved.some((m) => m.id === l.id)));
+    const saving = Promise.allSettled(moved.map((l) => updateLead(l.id, { status })));
+    setUndoable({ message: what, before: moved, saving });
+    const results = await saving;
+    const failed = moved.filter((_, i) => results[i].status === 'rejected');
+    if (failed.length) {
+      const reason = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+      setActionError(message(reason.reason, 'Updating the job lead failed.'));
+      setUndoable(null);
+      putBack(from, failed);
     }
+    refreshCounts();
   };
+
+  const undo = async () => {
+    if (!undoable) return;
+    const { before, saving } = undoable;
+    setUndoable(null);
+    setActionError(null);
+    const from = filter;
+    try {
+      await saving;
+      await Promise.all(before.map((l) => updateLead(l.id, { status: l.status })));
+      putBack(
+        from,
+        before.filter((l) => l.status === from),
+      );
+    } catch (e) {
+      setActionError(message(e, 'Undoing failed.'));
+    }
+    refreshCounts();
+  };
+
+  const onAction = (lead: JobLead, status: JobLeadStatus) =>
+    void move([lead], status, `${VERB[status] ?? 'Restored'}: ${lead.title}`);
+
+  const hideUndo = useCallback(() => setUndoable(null), []);
+
+  const groups = leads && filter === 'rated' ? groupLeads(leads) : null;
+  const filled = groups ? TRIAGE_GROUPS.filter((g) => groups[g.group].length) : [];
 
   return (
     <div className="min-h-screen bg-bg pt-6 px-4 pb-32 max-w-[900px] mx-auto sm:pt-12 sm:px-8">
@@ -136,6 +217,8 @@ export function LeadsPage() {
           <span className="text-ink-3 animate-pulse"> _</span>
         </span>
       </header>
+
+      <Summary counts={counts} />
 
       <div className="flex border-b border-rule mb-5" role="tablist">
         {FILTERS.map((f) => (
@@ -159,14 +242,38 @@ export function LeadsPage() {
       ) : leads === null ? (
         <LeadListSkeleton />
       ) : leads.length === 0 ? (
-        <p className="font-mono text-[12px] text-ink-3">no job leads here.</p>
+        <p className="font-mono text-[12px] text-ink-3">
+          {filter === 'rated' ? 'nothing left to decide.' : 'no job leads here.'}
+        </p>
+      ) : groups ? (
+        <div className="flex flex-col gap-6">
+          {filled.map((g) => (
+            <GroupSection
+              key={g.group}
+              group={g}
+              leads={groups[g.group as TriageGroup]}
+              onlyGroup={filled.length === 1}
+              onAction={onAction}
+              onDismissAll={() =>
+                void move(groups.unlikely, 'dismissed', `Dismissed ${groups.unlikely.length} unlikely leads`)
+              }
+            />
+          ))}
+        </div>
       ) : (
-        <ul className="list-none p-0 m-0 flex flex-col gap-3">
+        <ul className="list-none p-0 m-0 flex flex-col gap-2">
           {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} onSet={(status) => void setStatus(lead, status)} />
+            <LeadRow
+              key={lead.id}
+              lead={lead}
+              actions={filter === 'dismissed' ? restoreAction(lead) : OPEN_ACTIONS}
+              onAction={(status) => onAction(lead, status)}
+            />
           ))}
         </ul>
       )}
+
+      {undoable && <UndoBar message={undoable.message} onUndo={() => void undo()} onDone={hideUndo} />}
     </div>
   );
 }
