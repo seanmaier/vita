@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { STORAGE_KEYS } from '#shared/storageKeys.ts';
 
 export interface TestUser {
   username: string;
@@ -36,21 +35,14 @@ export async function logIn(page: Page, user: TestUser): Promise<void> {
 }
 
 /**
- * Runs `action` and waits until the server stored the storage key it wrote.
- * The app batches writes and sends them to /api/data shortly after, so a
- * reload right away would lose them (a real browser asks before leaving;
- * Playwright's reload doesn't). Matching the key matters: another batch,
- * e.g. the base profiles seeded on the first login, may be in flight too.
+ * Skips the tour and waits until the server remembered it, so a reload right
+ * away doesn't bring it back.
  */
-export async function andSaved(page: Page, key: string, action: () => Promise<void>): Promise<void> {
+export async function skipTour(page: Page): Promise<void> {
   const saved = page.waitForResponse(
-    (res) =>
-      res.url().endsWith('/api/data') &&
-      res.request().method() === 'PUT' &&
-      (res.request().postData() ?? '').includes(`"${key}"`) &&
-      res.ok(),
+    (res) => res.url().endsWith('/api/settings/tour-seen') && res.request().method() === 'PUT' && res.ok(),
   );
-  await action();
+  await page.getByRole('button', { name: 'skip tour' }).click();
   await saved;
 }
 
@@ -58,6 +50,6 @@ export async function andSaved(page: Page, key: string, action: () => Promise<vo
 export async function logInFresh(page: Page): Promise<TestUser> {
   const user = createUser();
   await logIn(page, user);
-  await andSaved(page, STORAGE_KEYS.tourSeen, () => page.getByRole('button', { name: 'skip tour' }).click());
+  await skipTour(page);
   return user;
 }

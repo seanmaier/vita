@@ -3,7 +3,11 @@ import { TrashedNotice } from '../components/TrashedNotice';
 import { useParams, Link, useNavigate, useBlocker } from 'react-router-dom';
 import type { ApplicationConfig, BaseProfile, Profile, Experience, Project, HumanLanguage } from '#shared/types.ts';
 import { LANG_FLAGS } from '#shared/utils/language.ts';
-import { getBaseProfile, saveBaseProfile, trashBaseProfile, trashConfirmMessage } from '../utils/baseProfiles';
+import { trashConfirmMessage } from '../utils/baseProfiles';
+import { useAllBaseProfiles, useBaseProfileMutations } from '../api/baseProfiles';
+import { useApplications } from '../api/applications';
+import { QueryState } from '../components/QueryState';
+import { Spinner } from '../components/Skeleton';
 import { CVDocument } from '../components/cv/CVDocument';
 import { FitToWidth } from '../components/FitToWidth';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
@@ -79,22 +83,27 @@ const PREVIEW_APP: ApplicationConfig = { id: 'base-profile-preview', company: ''
 
 export function BaseProfileEditPage() {
   const { id } = useParams<{ id: string }>();
-  const stored = id ? getBaseProfile(id) : undefined;
-
-  if (!id || !stored) {
-    return (
-      <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
-        <p>Base profile not found.</p>
-        <Link className="text-accent" to="/profiles">
-          ← Back to base profiles
-        </Link>
-      </div>
-    );
-  }
-
-  if (stored.deletedAt) return <TrashedNotice name={stored.name} />;
-
-  return <BaseProfileEditContent stored={stored} />;
+  return (
+    <QueryState query={useAllBaseProfiles()}>
+      {(profiles) => {
+        const stored = id ? profiles.find((p) => p.id === id) : undefined;
+        if (!stored) {
+          return (
+            <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
+              <p>Base profile not found.</p>
+              <Link className="text-accent" to="/profiles">
+                ← Back to base profiles
+              </Link>
+            </div>
+          );
+        }
+        if (stored.deletedAt) return <TrashedNotice name={stored.name} />;
+        // Keyed by id, so the form starts over for another profile but keeps
+        // its edits when a save updates `stored`.
+        return <BaseProfileEditContent key={stored.id} stored={stored} />;
+      }}
+    </QueryState>
+  );
 }
 
 function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
@@ -107,6 +116,15 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
   const [imported, setImported] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'form' | 'preview'>('form');
+  const { save, trash } = useBaseProfileMutations();
+  const records = useApplications().data ?? [];
+  const current = (): BaseProfile => ({
+    id: stored.id,
+    name: name.trim() || stored.name,
+    language: stored.language,
+    profile,
+  });
+  const showError = (e: Error) => alert(e.message);
 
   // ── updaters ──────────────────────────────────────────────────────────────
 
@@ -135,16 +153,19 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
   // ── actions ───────────────────────────────────────────────────────────────
 
   const handleSave = () => {
-    saveBaseProfile({ id: stored.id, name: name.trim() || stored.name, language: stored.language, profile });
-    setIsDirty(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    save.mutate(current(), {
+      onSuccess: () => {
+        setIsDirty(false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      },
+      onError: showError,
+    });
   };
 
   const handleDelete = () => {
-    if (!confirm(trashConfirmMessage(stored))) return;
-    trashBaseProfile(stored.id);
-    navigate('/profiles');
+    if (!confirm(trashConfirmMessage(stored, records))) return;
+    trash.mutate(stored.id, { onSuccess: () => navigate('/profiles'), onError: showError });
   };
 
   const handleCopy = async () => {
@@ -213,8 +234,9 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
               saved ? 'bg-status-offer text-ink pointer-events-none' : 'bg-accent text-ink hover:opacity-90'
             }`}
             onClick={handleSave}
+            disabled={save.isPending}
           >
-            {saved ? 'Saved!' : 'Save'}
+            {save.isPending ? <Spinner /> : saved ? 'Saved!' : 'Save'}
           </button>
 
           <button
@@ -597,10 +619,7 @@ function BaseProfileEditContent({ stored }: { stored: BaseProfile }) {
         <UnsavedChangesDialog
           onCancel={() => blocker.reset()}
           onDiscard={() => blocker.proceed()}
-          onSave={() => {
-            saveBaseProfile({ id: stored.id, name: name.trim() || stored.name, language: stored.language, profile });
-            blocker.proceed();
-          }}
+          onSave={() => save.mutate(current(), { onSuccess: () => blocker.proceed(), onError: showError })}
         />
       )}
     </div>

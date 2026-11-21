@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { applications } from '../data/applications';
-import { getAllLocalApplications } from '../utils/localApplications';
+import { useApplications, type AppRecord } from '../api/applications';
+import { combine } from '../api/combine';
 import { TrashedNotice } from '../components/TrashedNotice';
 import { resolveApplicationProfile } from '../utils/baseProfiles';
+import { useProfiles, type Profiles } from '../api/profiles';
+import { QueryState } from '../components/QueryState';
 import { CVDocument } from '../components/cv/CVDocument';
 import { FitToWidth } from '../components/FitToWidth';
 import { CoverLetterDocument } from '../components/cover-letter/CoverLetterDocument';
@@ -28,31 +30,41 @@ import {
   ensureExportFolderPermission,
 } from '../utils/exportFolder';
 import { LANGUAGE_LABELS, languageOf } from '#shared/utils/language.ts';
-import type { ApplicationConfig, AppFont, CoverLetter } from '#shared/types.ts';
+import type { AppFont, CoverLetter } from '#shared/types.ts';
 
 export function ApplicationPage() {
   const { id } = useParams<{ id: string }>();
-  const staticApp = id ? [...applications, ...getAllLocalApplications()].find((a) => a.id === id) : undefined;
-
-  if (!staticApp) {
-    return (
-      <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
-        <p>Application not found.</p>
-        <Link className="text-accent" to="/">
-          ← Back to dashboard
-        </Link>
-      </div>
-    );
-  }
-
-  if (staticApp.deletedAt) return <TrashedNotice name={`${staticApp.company} – ${staticApp.role}`} />;
-
-  return <ApplicationContent staticApp={staticApp} />;
+  const query = combine({ records: useApplications(), profiles: useProfiles() });
+  return (
+    <QueryState query={query}>
+      {({ records, profiles }) => {
+        const record = id ? records.find((r) => r.app.id === id) : undefined;
+        return record ? <ApplicationOrTrashed record={record} profiles={profiles} /> : <NotFound />;
+      }}
+    </QueryState>
+  );
 }
 
-function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
-  const { app, save, isDirty } = useApplication(staticApp);
-  const { history, status, act, changeDate } = useApplicationStatus(staticApp);
+function NotFound() {
+  return (
+    <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
+      <p>Application not found.</p>
+      <Link className="text-accent" to="/">
+        ← Back to dashboard
+      </Link>
+    </div>
+  );
+}
+
+function ApplicationOrTrashed({ record, profiles }: { record: AppRecord; profiles: Profiles }) {
+  const { app } = record;
+  if (app.deletedAt) return <TrashedNotice name={`${app.company} – ${app.role}`} />;
+  return <ApplicationContent record={record} profiles={profiles} />;
+}
+
+function ApplicationContent({ record, profiles }: { record: AppRecord; profiles: Profiles }) {
+  const { app, save, isDirty } = useApplication(record);
+  const { history, status, act, changeDate } = useApplicationStatus(record);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFolderName, setExportFolderName] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -62,7 +74,7 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
   const cvExportRef = useRef<HTMLDivElement>(null);
   const clExportRef = useRef<HTMLDivElement>(null);
 
-  const profile = resolveApplicationProfile(app);
+  const profile = resolveApplicationProfile(app, profiles.baseProfiles, profiles.languages);
   const language = languageOf(app);
   const fsaSupported = isFileSystemAccessSupported();
 
@@ -197,7 +209,7 @@ function ApplicationContent({ staticApp }: { staticApp: ApplicationConfig }) {
           </select>
           <Link
             className="font-mono text-[11px] bg-white/7 text-ink-invert border border-white/18 rounded px-3.5 py-[5px] cursor-pointer tracking-[0.04em] no-underline hover:bg-white/14"
-            to={`/application/${staticApp.id}/edit`}
+            to={`/application/${app.id}/edit`}
             data-tour="edit"
           >
             Edit

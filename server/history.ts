@@ -6,7 +6,7 @@
 // format changes.
 import type { ApplicationConfig } from '#shared/types.ts';
 import { db } from './db.ts';
-import { getJson, KEYS } from './store.ts';
+import { applicationList, savedEdits } from './data/applications.ts';
 
 /** What a version holds: the application's content without status, trash state or notes. */
 export type VersionContent = Omit<ApplicationConfig, 'status' | 'deletedAt' | 'notes'>;
@@ -53,9 +53,9 @@ function contentOf(config: ApplicationConfig | Omit<ApplicationConfig, 'status'>
  * (e.g. an application bundled from private/applications/ without edits).
  */
 export function currentContent(userId: number, appId: string): VersionContent | null {
-  const override = getJson<Omit<ApplicationConfig, 'status'>>(userId, KEYS.appConfig(appId));
+  const override = savedEdits(userId, appId);
   if (override) return contentOf({ ...override, id: appId });
-  const base = getJson<ApplicationConfig[]>(userId, KEYS.localApps)?.find((a) => a.id === appId);
+  const base = applicationList(userId).find((a) => a.id === appId);
   return base ? contentOf(base) : null;
 }
 
@@ -154,17 +154,4 @@ export function getVersion(userId: number, appId: string, versionId: number): Ap
 
 export function deleteVersions(userId: number, appId: string): void {
   db.prepare('DELETE FROM app_versions WHERE user_id = ? AND app_id = ?').run(userId, appId);
-}
-
-/**
- * The application ids a raw storage write (PUT /api/data) may change the
- * content of: every saved-edits key it sets or removes, plus every entry of
- * the stored list when that is rewritten.
- */
-export function affectedAppIds(keys: string[], localAppsLists: (ApplicationConfig[] | null)[]): Set<string> {
-  const prefix = KEYS.appConfig('');
-  const ids = new Set<string>();
-  for (const key of keys) if (key.startsWith(prefix)) ids.add(key.slice(prefix.length));
-  for (const list of localAppsLists) for (const app of list ?? []) ids.add(app.id);
-  return ids;
 }

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { applications } from '../data/applications';
-import { getProfile } from '../data/profiles';
-import { getAllLocalApplications } from '../utils/localApplications';
-import { getBaseProfiles } from '../utils/baseProfiles';
+import { useApplications, type AppRecord } from '../api/applications';
+import { combine } from '../api/combine';
+import { useProfiles } from '../api/profiles';
+import type { LanguageProfiles } from '../api/languageProfiles';
+import { QueryState } from '../components/QueryState';
 import type { DiffNames } from '../utils/versionDiff';
-import type { ApplicationConfig } from '#shared/types.ts';
+import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
 import { useApplication } from '../hooks/useApplication';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { isDemo } from '../demo/demoMode';
@@ -21,15 +22,26 @@ import { EditFormFields } from './editApplication/EditFormFields';
 import { EditHeader } from './editApplication/EditHeader';
 import { EditPreviewPanel } from './editApplication/EditPreviewPanel';
 
-// Inner component — staticApp is guaranteed to exist. onReload remounts it
+// Inner component — the application exists. onReload remounts it
 // so the form picks up a config saved outside the form (the JSON editor).
-function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; onReload: () => void }) {
-  const { app, save, reset, isDirty } = useApplication(staticApp);
+function EditContent({
+  record,
+  baseProfiles,
+  languages,
+  onReload,
+}: {
+  record: AppRecord;
+  baseProfiles: BaseProfile[];
+  languages: LanguageProfiles;
+  onReload: () => void;
+}) {
+  const { app, save, reset, isDirty, isSaving } = useApplication(record);
+  const staticApp = record.app;
+  const showError = (e: Error) => alert(e.message);
   const navigate = useNavigate();
-  const [baseProfiles] = useState(() => getBaseProfiles());
   const profileFor = (form: Pick<EditForm, 'baseProfileId' | 'language'>) =>
     (form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId)?.profile : undefined) ??
-    getProfile(form.language);
+    languages[form.language];
 
   const [form, setForm] = useState(() =>
     initialEditForm(app, profileFor({ baseProfileId: app.baseProfileId ?? '', language: app.language ?? 'en' })),
@@ -50,17 +62,19 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
   const isFormDirty = JSON.stringify(config) !== initialSnapshot;
   const { blocker, allowNextNavigation } = useLeaveGuard(isFormDirty);
 
-  const handleSave = () => {
-    save(config, changeMessage);
+  const leave = () => {
     allowNextNavigation();
     navigate(`/application/${staticApp.id}`);
   };
 
+  const handleSave = () => {
+    if (isSaving) return;
+    save(config, changeMessage, { onSuccess: leave, onError: showError });
+  };
+
   const handleReset = () => {
     if (!confirm('Reset all edits and restore the original config?')) return;
-    reset();
-    allowNextNavigation();
-    navigate(`/application/${staticApp.id}`);
+    reset({ onSuccess: leave, onError: showError });
   };
 
   // Readable names for the ids a version diff mentions. Projects come from
@@ -85,8 +99,7 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
   // Persists the JSON config, then remounts the form so it shows what was saved.
   const handleApplyJson = (edited: ApplicationConfig) => {
     const { status: _status, ...rest } = edited;
-    save({ ...rest, id: staticApp.id }, changeMessage);
-    onReload();
+    save({ ...rest, id: staticApp.id }, changeMessage, { onSuccess: onReload, onError: showError });
   };
 
   return (
@@ -144,8 +157,7 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
           onCancel={() => blocker.reset()}
           onDiscard={() => blocker.proceed()}
           onSave={() => {
-            save(config, changeMessage);
-            blocker.proceed();
+            save(config, changeMessage, { onSuccess: () => blocker.proceed(), onError: showError });
           }}
         />
       )}
@@ -175,21 +187,36 @@ function EditContent({ staticApp, onReload }: { staticApp: ApplicationConfig; on
 
 export function EditApplicationPage() {
   const { id } = useParams<{ id: string }>();
-  const staticApp = id ? [...applications, ...getAllLocalApplications()].find((a) => a.id === id) : undefined;
   const [formVersion, setFormVersion] = useState(0);
+  const query = combine({ records: useApplications(), profiles: useProfiles() });
 
-  if (!staticApp) {
-    return (
-      <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
-        <p>Application not found.</p>
-        <Link className="text-accent" to="/">
-          ← Back to dashboard
-        </Link>
-      </div>
-    );
-  }
-
-  if (staticApp.deletedAt) return <TrashedNotice name={`${staticApp.company} – ${staticApp.role}`} />;
-
-  return <EditContent key={formVersion} staticApp={staticApp} onReload={() => setFormVersion((v) => v + 1)} />;
+  // The form starts from the data as loaded; a later refetch doesn't reset it.
+  return (
+    <QueryState query={query}>
+      {({ records, profiles: { baseProfiles, languages } }) => {
+        const record = id ? records.find((r) => r.app.id === id) : undefined;
+        if (!record) {
+          return (
+            <div className="py-20 px-10 font-mono text-ink-2 flex flex-col gap-4">
+              <p>Application not found.</p>
+              <Link className="text-accent" to="/">
+                ← Back to dashboard
+              </Link>
+            </div>
+          );
+        }
+        const { app } = record;
+        if (app.deletedAt) return <TrashedNotice name={`${app.company} – ${app.role}`} />;
+        return (
+          <EditContent
+            key={formVersion}
+            record={record}
+            baseProfiles={baseProfiles.filter((p) => !p.deletedAt)}
+            languages={languages}
+            onReload={() => setFormVersion((v) => v + 1)}
+          />
+        );
+      }}
+    </QueryState>
+  );
 }

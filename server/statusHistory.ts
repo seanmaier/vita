@@ -1,16 +1,15 @@
-// Each application's status history (kv `status-history-<id>`, see
+// Each application's status history (see
 // shared/domain/statusMachine.ts). Applications without one yet, such as data
 // from before the history existed, read as a history seeded from the old
-// `status-<id>` value and date fields, so every reader sees the same status.
+// single status and date fields, so every reader sees the same status.
 import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
 import type { ApplicationConfig, ApplicationStatus, StatusTransition } from '#shared/types.ts';
-import { getJson, getValue, KEYS, setJson } from './store.ts';
-
-type StoredConfig = Omit<ApplicationConfig, 'status'>;
+import { legacyStatus, savedEdits } from './data/applications.ts';
+import { recordedSteps, saveSteps } from './data/statusTransitions.ts';
 
 /** The recorded history, or null if there is none (or it's unreadable). */
 export function storedHistory(userId: number, appId: string): StatusTransition[] | null {
-  const raw = getJson<unknown>(userId, KEYS.statusHistory(appId));
+  const raw = recordedSteps(userId, appId);
   if (raw === null) return null;
   const result = validateHistory(raw);
   return result.ok ? result.history : null;
@@ -18,7 +17,7 @@ export function storedHistory(userId: number, appId: string): StatusTransition[]
 
 /**
  * The application's history: recorded, or seeded from what the server knows
- * about it (its `status-<id>` value, else the status on `base`, else
+ * about it (its single stored status, else the status on `base`, else
  * `fallback`). Null when the server knows no status for it at all.
  */
 export function historyFor(
@@ -29,21 +28,11 @@ export function historyFor(
 ): StatusTransition[] | null {
   const stored = storedHistory(userId, appId);
   if (stored) return stored;
-  const status = (getValue(userId, KEYS.status(appId)) as ApplicationStatus | null) ?? base?.status ?? fallback;
+  const status = legacyStatus(userId, appId) ?? base?.status ?? fallback;
   if (!status) return null;
-  const override = getJson<StoredConfig>(userId, KEYS.appConfig(appId));
-  return seedHistory(status, override ?? base ?? {});
+  return seedHistory(status, savedEdits(userId, appId) ?? base ?? {});
 }
 
 export function writeHistory(userId: number, appId: string, history: StatusTransition[]): void {
-  setJson(userId, KEYS.statusHistory(appId), history);
-}
-
-/**
- * Keys a raw storage write (PUT /api/data) may not set: the status changes
- * only through the transitions API, which enforces the rules. Removing them
- * stays allowed; the app does that when an application is deleted for good.
- */
-export function refusedStorageKeys(keys: string[]): string[] {
-  return keys.filter((k) => k.startsWith(KEYS.status('')));
+  saveSteps(userId, appId, history);
 }

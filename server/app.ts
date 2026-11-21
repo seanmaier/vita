@@ -7,9 +7,15 @@ import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { requestId, type RequestIdVariables } from 'hono/request-id';
+// Moves data still in the old format into the tables before anything reads it.
+import './data/migrate.ts';
 import { accessLog, log, requestFields } from './log.ts';
+import { applicationRoutes } from './routes/applications.ts';
 import { authRoutes } from './routes/auth.ts';
-import { dataRoutes } from './routes/data.ts';
+import { baseProfileRoutes } from './routes/baseProfiles.ts';
+import { profileOverrideRoutes } from './routes/profileOverrides.ts';
+import { settingsRoutes } from './routes/settings.ts';
+import { importRoutes } from './routes/import.ts';
 import { tokenRoutes } from './routes/tokens.ts';
 import { requireUserOrToken } from './session.ts';
 import { v1 } from './v1.ts';
@@ -64,7 +70,11 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
   const api = app
     .route('/api', authRoutes)
     .route('/api/tokens', tokenRoutes)
-    .route('/api', dataRoutes)
+    .route('/api/applications', applicationRoutes)
+    .route('/api/base-profiles', baseProfileRoutes)
+    .route('/api/profile-overrides', profileOverrideRoutes)
+    .route('/api/settings', settingsRoutes)
+    .route('/api', importRoutes)
     .route('/api/v1', v1);
 
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404));

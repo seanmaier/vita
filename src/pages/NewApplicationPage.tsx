@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppLanguage, BaseProfile } from '#shared/types.ts';
 import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
-import { getProfile } from '../data/profiles';
-import { getBaseProfiles } from '../utils/baseProfiles';
-import { saveLocalApplication } from '../utils/localApplications';
+import { useProfiles } from '../api/profiles';
+import type { LanguageProfiles } from '../api/languageProfiles';
+import { QueryState } from '../components/QueryState';
+import { useApplicationMutations } from '../api/applications';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
 import { MobilePanelSwitch } from '../components/MobilePanelSwitch';
 import { BasicsFields } from '../components/applicationForm/BasicsFields';
@@ -16,8 +17,24 @@ import { JsonPreviewPanel } from './newApplication/JsonPreviewPanel';
 import { newApplicationConfig, type NewApplicationForm } from './newApplication/newApplicationConfig';
 
 export function NewApplicationPage() {
+  return (
+    <QueryState query={useProfiles()}>
+      {({ baseProfiles, languages }) => (
+        <NewApplicationContent baseProfiles={baseProfiles.filter((p) => !p.deletedAt)} languages={languages} />
+      )}
+    </QueryState>
+  );
+}
+
+function NewApplicationContent({
+  baseProfiles,
+  languages,
+}: {
+  baseProfiles: BaseProfile[];
+  languages: LanguageProfiles;
+}) {
   const navigate = useNavigate();
-  const [baseProfiles] = useState(() => getBaseProfiles());
+  const { save: saveApplication } = useApplicationMutations();
   const [step, setStep] = useState<'select-profile' | 'form'>(baseProfiles.length > 0 ? 'select-profile' : 'form');
   const [mobilePanel, setMobilePanel] = useState<'form' | 'json'>('form');
 
@@ -30,7 +47,7 @@ export function NewApplicationPage() {
     baseProfileId: undefined,
     // Set once a base profile is chosen (or skipped) — except when there are
     // none to choose from, so the form shows right away and needs it now.
-    featuredIds: baseProfiles.length === 0 ? getProfile('en').projects.map((p) => p.id) : [],
+    featuredIds: baseProfiles.length === 0 ? languages.en.projects.map((p) => p.id) : [],
     hasCoverLetter: false,
     dateISO: '',
     subjectRole: '',
@@ -39,7 +56,7 @@ export function NewApplicationPage() {
   const update = (patch: Partial<NewApplicationForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const selectedBaseProfile = form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId) : undefined;
-  const profile = selectedBaseProfile?.profile ?? getProfile(form.language);
+  const profile = selectedBaseProfile?.profile ?? languages[form.language];
 
   const chooseProfile = (bp: BaseProfile) => {
     update({ baseProfileId: bp.id, language: bp.language, featuredIds: bp.profile.projects.map((p) => p.id) });
@@ -49,7 +66,7 @@ export function NewApplicationPage() {
   // Without a base profile the application uses the chosen language's
   // default profile, so the language is picked here rather than in the form.
   const skipProfile = (language: AppLanguage) => {
-    update({ baseProfileId: undefined, language, featuredIds: getProfile(language).projects.map((p) => p.id) });
+    update({ baseProfileId: undefined, language, featuredIds: languages[language].projects.map((p) => p.id) });
     setStep('form');
   };
 
@@ -62,8 +79,10 @@ export function NewApplicationPage() {
 
   const save = () => {
     if (!canSave) return;
-    saveLocalApplication(config);
-    navigate(`/application/${config.id}`);
+    saveApplication.mutate(config, {
+      onSuccess: () => navigate(`/application/${config.id}`),
+      onError: (e) => alert(e.message),
+    });
   };
 
   return (
@@ -147,7 +166,7 @@ export function NewApplicationPage() {
             className={editSaveBtn}
             style={{ opacity: canSave ? 1 : 0.4, cursor: canSave ? 'pointer' : 'not-allowed' }}
             onClick={save}
-            disabled={!canSave}
+            disabled={!canSave || saveApplication.isPending}
           >
             Save application
           </button>

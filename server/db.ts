@@ -32,15 +32,6 @@ db.exec(`
     expires_at INTEGER NOT NULL
   );
 
-  -- Mirrors the browser's former localStorage layout: one row per key, value
-  -- kept as the exact string the frontend wrote, scoped per user.
-  CREATE TABLE IF NOT EXISTS kv (
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    key     TEXT NOT NULL,
-    value   TEXT NOT NULL,
-    PRIMARY KEY (user_id, key)
-  );
-
   -- Long-lived bearer tokens for scripts and assistants calling /api/v1.
   -- Like sessions, only the hash is stored; the token is shown once on creation.
   CREATE TABLE IF NOT EXISTS api_tokens (
@@ -81,6 +72,12 @@ db.exec(`
     forwarding_from TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  -- Facts about the database itself, e.g. when a one-off migration ran.
+  CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS inbound_events (
     id           INTEGER PRIMARY KEY,
     user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -106,7 +103,13 @@ export function migrate(): void {
   // Admins may create the worker token scopes. Everyone who predates roles is a
   // regular user; admins are made only with the CLI (server/cli.ts admin).
   addColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
-  migrateStatusHistories();
+  // Works on the kv rows of a database from before tables (see server/data/migrate.ts).
+  if (hasKvTable() && !db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()) migrateStatusHistories();
+}
+
+/** Whether the database still has the kv table: one from before tables, e.g. an old backup restored. */
+export function hasKvTable(): boolean {
+  return db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'kv'").get() !== undefined;
 }
 
 /**
@@ -133,8 +136,7 @@ function parseJsonValue<T>(raw: string | undefined): T | null {
  * Gives every application the server knows a status history (kv
  * `status-history-<id>`), seeded from its old `status-<id>` value and date
  * fields; a stored "ghosted" becomes "sent", since ghosted is now derived.
- * Applications that already have a history are left alone. The old values
- * stay in place, so the previous version still works after a rollback.
+ * Applications that already have a history are left alone.
  */
 function migrateStatusHistories(): void {
   const rows = db.prepare('SELECT user_id, key, value FROM kv').all() as {

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { applications as staticApps } from '../data/applications';
-import { getLocalApplications, trashLocalApplication } from '../utils/localApplications';
-import { countTrashed } from '../utils/trashCount';
+import { useTrashCount } from '../utils/trashCount';
 import { TRASH_RETENTION_DAYS } from '#shared/utils/trash.ts';
-import { getConfigOverride, setConfigOverride } from '../utils/appStorage';
 import { STATUS_LABELS } from '../utils/status';
-import { changeStatus, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
+import { statusOf, type StatusAction } from '../utils/statusTransitions';
+import { useApplicationMutations, useApplications, type AppRecord } from '../api/applications';
+import { QueryState } from '../components/QueryState';
 import { derivedDates } from '#shared/domain/statusMachine.ts';
 import { ApplicationCard } from '../components/dashboard/ApplicationCard';
 import { fitScore } from '#shared/utils/fitCriteria.ts';
@@ -18,7 +18,7 @@ import { matchesStat, type StatKey } from '../utils/applicationStats';
 import { useRatedLeadCount } from '../hooks/useRatedLeadCount';
 import { createNote } from '#shared/utils/notes.ts';
 import { LANGUAGE_LABELS, languageOf } from '#shared/utils/language.ts';
-import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note, StatusTransition } from '#shared/types.ts';
+import type { AppLanguage, ApplicationConfig, ApplicationStatus, Note } from '#shared/types.ts';
 
 type SortField =
   'company' | 'role' | 'language' | 'fit' | 'status' | 'appliedDate' | 'interviewDate' | 'finalDecisionDate';
@@ -35,28 +35,25 @@ const SORT_LABELS: Record<SortField, string> = {
 };
 
 export function DashboardPage() {
-  const [localApps, setLocalApps] = useState(() => getLocalApplications());
-  const allApps = [...staticApps, ...localApps];
+  return <QueryState query={useApplications()}>{(records) => <DashboardContent records={records} />}</QueryState>;
+}
 
-  // Status and the applied/interview/decision dates all follow each
-  // application's status history.
-  const [histories, setHistories] = useState<Record<string, StatusTransition[]>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, historyOf(a)])),
-  );
-  const historyFor = (app: ApplicationConfig) => histories[app.id] ?? historyOf(app);
+function DashboardContent({ records }: { records: AppRecord[] }) {
+  const { changeStatus, saveEdits, trash } = useApplicationMutations();
+  const showError = (e: Error) => alert(e.message);
+  const live = records.filter((r) => !r.app.deletedAt);
+  const allApps = live.map((r) => r.app);
+  const recordOf = new Map(live.map((r) => [r.app.id, r]));
 
-  const [notes, setNotes] = useState<Record<string, Note[] | undefined>>(() =>
-    Object.fromEntries(allApps.map((a) => [a.id, getConfigOverride(a.id)?.notes ?? a.notes])),
-  );
-
-  // Read once like the fields above: the language only changes in the edit
-  // form, which lives on another page.
-  const [languages] = useState<Record<string, AppLanguage>>(() =>
-    Object.fromEntries(
-      allApps.map((a) => [a.id, languageOf({ language: getConfigOverride(a.id)?.language ?? a.language })]),
-    ),
-  );
-  const languageFor = (app: ApplicationConfig) => languages[app.id] ?? languageOf(app);
+  // Status and the applied/interview/decision dates follow each application's
+  // status history; notes and the language come from its saved edits, if any.
+  const historyFor = (app: ApplicationConfig) => recordOf.get(app.id)!.history;
+  const notesOf = (id: string): Note[] | undefined => {
+    const record = recordOf.get(id);
+    return record?.savedEdits?.notes ?? record?.app.notes;
+  };
+  const languageFor = (app: ApplicationConfig) =>
+    languageOf({ language: recordOf.get(app.id)?.savedEdits?.language ?? app.language });
 
   const ratedLeadCount = useRatedLeadCount();
   const [importOpen, setImportOpen] = useState(false);
@@ -72,41 +69,30 @@ export function DashboardPage() {
     setStatFilter((prev) => (prev === key || key === 'total' ? null : key));
   };
 
-  const handleStatusChange = (app: ApplicationConfig, action: StatusAction) => {
-    changeStatus(app.id, historyFor(app), action).then(
-      (history) => setHistories((prev) => ({ ...prev, [app.id]: history })),
-      (e) => alert(e instanceof Error ? e.message : String(e)),
+  const handleStatusChange = (app: ApplicationConfig, action: StatusAction) =>
+    changeStatus.mutate({ id: app.id, history: historyFor(app), action }, { onError: showError });
+
+  // Notes are saved with the application's edits, which start from its list entry.
+  const saveNotes = (id: string, updated: Note[]) => {
+    const record = recordOf.get(id);
+    if (!record) return;
+    const { status: _s, ...rest } = record.app;
+    const base = record.savedEdits ?? rest;
+    saveEdits.mutate({ id, config: { ...base, notes: updated.length ? updated : undefined } }, { onError: showError });
+  };
+  const handleNotesAdd = (id: string, text: string) => saveNotes(id, [createNote(text), ...(notesOf(id) ?? [])]);
+  const handleNotesDelete = (id: string, noteId: string) =>
+    saveNotes(
+      id,
+      (notesOf(id) ?? []).filter((n) => n.id !== noteId),
     );
-  };
 
-  const handleNotesAdd = (id: string, text: string) => {
-    const app = allApps.find((a) => a.id === id);
-    if (!app) return;
-    const { status: _s, ...rest } = app;
-    const base = getConfigOverride(id) ?? rest;
-    const updated = [createNote(text), ...(notes[id] ?? [])];
-    setConfigOverride(id, { ...base, notes: updated });
-    setNotes((prev) => ({ ...prev, [id]: updated }));
-  };
-
-  const handleNotesDelete = (id: string, noteId: string) => {
-    const app = allApps.find((a) => a.id === id);
-    if (!app) return;
-    const { status: _s, ...rest } = app;
-    const base = getConfigOverride(id) ?? rest;
-    const updated = (notes[id] ?? []).filter((n) => n.id !== noteId);
-    setConfigOverride(id, { ...base, notes: updated.length ? updated : undefined });
-    setNotes((prev) => ({ ...prev, [id]: updated.length ? updated : undefined }));
-  };
-
-  const [trashSize, setTrashSize] = useState(countTrashed);
+  const trashSize = useTrashCount();
 
   const handleDelete = (app: ApplicationConfig) => {
     const message = `Move "${app.company} – ${app.role}" to the trash? You can restore it there for ${TRASH_RETENTION_DAYS} days.`;
     if (!confirm(message)) return;
-    trashLocalApplication(app.id);
-    setLocalApps(getLocalApplications());
-    setTrashSize(countTrashed());
+    trash.mutate(app.id, { onError: showError });
   };
 
   const statsApps = allApps.map((app) => {
@@ -323,7 +309,7 @@ export function DashboardPage() {
                     appliedDate={app.appliedDate}
                     interviewDate={app.interviewDate}
                     finalDecisionDate={app.finalDecisionDate}
-                    notes={notes[app.id]}
+                    notes={notesOf(app.id)}
                     onStatusChange={(action) => handleStatusChange(app, action)}
                     onNotesAdd={(text) => handleNotesAdd(app.id, text)}
                     onNotesDelete={(noteId) => handleNotesDelete(app.id, noteId)}

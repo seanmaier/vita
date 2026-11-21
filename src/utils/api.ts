@@ -1,5 +1,4 @@
 import type { InferResponseType } from 'hono/client';
-import { flush, hydrate, localWriteCount } from './storage';
 import type { JobLead, JobLeadStatus } from '#shared/types.ts';
 import { client, detailedErrorFrom, errorFrom } from './apiClient';
 
@@ -90,48 +89,25 @@ export async function rotateApiToken(name: string): Promise<string> {
   return (await res.json()).token;
 }
 
-export async function fetchUserData(): Promise<Record<string, string>> {
-  const res = await client.api.data.$get();
-  if (!res.ok) throw new Error(`Loading data failed (HTTP ${res.status}).`);
-  return res.json();
-}
-
-/**
- * Replaces the in-memory copy with the server's current data, e.g. after the
- * API changed it while this tab was in the background. Without this, the next
- * save here would write back the stale lists and undo those changes. Skipped
- * if anything was edited meanwhile, so local edits are never thrown away.
- */
-export async function refreshUserData(): Promise<void> {
-  await flush();
-  const before = localWriteCount();
-  const entries = await fetchUserData();
-  if (localWriteCount() === before) hydrate(entries);
-}
-
 const applicationRoutes = client.api.v1.applications[':id'];
 
 /** An application's version history, newest first. */
 export async function fetchVersions(appId: string) {
-  await flush();
   const res = await applicationRoutes.versions.$get({ param: { id: encodeURIComponent(appId) } });
   if (!res.ok) throw await errorFrom(res, 'Loading the history failed');
   return res.json();
 }
 
-/** Makes an older version the application's current content (itself recorded as a new version). */
+/** Makes an older version the application's current content (itself recorded as a new version); the caller refetches the applications. */
 export async function restoreVersion(appId: string, versionId: number): Promise<void> {
-  await flush();
   const res = await applicationRoutes.versions[':versionId'].restore.$post({
     param: { id: encodeURIComponent(appId), versionId: String(versionId) },
   });
   if (!res.ok) throw await errorFrom(res, 'Restoring the version failed');
-  await refreshUserData();
 }
 
-/** Saves any pending edits, ends the session, and returns to the login screen. */
+/** Ends the session and returns to the login screen. */
 export async function logoutAndReload(): Promise<void> {
-  await flush().catch(() => {});
   await logout();
   window.location.reload();
 }

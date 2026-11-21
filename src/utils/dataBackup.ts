@@ -1,61 +1,36 @@
-import type { ApplicationConfig, ApplicationStatus, AppLanguage, Profile, StatusTransition } from '#shared/types.ts';
-import { BACKUP_KEYS, mergeBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
-import { seedHistory, validateHistory } from '#shared/domain/statusMachine.ts';
+import type { BaseProfile } from '#shared/types.ts';
+import { mergeBackup, type DataBackup } from '#shared/domain/backupMerge.ts';
 import { isDemo } from '../demo/demoMode';
 import { client, errorFrom } from './apiClient';
-import { storage, flush } from './storage';
-import { getAllBaseProfiles } from './baseProfiles';
+import { storage } from './storage';
+import type { ProfileOverrides, StoredApplication } from '../api/backend';
 
 export type { DataBackup } from '#shared/domain/backupMerge.ts';
 export { parseBackup, type ParseBackupResult } from '#shared/domain/backupMerge.ts';
 
-function parse<T>(raw: string | null): T | null {
-  if (raw === null) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return null; // skip corrupt entries
-  }
+/** What the backup is made of, as the data queries hold it. */
+export interface BackupSource {
+  /** The whole list, trash included, so importing keeps trashed ones restorable. */
+  baseProfiles: BaseProfile[];
+  applications: StoredApplication[];
+  profileOverrides: ProfileOverrides;
 }
 
-/** Gathers every application, status history, saved edit, base profile, and profile customization stored for the logged-in user. */
-export function exportAllData(): DataBackup {
-  const localApps = parse<ApplicationConfig[]>(storage.getItem(BACKUP_KEYS.localApps)) ?? [];
-  const statusHistories: Record<string, StatusTransition[]> = {};
-  const legacyStatuses: Record<string, ApplicationStatus> = {};
+/**
+ * Gathers every application, status history, saved edit, base profile, and
+ * profile customization stored for the logged-in user.
+ */
+export function exportAllData({ baseProfiles, applications, profileOverrides }: BackupSource): DataBackup {
+  const statusHistories: DataBackup['statusHistories'] = {};
   const configOverrides: DataBackup['configOverrides'] = {};
-  const profileOverrides: Partial<Record<AppLanguage, Profile>> = {};
-
-  for (const key of storage.keys()) {
-    const raw = storage.getItem(key);
-    if (key.startsWith(BACKUP_KEYS.statusHistory)) {
-      const history = validateHistory(parse(raw));
-      if (history.ok) statusHistories[key.slice(BACKUP_KEYS.statusHistory.length)] = history.history;
-    } else if (key.startsWith(BACKUP_KEYS.status) && raw) {
-      legacyStatuses[key.slice(BACKUP_KEYS.status.length)] = raw as ApplicationStatus;
-    } else if (key.startsWith(BACKUP_KEYS.appConfig)) {
-      const config = parse<DataBackup['configOverrides'][string]>(raw);
-      if (config) configOverrides[key.slice(BACKUP_KEYS.appConfig.length)] = config;
-    } else if (key.startsWith(BACKUP_KEYS.profileOverride)) {
-      const profile = parse<Profile>(raw);
-      if (profile) profileOverrides[key.slice(BACKUP_KEYS.profileOverride.length) as AppLanguage] = profile;
-    }
+  for (const { id, savedEdits, statusHistory } of applications) {
+    if (statusHistory) statusHistories[id] = statusHistory;
+    if (savedEdits) configOverrides[id] = savedEdits;
   }
-  // Applications still without a recorded history export the one they read as.
-  for (const [id, status] of Object.entries(legacyStatuses)) {
-    if (!statusHistories[id])
-      statusHistories[id] = seedHistory(status, configOverrides[id] ?? localApps.find((a) => a.id === id) ?? {});
-  }
-
-  // Goes through getAllBaseProfiles so an account that never opened the profiles
-  // page still exports the profiles it would show (seeded from the legacy ones).
-  // Trashed profiles are included, so importing keeps them restorable.
-  const baseProfiles = getAllBaseProfiles();
-
   return {
     version: 3,
     exportedAt: new Date().toISOString(),
-    localApps,
+    localApps: applications.flatMap((a) => (a.config ? [a.config] : [])),
     statusHistories,
     configOverrides,
     profileOverrides,
@@ -93,11 +68,8 @@ export async function importBackup(backup: DataBackup): Promise<ImportSummary> {
     const result = mergeBackup(current, backup);
     if (!result.ok) throw new Error(result.error);
     for (const [key, value] of Object.entries(result.set)) storage.setItem(key, value);
-    await flush();
     return result;
   }
-  // Pending edits first, so the server merges against the current state.
-  await flush();
   const res = await client.api.import.$post({ json: backup });
   if (!res.ok) throw await errorFrom(res, 'Import failed');
   return res.json();

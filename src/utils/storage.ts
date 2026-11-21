@@ -1,123 +1,22 @@
-// Drop-in replacement for the localStorage calls the app used to make: reads
-// stay synchronous against an in-memory copy loaded once after login, and
-// writes are batched into a single request to the server shortly after.
-
-import { client } from './apiClient';
+// The demo's data, which stays in the browser tab: an in-memory copy that
+// src/api/localBackend.ts reads synchronously, with every write passed on to
+// the backend set with setStorageBackend (the demo's sessionStorage). The
+// component tests use it the same way. A logged-in user's data lives on the
+// server and goes through src/api/backend.ts instead.
 
 const data = new Map<string, string>();
-const pendingSet = new Map<string, string>();
-const pendingRemove = new Set<string>();
-// Notes on what a save changed, per application id, sent along with the next
-// batch for the server's version history.
-const pendingMessages = new Map<string, string>();
-let flushTimer: ReturnType<typeof setTimeout> | null = null;
-let inFlight: Promise<void> = Promise.resolve();
-// Counts local writes, so a refresh can tell whether one happened while it
-// was fetching and its (older) server copy must not replace the newer data.
-let writeCount = 0;
 
-export function localWriteCount(): number {
-  return writeCount;
-}
+type Backend = (set: Record<string, string>, remove: string[]) => unknown;
+let save: Backend = () => {};
 
-type SyncListener = (error: string | null) => void;
-const listeners = new Set<SyncListener>();
-
-export function onSyncStatus(listener: SyncListener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function notify(error: string | null) {
-  listeners.forEach((l) => l(error));
+/** Where writes go, e.g. the demo's sessionStorage. */
+export function setStorageBackend(backend: Backend): void {
+  save = backend;
 }
 
 export function hydrate(entries: Record<string, string>): void {
   data.clear();
   Object.entries(entries).forEach(([k, v]) => data.set(k, v));
-}
-
-function scheduleFlush() {
-  if (flushTimer === null) flushTimer = setTimeout(flushInBackground, 300);
-}
-
-type Backend = (set: Record<string, string>, remove: string[], messages: Record<string, string>) => Promise<void>;
-let send: Backend = sendToServer;
-
-/** Points writes somewhere other than the server, e.g. the demo's sessionStorage. */
-export function setStorageBackend(backend: Backend): void {
-  send = backend;
-}
-
-async function sendToServer(
-  set: Record<string, string>,
-  remove: string[],
-  messages: Record<string, string>,
-): Promise<void> {
-  const res = await client.api.data.$put({ json: { set, remove, ...(Object.keys(messages).length && { messages }) } });
-  // The route's type doesn't list the 401: it comes from the requireUser
-  // middleware, whose answers Hono's RPC types leave out.
-  if ((res.status as number) === 401) {
-    // Session expired mid-edit: the login screen is the only way forward.
-    window.location.reload();
-    return;
-  }
-  if (!res.ok) throw new Error(`Saving failed (HTTP ${res.status}).`);
-}
-
-/** Sends every pending write now; resolves once the server has stored them, rejects if it couldn't. */
-export function flush(): Promise<void> {
-  if (flushTimer !== null) {
-    clearTimeout(flushTimer);
-    flushTimer = null;
-  }
-  const run = inFlight.then(async () => {
-    if (!pendingSet.size && !pendingRemove.size) return;
-    const set = Object.fromEntries(pendingSet);
-    const remove = [...pendingRemove];
-    const messages = Object.fromEntries(pendingMessages);
-    pendingSet.clear();
-    pendingRemove.clear();
-    pendingMessages.clear();
-    try {
-      await send(set, remove, messages);
-      notify(null);
-    } catch (e) {
-      // Put the batch back (unless newer writes to the same key arrived
-      // meanwhile) so the next flush retries it.
-      Object.entries(set).forEach(([k, v]) => {
-        if (!pendingSet.has(k) && !pendingRemove.has(k)) pendingSet.set(k, v);
-      });
-      remove.forEach((k) => {
-        if (!pendingSet.has(k)) pendingRemove.add(k);
-      });
-      Object.entries(messages).forEach(([id, m]) => {
-        if (!pendingMessages.has(id)) pendingMessages.set(id, m);
-      });
-      notify(e instanceof Error ? e.message : 'Saving failed.');
-      setTimeout(flushInBackground, 5000);
-      throw e;
-    }
-  });
-  // Keep the queue itself unrejected so later flushes still run.
-  inFlight = run.catch(() => {});
-  return run;
-}
-
-// Failures already surface through onSyncStatus and are retried.
-function flushInBackground() {
-  flush().catch(() => {});
-}
-
-export function hasPendingWrites(): boolean {
-  return pendingSet.size > 0 || pendingRemove.size > 0;
-}
-
-/** Describes the next write to an application's saved edits, for its version history. */
-export function setChangeMessage(appId: string, message: string): void {
-  const trimmed = message.trim();
-  if (trimmed) pendingMessages.set(appId, trimmed);
-  else pendingMessages.delete(appId);
 }
 
 export const storage = {
@@ -126,24 +25,13 @@ export const storage = {
   },
   setItem(key: string, value: string): void {
     data.set(key, value);
-    writeCount++;
-    pendingRemove.delete(key);
-    pendingSet.set(key, value);
-    scheduleFlush();
+    save({ [key]: value }, []);
   },
   removeItem(key: string): void {
     data.delete(key);
-    writeCount++;
-    pendingSet.delete(key);
-    pendingRemove.add(key);
-    scheduleFlush();
+    save({}, [key]);
   },
   keys(): string[] {
     return [...data.keys()];
-  },
-  /** Updates the in-memory copy only, for values the server already stored itself (e.g. after a status transition). */
-  setLocal(key: string, value: string): void {
-    data.set(key, value);
-    writeCount++;
   },
 };

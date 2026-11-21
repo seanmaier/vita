@@ -10,7 +10,10 @@ import type { ApplicationConfig, CoverLetter, FitCriterion, SkillGroup } from '#
 import { hashPassword } from './auth.ts';
 import { db, transaction } from './db.ts';
 import { BROWSER_AUTHOR, type VersionContent } from './history.ts';
-import { KEYS, setJson, setValue } from './store.ts';
+import { STORAGE_KEYS } from '#shared/storageKeys.ts';
+import { saveApplicationList, setSavedEdits } from './data/applications.ts';
+import { setSetting } from './data/documents.ts';
+import { saveSteps } from './data/statusTransitions.ts';
 
 const USERNAME = 'dev';
 const PASSWORD = 'devpassword'; // secret-scan:allow (dev-only seed password, never used in production)
@@ -233,8 +236,8 @@ transaction(() => {
   const userId = Number(lastInsertRowid);
 
   const current = history[history.length - 1].content;
-  setJson(userId, KEYS.localApps, [{ ...base, status: 'drafting' }, withoutHistory, evaluated]);
-  setJson(userId, KEYS.statusHistory(evaluated.id), [{ to: 'evaluated', date: null, recordedAt: null }]);
+  saveApplicationList(userId, [{ ...base, status: 'drafting' }, withoutHistory, evaluated]);
+  saveSteps(userId, evaluated.id, [{ to: 'evaluated', date: null, recordedAt: null }]);
   const insertLead = db.prepare(
     `INSERT INTO job_leads (user_id, source, external_id, title, company, location, snippet, url, status, score, verdict, rated_at, rating)
      VALUES (?, 'arbeitsagentur', ?, ?, ?, 'Hamburg', ?, ?, ?, ?, ?, ?, ?)`,
@@ -259,9 +262,9 @@ transaction(() => {
       rating,
     );
   }
-  setJson(userId, KEYS.appConfig(APP_ID), current);
-  setJson(userId, KEYS.statusHistory(APP_ID), [{ to: 'drafting', date: null, recordedAt: null }]);
-  setValue(userId, KEYS.tourSeen, '1');
+  setSavedEdits(userId, APP_ID, current);
+  saveSteps(userId, APP_ID, [{ to: 'drafting', date: null, recordedAt: null }]);
+  setSetting(userId, STORAGE_KEYS.tourSeen, '1');
 
   const insert = db.prepare(
     'INSERT INTO app_versions (user_id, app_id, created_at, author, message, content) VALUES (?, ?, ?, ?, ?, ?)',

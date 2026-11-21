@@ -1,19 +1,17 @@
-import { useState } from 'react';
-import { changeStatus, changeStepDate, historyOf, statusOf, type StatusAction } from '../utils/statusTransitions';
-import type { ApplicationConfig } from '#shared/types.ts';
+import { useApplicationMutations, type AppRecord } from '../api/applications';
+import { statusOf, type StatusAction } from '../utils/statusTransitions';
 
-const showError = (e: unknown) => alert(e instanceof Error ? e.message : String(e));
+const showError = (e: Error) => alert(e.message);
 
 /** An application's status history, its current status, and the ways to change them (refusals are shown to the user). */
-export function useApplicationStatus(app: ApplicationConfig) {
-  const [history, setHistory] = useState(() => historyOf(app));
+export function useApplicationStatus(record: AppRecord) {
+  const { changeStatus, changeStepDate } = useApplicationMutations();
+  const { id } = record.app;
+  const { history } = record;
 
-  const act = (action: StatusAction) => {
-    changeStatus(app.id, history, action).then(setHistory, showError);
-  };
-  const changeDate = (index: number, date: string) => {
-    changeStepDate(app.id, history, index, date).then(setHistory, showError);
-  };
+  const act = (action: StatusAction) => changeStatus.mutate({ id, history, action }, { onError: showError });
+  const changeDate = (index: number, date: string) =>
+    changeStepDate.mutate({ id, history, index, date }, { onError: showError });
 
   return { history, status: statusOf(history), act, changeDate };
 }

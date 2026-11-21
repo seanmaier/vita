@@ -2,9 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { hydrate, setStorageBackend } from '../utils/storage';
-import { getAllLocalApplications } from '../utils/localApplications';
+import { hydrate, setStorageBackend, storage } from '../utils/storage';
 import { NewApplicationPage } from './NewApplicationPage';
+import { withData } from '../test/withData';
+import { getStaticProfile } from '../data/profiles';
 
 function Opened() {
   return <p>opened {useParams().id}</p>;
@@ -13,14 +14,17 @@ function Opened() {
 /** Opens the page and takes the English default profile on its first step. */
 async function renderPage() {
   render(
-    <MemoryRouter initialEntries={['/application/new']}>
-      <Routes>
-        <Route path="/application/new" element={<NewApplicationPage />} />
-        <Route path="/application/:id" element={<Opened />} />
-      </Routes>
-    </MemoryRouter>,
+    withData(
+      <MemoryRouter initialEntries={['/application/new']}>
+        <Routes>
+          <Route path="/application/new" element={<NewApplicationPage />} />
+          <Route path="/application/:id" element={<Opened />} />
+        </Routes>
+      </MemoryRouter>,
+    ),
   );
-  await userEvent.click(screen.getByRole('button', { name: /English \(default\)$/ }));
+  // The base profiles load first (and are seeded on a fresh account).
+  await userEvent.click(await screen.findByRole('button', { name: /English \(default\)$/ }));
 }
 
 describe('NewApplicationPage', () => {
@@ -42,8 +46,8 @@ describe('NewApplicationPage', () => {
     expect(screen.getByText(/"id": "kaiwerk-studio"/)).toBeInTheDocument();
 
     await userEvent.click(save);
-    expect(screen.getByText('opened kaiwerk-studio')).toBeInTheDocument();
-    expect(getAllLocalApplications()).toMatchObject([
+    expect(await screen.findByText('opened kaiwerk-studio')).toBeInTheDocument();
+    expect(JSON.parse(storage.getItem('local-apps') ?? '[]')).toMatchObject([
       { id: 'kaiwerk-studio', company: 'Kaiwerk Studio', role: 'Fullstack Developer', status: 'drafting' },
     ]);
   });
@@ -57,5 +61,15 @@ describe('NewApplicationPage', () => {
     expect(screen.getByPlaceholderText('Paragraph 2')).toBeInTheDocument();
     expect(screen.getByText(/"recipientOrg": "Acme"/)).toBeInTheDocument();
     expect(screen.getByText(/"Hello there"/)).toBeInTheDocument();
+  });
+
+  it("seeds the language default from the user's old edit to it", async () => {
+    const edited = {
+      ...getStaticProfile('en'),
+      projects: [{ id: 'mine', name: 'My own project', stack: '', description: '' }],
+    };
+    hydrate({ 'profile-override-en': JSON.stringify(edited) });
+    await renderPage();
+    expect(screen.getByText('My own project')).toBeInTheDocument();
   });
 });
