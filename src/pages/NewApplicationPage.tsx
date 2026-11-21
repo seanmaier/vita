@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppLanguage, BaseProfile } from '#shared/types.ts';
 import { LANG_FLAGS, LANGUAGE_LABELS } from '#shared/utils/language.ts';
-import { getProfile } from '../data/profiles';
-import { useBaseProfiles } from '../api/baseProfiles';
+import { useProfiles } from '../api/profiles';
+import type { LanguageProfiles } from '../api/languageProfiles';
 import { QueryState } from '../components/QueryState';
 import { saveLocalApplication } from '../utils/localApplications';
 import { FeaturedProjectsPicker } from '../components/FeaturedProjectsPicker';
@@ -18,11 +18,21 @@ import { newApplicationConfig, type NewApplicationForm } from './newApplication/
 
 export function NewApplicationPage() {
   return (
-    <QueryState query={useBaseProfiles()}>{(profiles) => <NewApplicationContent baseProfiles={profiles} />}</QueryState>
+    <QueryState query={useProfiles()}>
+      {({ baseProfiles, languages }) => (
+        <NewApplicationContent baseProfiles={baseProfiles.filter((p) => !p.deletedAt)} languages={languages} />
+      )}
+    </QueryState>
   );
 }
 
-function NewApplicationContent({ baseProfiles }: { baseProfiles: BaseProfile[] }) {
+function NewApplicationContent({
+  baseProfiles,
+  languages,
+}: {
+  baseProfiles: BaseProfile[];
+  languages: LanguageProfiles;
+}) {
   const navigate = useNavigate();
   const [step, setStep] = useState<'select-profile' | 'form'>(baseProfiles.length > 0 ? 'select-profile' : 'form');
   const [mobilePanel, setMobilePanel] = useState<'form' | 'json'>('form');
@@ -36,7 +46,7 @@ function NewApplicationContent({ baseProfiles }: { baseProfiles: BaseProfile[] }
     baseProfileId: undefined,
     // Set once a base profile is chosen (or skipped) — except when there are
     // none to choose from, so the form shows right away and needs it now.
-    featuredIds: baseProfiles.length === 0 ? getProfile('en').projects.map((p) => p.id) : [],
+    featuredIds: baseProfiles.length === 0 ? languages.en.projects.map((p) => p.id) : [],
     hasCoverLetter: false,
     dateISO: '',
     subjectRole: '',
@@ -45,7 +55,7 @@ function NewApplicationContent({ baseProfiles }: { baseProfiles: BaseProfile[] }
   const update = (patch: Partial<NewApplicationForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const selectedBaseProfile = form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId) : undefined;
-  const profile = selectedBaseProfile?.profile ?? getProfile(form.language);
+  const profile = selectedBaseProfile?.profile ?? languages[form.language];
 
   const chooseProfile = (bp: BaseProfile) => {
     update({ baseProfileId: bp.id, language: bp.language, featuredIds: bp.profile.projects.map((p) => p.id) });
@@ -55,7 +65,7 @@ function NewApplicationContent({ baseProfiles }: { baseProfiles: BaseProfile[] }
   // Without a base profile the application uses the chosen language's
   // default profile, so the language is picked here rather than in the form.
   const skipProfile = (language: AppLanguage) => {
-    update({ baseProfileId: undefined, language, featuredIds: getProfile(language).projects.map((p) => p.id) });
+    update({ baseProfileId: undefined, language, featuredIds: languages[language].projects.map((p) => p.id) });
     setStep('form');
   };
 

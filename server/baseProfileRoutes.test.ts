@@ -1,38 +1,20 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createApp } from './app.ts';
-import { createApiToken, hashPassword } from './auth.ts';
-import { db } from './db.ts';
+import { createApiToken } from './auth.ts';
+import { loggedIn } from './test/session.ts';
 
 // The app's own base profile routes, through the real app with a session.
-const app = createApp({ staticDir: './does-not-exist' });
-const PASSWORD = 'base profile routes';
-const sameOrigin = { origin: 'http://localhost' };
 const profile = (id: string, name = id) => ({ id, name, language: 'en', profile: { name: '' } });
 
-let counter = 0;
-let cookie = '';
+type Session = Awaited<ReturnType<typeof loggedIn>>;
+let app: Session['app'];
 let userId = 0;
+let session: Session['call'];
 
 beforeEach(async () => {
-  const username = `bp-${++counter}`;
-  userId = Number(
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, await hashPassword(PASSWORD))
-      .lastInsertRowid,
-  );
-  const res = await app.request('/api/login', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ username, password: PASSWORD }),
-  });
-  cookie = (res.headers.get('set-cookie') ?? '').split(';')[0];
+  ({ app, userId, call: session } = await loggedIn());
 });
 
-const call = (method: string, path: string, body?: unknown) =>
-  app.request(`/api/base-profiles${path}`, {
-    method,
-    headers: { cookie, ...sameOrigin, ...(body !== undefined && { 'content-type': 'application/json' }) },
-    ...(body !== undefined && { body: JSON.stringify(body) }),
-  });
+const call = (method: string, path: string, body?: unknown) => session(method, `/api/base-profiles${path}`, body);
 const ids = async (res: Response) => ((await res.json()) as { id: string }[]).map((p) => p.id);
 
 describe('app base profile routes', () => {
@@ -69,18 +51,14 @@ describe('app base profile routes', () => {
   });
 
   it('are closed to API tokens', async () => {
-    const created = createApiToken(userId, `token-${counter}`, 'full');
+    const created = createApiToken(userId, 'routes-test', 'full');
     if (!created.ok) throw new Error(created.error);
     const res = await app.request('/api/base-profiles', { headers: { authorization: `Bearer ${created.token}` } });
     expect(res.status).toBe(401);
   });
 
   it('refuse raw writes of the list from a tab on the old version', async () => {
-    const res = await app.request('/api/data', {
-      method: 'PUT',
-      headers: { cookie, ...sameOrigin, 'content-type': 'application/json' },
-      body: JSON.stringify({ set: { 'base-profiles': '[]' }, remove: [] }),
-    });
+    const res = await session('PUT', '/api/data', { set: { 'base-profiles': '[]' }, remove: [] });
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: expect.stringContaining('reload the page') });
   });

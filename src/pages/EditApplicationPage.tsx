@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { applications } from '../data/applications';
-import { getProfile } from '../data/profiles';
 import { getAllLocalApplications } from '../utils/localApplications';
-import { useBaseProfiles } from '../api/baseProfiles';
+import { useProfiles } from '../api/profiles';
+import type { LanguageProfiles } from '../api/languageProfiles';
 import { QueryState } from '../components/QueryState';
 import type { DiffNames } from '../utils/versionDiff';
 import type { ApplicationConfig, BaseProfile } from '#shared/types.ts';
@@ -27,17 +27,19 @@ import { EditPreviewPanel } from './editApplication/EditPreviewPanel';
 function EditContent({
   staticApp,
   baseProfiles,
+  languages,
   onReload,
 }: {
   staticApp: ApplicationConfig;
   baseProfiles: BaseProfile[];
+  languages: LanguageProfiles;
   onReload: () => void;
 }) {
   const { app, save, reset, isDirty } = useApplication(staticApp);
   const navigate = useNavigate();
   const profileFor = (form: Pick<EditForm, 'baseProfileId' | 'language'>) =>
     (form.baseProfileId ? baseProfiles.find((p) => p.id === form.baseProfileId)?.profile : undefined) ??
-    getProfile(form.language);
+    languages[form.language];
 
   const [form, setForm] = useState(() =>
     initialEditForm(app, profileFor({ baseProfileId: app.baseProfileId ?? '', language: app.language ?? 'en' })),
@@ -185,7 +187,7 @@ export function EditApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const staticApp = id ? [...applications, ...getAllLocalApplications()].find((a) => a.id === id) : undefined;
   const [formVersion, setFormVersion] = useState(0);
-  const baseProfiles = useBaseProfiles();
+  const profiles = useProfiles();
 
   if (!staticApp) {
     return (
@@ -202,12 +204,13 @@ export function EditApplicationPage() {
 
   // The form starts from the profiles as loaded; they don't change while it's open.
   return (
-    <QueryState query={baseProfiles}>
-      {(profiles) => (
+    <QueryState query={profiles}>
+      {({ baseProfiles, languages }) => (
         <EditContent
           key={formVersion}
           staticApp={staticApp}
-          baseProfiles={profiles}
+          baseProfiles={baseProfiles.filter((p) => !p.deletedAt)}
+          languages={languages}
           onReload={() => setFormVersion((v) => v + 1)}
         />
       )}

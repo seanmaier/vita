@@ -6,6 +6,7 @@ import { hydrate, setStorageBackend } from '../utils/storage';
 import { getAllLocalApplications } from '../utils/localApplications';
 import { NewApplicationPage } from './NewApplicationPage';
 import { withData } from '../test/withData';
+import { getStaticProfile } from '../data/profiles';
 
 function Opened() {
   return <p>opened {useParams().id}</p>;
@@ -61,5 +62,15 @@ describe('NewApplicationPage', () => {
     expect(screen.getByPlaceholderText('Paragraph 2')).toBeInTheDocument();
     expect(screen.getByText(/"recipientOrg": "Acme"/)).toBeInTheDocument();
     expect(screen.getByText(/"Hello there"/)).toBeInTheDocument();
+  });
+
+  it("seeds the language default from the user's old edit to it", async () => {
+    const edited = {
+      ...getStaticProfile('en'),
+      projects: [{ id: 'mine', name: 'My own project', stack: '', description: '' }],
+    };
+    hydrate({ 'profile-override-en': JSON.stringify(edited) });
+    await renderPage();
+    expect(screen.getByText('My own project')).toBeInTheDocument();
   });
 });

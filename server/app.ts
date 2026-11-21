@@ -10,6 +10,7 @@ import { requestId, type RequestIdVariables } from 'hono/request-id';
 import { accessLog, log, requestFields } from './log.ts';
 import { authRoutes } from './routes/auth.ts';
 import { baseProfileRoutes } from './routes/baseProfiles.ts';
+import { profileOverrideRoutes } from './routes/profileOverrides.ts';
 import { dataRoutes } from './routes/data.ts';
 import { tokenRoutes } from './routes/tokens.ts';
 import { requireUserOrToken } from './session.ts';
@@ -66,6 +67,7 @@ export function createApp({ staticDir = process.env.STATIC_DIR ?? './dist' }: Ap
     .route('/api', authRoutes)
     .route('/api/tokens', tokenRoutes)
     .route('/api/base-profiles', baseProfileRoutes)
+    .route('/api/profile-overrides', profileOverrideRoutes)
     .route('/api', dataRoutes)
     .route('/api/v1', v1);
 
