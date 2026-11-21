@@ -14,7 +14,7 @@ import {
   setPassword,
 } from '../auth.ts';
 import { jsonFields } from '../http.ts';
-import { clientIp, log } from '../log.ts';
+import { log, requestFields } from '../log.ts';
 import { requireUser, SESSION_COOKIE, startSession } from '../session.ts';
 
 /**
@@ -23,8 +23,10 @@ import { requireUser, SESSION_COOKIE, startSession } from '../session.ts';
  */
 function passwordRejected(c: Context, username: string, event: string) {
   recordFailure(username);
-  log.warn(event, { user: username, ip: clientIp(c) });
-  if (isLockedOut(username)) log.warn('Account locked for 15 minutes', { user: username, ip: clientIp(c) });
+  // The username tried, not a logged-in user: on /login there is none yet.
+  const fields = { ...requestFields(c), user: username };
+  log.warn(event, fields);
+  if (isLockedOut(username)) log.warn('Account locked for 15 minutes', fields);
 }
 
 export const authRoutes = new Hono()
@@ -43,7 +45,7 @@ export const authRoutes = new Hono()
 
     clearFailures(username);
     startSession(c, user.id);
-    log.info('Login', { user: user.username, ip: clientIp(c) });
+    log.info('Login', { ...requestFields(c), user: user.username });
     return c.json(user);
   })
   .post('/logout', (c) => {
@@ -82,6 +84,6 @@ export const authRoutes = new Hono()
     // only the other devices are signed out.
     await setPassword(id, newPassword);
     startSession(c, id);
-    log.info('Password changed', { user: username, ip: clientIp(c) });
+    log.info('Password changed', requestFields(c));
     return c.body(null, 204);
   });
