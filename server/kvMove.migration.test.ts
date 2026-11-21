@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 const history = JSON.stringify([
   { to: 'drafting', date: null, recordedAt: null },
@@ -54,9 +54,16 @@ test('every kv row moves into the tables and reads back the same, then the kv ta
   put.run(3, 'status-legacy', 'interview');
   old.close();
 
+  const lines: string[] = [];
+  vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => (lines.push(String(chunk)), true));
+  const moveLogs = () => lines.filter((line) => line.includes('migration=kv-to-tables'));
   process.env.DB_PATH = dbPath;
   const { db } = await import('./db.ts');
   const { moveKvToTables } = await import('./data/migrate.ts');
+  // The move leaves a line saying how many kv rows it copied.
+  expect(moveLogs()).toEqual([
+    expect.stringMatching(/msg="Migration applied" migration=kv-to-tables rows=[1-9]\d*\n$/),
+  ]);
   const { legacyView, unreadableKey } = await import('./data/legacyKeys.ts');
   const { baseProfileList } = await import('./data/baseProfiles.ts');
   const { applicationList } = await import('./data/applications.ts');
@@ -91,6 +98,7 @@ test('every kv row moves into the tables and reads back the same, then the kv ta
   setSetting(1, 'tour-seen', '2');
   moveKvToTables();
   expect(setting(1, 'tour-seen')).toBe('2');
+  expect(moveLogs()).toHaveLength(1);
 
   // A database the previous release already moved (its kv rows kept for a
   // rollback) only loses the table; the stale rows don't overwrite anything.
@@ -99,4 +107,6 @@ test('every kv row moves into the tables and reads back the same, then the kv ta
   moveKvToTables();
   expect(setting(1, 'tour-seen')).toBe('2');
   expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'kv'").get()).toBeUndefined();
+  expect(moveLogs()[1]).toMatch(/ migration=kv-to-tables rows=0\n$/);
+  vi.restoreAllMocks();
 });

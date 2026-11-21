@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { db } from '../db.ts';
 import { createTestUser } from '../test/testApp.ts';
 import {
@@ -118,7 +118,18 @@ it('splits the values the first move kept as they were', () => {
   setSetting(id, 'local-apps', '[{"id":"a"},{"id":"a"}]');
   setSetting(id, 'status-history-a', JSON.stringify(history));
   setSetting(id, 'base-profiles', 'oops');
-  splitKeptValues();
+  const lines: string[] = [];
+  vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => (lines.push(String(chunk)), true));
+  try {
+    splitKeptValues();
+    splitKeptValues();
+  } finally {
+    vi.restoreAllMocks();
+  }
+  // Logged with the number of values split, and only when there were any.
+  expect(lines.filter((line) => line.includes('migration=split-kept-values'))).toEqual([
+    expect.stringMatching(/msg="Migration applied" migration=split-kept-values rows=3\n$/),
+  ]);
   expect(applicationList(id).map((a) => a.id)).toEqual(['a']);
   expect(recordedSteps(id, 'a')).toEqual(history);
   expect(setting(id, 'local-apps')).toBeNull();
