@@ -1,7 +1,7 @@
 // Job postings collected from alerts (e.g. a Cloudflare Email Worker), to be
 // rated later against the user's priorities.
 import { Hono } from 'hono';
-import type { JobLead, JobLeadInput } from '#shared/types.ts';
+import type { FitCriterion, JobLead, JobLeadInput, RatingBasis } from '#shared/types.ts';
 import type { User } from './auth.ts';
 import { db, transaction } from './db.ts';
 import { invalid, jsonBody } from './http.ts';
@@ -18,6 +18,7 @@ interface LeadRow {
   title: string;
   company: string | null;
   location: string | null;
+  snippet: string | null;
   url: string;
   received_at: string;
   status: JobLead['status'];
@@ -25,8 +26,26 @@ interface LeadRow {
   verdict: string | null;
   rated_at: string | null;
   application_id: string | null;
-  /** JSON `{ criteria, exclusion? }`, the breakdown of the rating. */
+  /** JSON `StoredRating`: what the rating rests on and its breakdown. */
   rating: string | null;
+}
+
+/** The `rating` column; ratings stored before `basis` existed have only `criteria` and `exclusion`. */
+interface StoredRating {
+  basis?: RatingBasis;
+  criteria?: FitCriterion[];
+  exclusion?: string;
+}
+
+/** How /stellenradar starts the verdict of a rating it could only estimate. */
+const UNREADABLE_VERDICT = 'Anzeige nicht lesbar';
+
+/** The basis of a rating, also for leads rated before it was stored: a breakdown means the posting was read. */
+function ratingBasis(r: LeadRow, rating: StoredRating | null): RatingBasis | undefined {
+  if (rating?.basis) return rating.basis;
+  if (rating?.criteria) return 'read';
+  if (r.score !== null && r.verdict?.startsWith(UNREADABLE_VERDICT)) return 'estimated';
+  return undefined;
 }
 
 function toLead(r: LeadRow): JobLead {
@@ -45,7 +64,12 @@ function toLead(r: LeadRow): JobLead {
   };
   if (r.company !== null) lead.company = r.company;
   if (r.location !== null) lead.location = r.location;
-  if (r.rating !== null) Object.assign(lead, JSON.parse(r.rating) as Pick<JobLead, 'criteria' | 'exclusion'>);
+  if (r.snippet !== null) lead.snippet = r.snippet;
+  const rating = r.rating === null ? null : (JSON.parse(r.rating) as StoredRating);
+  if (rating?.criteria) lead.criteria = rating.criteria;
+  if (rating?.exclusion) lead.exclusion = rating.exclusion;
+  const basis = ratingBasis(r, rating);
+  if (basis) lead.basis = basis;
   return lead;
 }
 
@@ -58,35 +82,46 @@ export interface InsertCounts {
   created: number;
   /** Leads that were already known (updated or not). */
   duplicates: number;
-  /** Known leads whose title, url, company or location changed. */
+  /** Known leads whose title, url, company, location or snippet changed. */
   updated: number;
 }
 
 /**
  * Stores leads for a user in one transaction. A known lead takes the new title and url, and the
- * new company and location where given, so a re-sent alert repairs what an older parser stored.
+ * new company, location and snippet where given, so a re-sent alert repairs what an older parser stored.
  * Status, score and rating stay as they are.
  */
 export function insertLeads(userId: number, leads: JobLeadInput[]): InsertCounts {
   const exists = db.prepare('SELECT 1 FROM job_leads WHERE user_id = ? AND source = ? AND external_id = ?');
   const upsert = db.prepare(
-    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, snippet, url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (user_id, source, external_id) DO UPDATE SET
        title = excluded.title,
        company = COALESCE(excluded.company, company),
        location = COALESCE(excluded.location, location),
+       snippet = COALESCE(excluded.snippet, snippet),
        url = excluded.url
      WHERE title IS NOT excluded.title
         OR url IS NOT excluded.url
         OR (excluded.company IS NOT NULL AND company IS NOT excluded.company)
-        OR (excluded.location IS NOT NULL AND location IS NOT excluded.location)`,
+        OR (excluded.location IS NOT NULL AND location IS NOT excluded.location)
+        OR (excluded.snippet IS NOT NULL AND snippet IS NOT excluded.snippet)`,
   );
   return transaction(() => {
     const counts: InsertCounts = { created: 0, duplicates: 0, updated: 0 };
     for (const l of leads) {
       const known = exists.get(userId, l.source, l.externalId) !== undefined;
-      const r = upsert.run(userId, l.source, l.externalId, l.title, l.company ?? null, l.location ?? null, l.url);
+      const r = upsert.run(
+        userId,
+        l.source,
+        l.externalId,
+        l.title,
+        l.company ?? null,
+        l.location ?? null,
+        l.snippet ?? null,
+        l.url,
+      );
       if (!known) counts.created += 1;
       else {
         counts.duplicates += 1;
@@ -147,7 +182,7 @@ export const jobLeads = new Hono<{ Variables: { user: User } }>()
     const id = Number(c.req.param('id'));
     if (!Number.isInteger(id) || !findLead(userId, id)) return c.json({ error: 'No such job lead.' }, 404);
 
-    const { status, score, verdict, applicationId, criteria, exclusion } = result.value;
+    const { status, score, verdict, applicationId, criteria, exclusion, basis } = result.value;
     const sets: string[] = [];
     const params: (string | number | null)[] = [];
     const set = (clause: string, value: string | number | null) => {
@@ -160,9 +195,12 @@ export const jobLeads = new Hono<{ Variables: { user: User } }>()
       sets.push(score === null ? 'rated_at = NULL' : "rated_at = datetime('now')");
     }
     if (verdict !== undefined) set('verdict = ?', verdict);
-    // A new score without its breakdown leaves the old one stale, so it goes too.
-    if (criteria) set('rating = ?', JSON.stringify({ criteria, ...(exclusion && { exclusion }) }));
-    else if (score !== undefined || criteria === null) sets.push('rating = NULL');
+    // A new score without its breakdown or basis leaves the old one stale, so it goes too.
+    const newBasis = basis ?? (criteria ? 'read' : undefined);
+    if (newBasis) {
+      const rating: StoredRating = { basis: newBasis, ...(criteria && { criteria }), ...(exclusion && { exclusion }) };
+      set('rating = ?', JSON.stringify(rating));
+    } else if (score !== undefined || criteria === null) sets.push('rating = NULL');
     if (applicationId !== undefined) set('application_id = ?', applicationId);
     db.prepare(`UPDATE job_leads SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...params, id, userId);
     const updated = findLead(userId, id);

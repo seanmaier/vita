@@ -170,6 +170,7 @@ const leads: {
   verdict: string | null;
   criteria?: FitCriterion[];
   exclusion?: string;
+  snippet?: string;
 }[] = [
   {
     externalId: 'seed-1',
@@ -203,7 +204,22 @@ const leads: {
     score: 35,
     verdict: 'Anzeige nicht lesbar; nur aus dem Titel geschätzt.',
   },
-  { externalId: 'seed-5', title: 'Junior Fullstack Developer', company: 'Kaiwerk Studio', score: null, verdict: null },
+  {
+    externalId: 'seed-6',
+    title: 'Go Backend Developer (Junior)',
+    company: 'Hafenkran Digital',
+    score: 72,
+    verdict: 'Anzeige nicht lesbar; Go-Backend, Hybrid in Hamburg laut Mail.',
+    snippet: 'Gehalt: 50.000 € – 60.000 € · Remote: Hybrid',
+  },
+  {
+    externalId: 'seed-5',
+    title: 'Junior Fullstack Developer',
+    company: 'Kaiwerk Studio',
+    score: null,
+    verdict: null,
+    snippet: 'Einfach bewerben · Vor 1 Tag',
+  },
 ];
 
 // ---- Write ------------------------------------------------------------------
@@ -220,12 +236,13 @@ transaction(() => {
   setJson(userId, KEYS.localApps, [{ ...base, status: 'drafting' }, withoutHistory, evaluated]);
   setJson(userId, KEYS.statusHistory(evaluated.id), [{ to: 'evaluated', date: null, recordedAt: null }]);
   const insertLead = db.prepare(
-    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, url, status, score, verdict, rated_at, rating)
-     VALUES (?, 'arbeitsagentur', ?, ?, ?, 'Hamburg', ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO job_leads (user_id, source, external_id, title, company, location, snippet, url, status, score, verdict, rated_at, rating)
+     VALUES (?, 'arbeitsagentur', ?, ?, ?, 'Hamburg', ?, ?, ?, ?, ?, ?, ?)`,
   );
   for (const l of leads) {
+    // Leads without a breakdown get their basis from the verdict (server/jobLeads.ts).
     const rating = l.criteria
-      ? JSON.stringify({ criteria: l.criteria, ...(l.exclusion && { exclusion: l.exclusion }) })
+      ? JSON.stringify({ basis: 'read', criteria: l.criteria, ...(l.exclusion && { exclusion: l.exclusion }) })
       : null;
     const rated = l.score !== null;
     insertLead.run(
@@ -233,6 +250,7 @@ transaction(() => {
       l.externalId,
       l.title,
       l.company,
+      l.snippet ?? null,
       `https://example.com/jobs/${l.externalId}`,
       rated ? 'rated' : 'new',
       l.score,
