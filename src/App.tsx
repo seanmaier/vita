@@ -14,9 +14,9 @@ import { ApiTokensSection } from './components/ApiTokensSection';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { LeadsPage } from './pages/LeadsPage';
 import { TrashPage } from './pages/TrashPage';
-import { fetchCurrentUser, fetchUserData, refreshUserData } from './utils/api';
+import { fetchCurrentUser } from './utils/api';
 import { AppSkeleton } from './components/Skeleton';
-import { hasPendingWrites, hydrate, onSyncStatus, setStorageBackend } from './utils/storage';
+import { hydrate, setStorageBackend } from './utils/storage';
 import { DEMO_BASENAME, demoLocale, isDemo, loadDemoData, saveDemoData } from './demo/demoMode';
 import { DemoBanner } from './demo/DemoBanner';
 import { TourHost } from './tour/TourHost';
@@ -71,47 +71,15 @@ type AuthState = { kind: 'loading' } | { kind: 'anonymous' } | { kind: 'ready' }
 
 const centered = 'min-h-screen bg-bg flex items-center justify-center font-mono text-[12px]';
 
-// Every page reads storage synchronously while rendering, so the router only
-// mounts once the user's data has been loaded into it.
+// Shows the login until there is a session; each page then loads its own data.
 export function App() {
   const [auth, setAuth] = useState<AuthState>(isDemo ? { kind: 'ready' } : { kind: 'loading' });
-  const [syncError, setSyncError] = useState<string | null>(null);
-
-  const loadData = async () => {
-    try {
-      hydrate(await fetchUserData());
-      setAuth({ kind: 'ready' });
-    } catch (e) {
-      setAuth({ kind: 'error', message: e instanceof Error ? e.message : 'Loading data failed.' });
-    }
-  };
 
   useEffect(() => {
     if (isDemo) return;
     fetchCurrentUser()
-      .then((user) => (user ? loadData() : setAuth({ kind: 'anonymous' })))
+      .then((user) => setAuth({ kind: user ? 'ready' : 'anonymous' }))
       .catch((e) => setAuth({ kind: 'error', message: e instanceof Error ? e.message : 'Server unreachable.' }));
-  }, []);
-
-  useEffect(() => onSyncStatus(setSyncError), []);
-
-  // Pick up changes made elsewhere (another device, the /api/v1 API) when the
-  // tab comes back into view. Pages show them on their next render or visit.
-  useEffect(() => {
-    if (auth.kind !== 'ready' || isDemo) return;
-    const refresh = () => {
-      if (document.visibilityState === 'visible') refreshUserData().catch(() => {});
-    };
-    document.addEventListener('visibilitychange', refresh);
-    return () => document.removeEventListener('visibilitychange', refresh);
-  }, [auth.kind]);
-
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => {
-      if (hasPendingWrites()) e.preventDefault();
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
   }, []);
 
   if (auth.kind === 'loading') {
@@ -134,7 +102,7 @@ export function App() {
     return (
       <>
         <SeasonalEffect />
-        <LoginPage onLoggedIn={() => void loadData()} />
+        <LoginPage onLoggedIn={() => setAuth({ kind: 'ready' })} />
       </>
     );
   }
@@ -145,11 +113,6 @@ export function App() {
       {isDemo && <DemoBanner />}
       <RouterProvider router={router} />
       <TourHost navigate={tourNavigate} />
-      {syncError && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] font-mono text-[11px] bg-status-rejected text-ink font-semibold px-4 py-2 rounded shadow">
-          {syncError} Retrying…
-        </div>
-      )}
     </>
   );
 }

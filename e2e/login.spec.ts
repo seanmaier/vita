@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { STORAGE_KEYS } from '#shared/storageKeys.ts';
-import { andSaved, createUser, logIn } from './users.ts';
+import { createUser, logIn, skipTour } from './users.ts';
 
 test('a wrong password is refused with a message', async ({ page }) => {
   const user = createUser();
@@ -14,7 +13,7 @@ test('the tour opens on the first login only, and the session survives a reload'
   await logIn(page, createUser());
   const tour = page.getByRole('dialog');
   await expect(tour).toBeVisible();
-  await andSaved(page, STORAGE_KEYS.tourSeen, () => page.getByRole('button', { name: 'skip tour' }).click());
+  await skipTour(page);
   await expect(tour).toBeHidden();
 
   await page.reload();
