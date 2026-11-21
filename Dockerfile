@@ -31,6 +31,11 @@ COPY server ./server
 COPY shared ./shared
 COPY --from=builder /app/dist ./dist
 
+# The commit the image was built from (.github/workflows/docker.yml), logged at
+# start-up. Late in the file so a new commit doesn't invalidate the layers above.
+ARG GIT_SHA=dev
+ENV APP_VERSION=$GIT_SHA
+
 # /backups exists owned by node, so a fresh volume mounted there is writable.
 RUN mkdir /data /backups && chown node:node /data /backups
 VOLUME /data

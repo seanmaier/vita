@@ -75,6 +75,7 @@ async function appError(res: Response): Promise<string | undefined> {
 async function postInbound(
   env: Env,
   payload: InboundPayload,
+  requestId: string,
   fetchImpl: typeof fetch,
 ): Promise<{ ok: true } | { ok: false; status: string; retryable: boolean; reason?: string }> {
   // A missing secret is a setup error: keep the mail retryable until it is set.
@@ -82,6 +83,8 @@ async function postInbound(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${env.APP_TOKEN}`,
+    // The app logs it as rid on its own lines, so a worker log line finds the app's answer.
+    'X-Request-Id': requestId,
   };
   if (env.CF_ACCESS_CLIENT_ID && env.CF_ACCESS_CLIENT_SECRET) {
     headers['CF-Access-Client-Id'] = env.CF_ACCESS_CLIENT_ID;
@@ -192,6 +195,8 @@ export async function handleEmail(
     message.setReject(TEMPORARY_REJECT);
     return 'unavailable';
   };
+  // One ID per mail, kept on the retry: both attempts are the same piece of work.
+  const rid = crypto.randomUUID();
   try {
     const buffer = await new Response(message.raw).arrayBuffer();
     let parsed: ParsedMail | null = null;
@@ -210,26 +215,28 @@ export async function handleEmail(
     }
 
     const { payload, log } = await buildPayload(message, parsed);
-    let result = await postInbound(env, payload, fetchImpl);
+    let result = await postInbound(env, payload, rid, fetchImpl);
     if (!result.ok && result.retryable) {
       await sleep(RETRY_DELAY_MS);
-      result = await postInbound(env, payload, fetchImpl);
+      result = await postInbound(env, payload, rid, fetchImpl);
     }
     if (result.ok) {
-      console.log(`job-alerts: delivered ${log}`);
+      console.log(`job-alerts: delivered ${log} rid=${rid}`);
       return 'delivered';
     }
     if (!result.retryable) {
       message.setReject('not accepted');
       const reason = result.reason ? ` reason="${result.reason}"` : '';
-      console.log(`job-alerts: rejected ${log} status=${result.status}${reason}`);
+      console.log(`job-alerts: rejected ${log} status=${result.status}${reason} rid=${rid}`);
       return 'rejected';
     }
-    console.log(`job-alerts: unavailable ${log} status=${result.status}`);
+    console.log(`job-alerts: unavailable ${log} status=${result.status} rid=${rid}`);
     return bounce();
   } catch (error) {
     // Log the error type only, never mail content.
-    console.log(`job-alerts: unavailable (unexpected ${error instanceof Error ? error.name : typeof error})`);
+    console.log(
+      `job-alerts: unavailable (unexpected ${error instanceof Error ? error.name : typeof error}) rid=${rid}`,
+    );
     return bounce();
   }
 }

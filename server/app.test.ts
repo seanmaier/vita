@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app.ts';
 import { createApiToken, hashPassword, type TokenScope } from './auth.ts';
 import { db } from './db.ts';
@@ -47,6 +47,25 @@ describe('session login', () => {
     const user = await createUser();
     expect((await login(user.username, 'wrong password')).status).toBe(401);
     expect((await app.request('/api/me')).status).toBe(401);
+  });
+
+  it("logs a failed login with the request's ID, so it lines up with the access log", async () => {
+    const user = await createUser();
+    const lines: string[] = [];
+    vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => (lines.push(String(chunk)), true));
+    try {
+      await app.request('/api/login', {
+        method: 'POST',
+        headers: { ...json, 'x-request-id': 'trace-login-1' },
+        body: JSON.stringify({ username: user.username, password: 'wrong password' }),
+      });
+    } finally {
+      vi.restoreAllMocks();
+    }
+    const failed = lines.find((line) => line.includes('msg="Login failed"'));
+    expect(failed).toContain(`user=${user.username}`);
+    expect(failed).toContain('rid=trace-login-1');
+    expect(lines.find((line) => line.includes('msg=request'))).toContain('rid=trace-login-1');
   });
 
   it('logs in with a cookie that works for /api/me, the app routes and /api/v1', async () => {

@@ -2,6 +2,7 @@
 // starts (imported by ../app.ts). Both are idempotent and skip themselves
 // when there is nothing to do.
 import { db, hasKvTable } from '../db.ts';
+import { log } from '../log.ts';
 import { writeLegacyValue } from './legacyKeys.ts';
 import { atomic } from './schema.ts';
 
@@ -15,6 +16,7 @@ import { atomic } from './schema.ts';
 export function moveKvToTables(): void {
   if (!hasKvTable()) return;
   const moved = db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get() !== undefined;
+  let copied = 0;
   atomic(() => {
     if (!moved) {
       const rows = db.prepare('SELECT user_id, key, value FROM kv ORDER BY user_id, key').all() as {
@@ -23,10 +25,13 @@ export function moveKvToTables(): void {
         value: string;
       }[];
       for (const row of rows) writeLegacyValue(row.user_id, row.key, row.value);
+      copied = rows.length;
       db.prepare("INSERT INTO meta (key, value) VALUES ('kv_moved_at', ?)").run(new Date().toISOString());
     }
     db.exec('DROP TABLE kv');
   });
+  // rows=0: an already copied database that only lost its kv table.
+  log.info('Migration applied', { migration: 'kv-to-tables', rows: copied });
 }
 
 /**
@@ -50,6 +55,7 @@ export function splitKeptValues(): void {
     // Only the base profiles still need to tell an empty list from none.
     db.prepare("DELETE FROM stored_lists WHERE list = 'local-apps'").run();
   });
+  if (rows.length) log.info('Migration applied', { migration: 'split-kept-values', rows: rows.length });
 }
 
 moveKvToTables();

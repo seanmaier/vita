@@ -3,6 +3,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { seedHistory } from '#shared/domain/statusMachine.ts';
 import type { ApplicationConfig, ApplicationStatus } from '#shared/types.ts';
+import { log } from './log.ts';
 
 const DB_PATH = process.env.DB_PATH ?? path.resolve('data', 'app.db');
 
@@ -93,26 +94,15 @@ db.exec(`
  * run on every start and on a production database.
  */
 export function migrate(): void {
-  const columns = db.prepare('PRAGMA table_info(api_tokens)').all() as { name: string }[];
-  if (!columns.some((c) => c.name === 'scope')) {
-    // What the token may call; tokens that predate scopes keep full access.
-    db.exec("ALTER TABLE api_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'full'");
-  }
-  const leadColumns = db.prepare('PRAGMA table_info(job_leads)').all() as { name: string }[];
-  if (!leadColumns.some((c) => c.name === 'rating')) {
-    // The criteria breakdown of a rating; leads rated before it stay without one.
-    db.exec('ALTER TABLE job_leads ADD COLUMN rating TEXT');
-  }
-  if (!leadColumns.some((c) => c.name === 'snippet')) {
-    // What the alert said beyond title, company and location; older leads have none.
-    db.exec('ALTER TABLE job_leads ADD COLUMN snippet TEXT');
-  }
-  const userColumns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
-  if (!userColumns.some((c) => c.name === 'role')) {
-    // Admins may create the worker token scopes. Everyone who predates roles is a
-    // regular user; admins are made only with the CLI (server/cli.ts admin).
-    db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
-  }
+  // What the token may call; tokens that predate scopes keep full access.
+  addColumn('api_tokens', 'scope', "TEXT NOT NULL DEFAULT 'full'");
+  // The criteria breakdown of a rating; leads rated before it stay without one.
+  addColumn('job_leads', 'rating', 'TEXT');
+  // What the alert said beyond title, company and location; older leads have none.
+  addColumn('job_leads', 'snippet', 'TEXT');
+  // Admins may create the worker token scopes. Everyone who predates roles is a
+  // regular user; admins are made only with the CLI (server/cli.ts admin).
+  addColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
   // Works on the kv rows of a database from before tables (see server/data/migrate.ts).
   if (hasKvTable() && !db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()) migrateStatusHistories();
 }
@@ -120,6 +110,17 @@ export function migrate(): void {
 /** Whether the database still has the kv table: one from before tables, e.g. an old backup restored. */
 export function hasKvTable(): boolean {
   return db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'kv'").get() !== undefined;
+}
+
+/**
+ * Adds a column an older database lacks and logs it, so a deploy that changed
+ * the schema shows up in the log. Names are constants from migrate(), never input.
+ */
+function addColumn(table: string, column: string, definition: string): void {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (columns.some((c) => c.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  log.info('Migration applied', { table, column });
 }
 
 function parseJsonValue<T>(raw: string | undefined): T | null {
@@ -149,6 +150,7 @@ function migrateStatusHistories(): void {
     byUser.get(row.user_id)!.set(row.key, row.value);
   }
   const insert = db.prepare('INSERT OR IGNORE INTO kv (user_id, key, value) VALUES (?, ?, ?)');
+  let seeded = 0;
   transaction(() => {
     for (const [userId, kv] of byUser) {
       const list = parseJsonValue<ApplicationConfig[]>(kv.get('local-apps')) ?? [];
@@ -164,9 +166,11 @@ function migrateStatusHistories(): void {
         const status = (kv.get(`status-${id}`) as ApplicationStatus | undefined) ?? base?.status ?? 'drafting';
         const dates = parseJsonValue<Partial<ApplicationConfig>>(kv.get(`app-config-${id}`)) ?? base ?? {};
         insert.run(userId, `status-history-${id}`, JSON.stringify(seedHistory(status, dates)));
+        seeded++;
       }
     }
   });
+  if (seeded) log.info('Migration applied', { migration: 'status-histories', rows: seeded });
 }
 
 migrate();

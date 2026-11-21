@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 test('the scope migration keeps old tokens as full and is idempotent', async () => {
   const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-')), 'app.db');
@@ -28,4 +28,30 @@ test('the scope migration keeps old tokens as full and is idempotent', async () 
   migrate();
   migrate();
   expect({ ...scopeOf() }).toEqual({ scope: 'full' });
+});
+
+test('each applied migration is logged once, and a migrated database starts silently', async () => {
+  const dbPath = join(mkdtempSync(join(tmpdir(), 'vita-migrate-log-')), 'app.db');
+  const old = new DatabaseSync(dbPath);
+  old.exec(`
+    CREATE TABLE api_tokens (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (datetime('now')), last_used_at TEXT);
+  `);
+  old.close();
+
+  const lines: string[] = [];
+  vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+    lines.push(String(chunk));
+    return true;
+  });
+  vi.resetModules();
+  process.env.DB_PATH = dbPath;
+  const { migrate } = await import('./db.ts');
+  const applied = () => lines.filter((line) => line.includes('msg="Migration applied"'));
+  expect(applied().some((line) => / table=api_tokens column=scope\n$/.test(line))).toBe(true);
+
+  const count = applied().length;
+  migrate();
+  expect(applied()).toHaveLength(count);
+  vi.restoreAllMocks();
 });
