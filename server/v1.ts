@@ -38,16 +38,19 @@ import { jobAlerts } from './jobAlerts.ts';
 import { jobLeads } from './jobLeads.ts';
 import { knowledge } from './knowledge.ts';
 import { historyFor, writeHistory } from './statusHistory.ts';
-import { getJson, idsWithStoredKey, KEYS, setJson } from './store.ts';
-
-type StoredConfig = Omit<ApplicationConfig, 'status'>;
+import {
+  applicationIdsWithData,
+  applicationList,
+  saveApplicationList,
+  savedEdits,
+  setSavedEdits,
+} from './data/applications.ts';
+import { baseProfileList, saveBaseProfileList } from './data/baseProfiles.ts';
 
 /** Who a write is recorded as in the version history: the API token's name, or the app for session calls. */
 const authorOf = (c: Context) => (c.get('apiToken') as string | undefined) ?? BROWSER_AUTHOR;
 
-function localApps(userId: number): ApplicationConfig[] {
-  return getJson<ApplicationConfig[]>(userId, KEYS.localApps) ?? [];
-}
+const localApps = applicationList;
 
 /** An application as the API returns it: with its status history, from which status and dates are derived. */
 export type EffectiveApplication = ApplicationConfig & { statusHistory: StatusTransition[] };
@@ -63,7 +66,7 @@ function withoutStatusFields<T extends Partial<ApplicationConfig>>(config: T) {
 // edits saved for it (useApplication), with status and dates from its status
 // history. Whether it's in the trash is only ever recorded on the stored entry.
 function effectiveApplication(userId: number, base: ApplicationConfig): EffectiveApplication {
-  const override = getJson<StoredConfig>(userId, KEYS.appConfig(base.id));
+  const override = savedEdits(userId, base.id);
   const merged = withoutStatusFields({ ...base, ...override, id: base.id, deletedAt: base.deletedAt });
   const statusHistory = historyFor(userId, base.id, base)!;
   return {
@@ -79,9 +82,7 @@ function findApplication(userId: number, id: string): EffectiveApplication | nul
   return base ? effectiveApplication(userId, base) : null;
 }
 
-function baseProfiles(userId: number): BaseProfile[] | null {
-  return getJson<BaseProfile[]>(userId, KEYS.baseProfiles);
-}
+const baseProfiles = baseProfileList;
 
 /**
  * Lists leave trashed items out; with `?trash=true` they list only those,
@@ -312,16 +313,11 @@ export const v1 = new Hono<V1Env>()
       // may belong to an application from private/applications/, which the
       // server can't see. The API never removes them, so it can't destroy that
       // data by accident; it picks another id instead.
-      const taken = new Set([
-        ...apps.map((a) => a.id),
-        ...idsWithStoredKey(userId, KEYS.appConfig('')),
-        ...idsWithStoredKey(userId, KEYS.status('')),
-        ...idsWithStoredKey(userId, KEYS.statusHistory('')),
-      ]);
+      const taken = new Set([...apps.map((a) => a.id), ...applicationIdsWithData(userId)]);
       if (explicitId && taken.has(result.value.id)) return null;
       const config = { ...result.value, id: explicitId ? result.value.id : uniqueId(result.value.id, taken) };
       const before = snapshot(userId, [config.id]);
-      setJson(userId, KEYS.localApps, [...apps, config]);
+      saveApplicationList(userId, [...apps, config]);
       writeHistory(userId, config.id, [{ to: initial, date: null, recordedAt: new Date().toISOString() }]);
       recordChanges(userId, before, authorOf(c), () => message);
       return config;
@@ -365,7 +361,7 @@ export const v1 = new Hono<V1Env>()
 
       const { status: _status, ...stored } = result.value;
       const before = snapshot(userId, [id]);
-      setJson(userId, KEYS.appConfig(id), withoutStatusFields(stored));
+      setSavedEdits(userId, id, withoutStatusFields(stored));
       recordChanges(userId, before, authorOf(c), () => message);
       return { ok: true, value: null };
     });
@@ -431,7 +427,7 @@ export const v1 = new Hono<V1Env>()
       const version = Number.isInteger(versionId) ? getVersion(userId, id, versionId) : null;
       if (!version) return 'no-version';
       const before = snapshot(userId, [id]);
-      setJson(userId, KEYS.appConfig(id), { ...version.content, id, ...(current.notes && { notes: current.notes }) });
+      setSavedEdits(userId, id, { ...version.content, id, ...(current.notes && { notes: current.notes }) });
       const restoredMessage = version.message ? `Restored: ${version.message}` : 'Restored an earlier version';
       recordChanges(userId, before, authorOf(c), () => restoredMessage);
       return findApplication(userId, id)!;
@@ -463,7 +459,7 @@ export const v1 = new Hono<V1Env>()
       if (givenId !== undefined && taken.has(givenId)) return 'conflict';
       const id = givenId ?? uniqueId(slugify(result.value.name) || 'profile', taken);
       const created: BaseProfile = { id, ...result.value };
-      setJson(userId, KEYS.baseProfiles, [...list, created]);
+      saveBaseProfileList(userId, [...list, created]);
       return created;
     });
 
@@ -486,9 +482,8 @@ export const v1 = new Hono<V1Env>()
       if (!list || !current) return 'not-found';
       if (current.deletedAt) return 'trashed';
       const replacement: BaseProfile = { id, ...result.value };
-      setJson(
+      saveBaseProfileList(
         userId,
-        KEYS.baseProfiles,
         list.map((p) => (p.id === id ? replacement : p)),
       );
       return replacement;
@@ -512,9 +507,8 @@ export const v1 = new Hono<V1Env>()
       const usedBy = applicationsUsing(userId, id);
       if (usedBy.length) return usedBy;
       const trashed: BaseProfile = { ...current, deletedAt: new Date().toISOString() };
-      setJson(
+      saveBaseProfileList(
         userId,
-        KEYS.baseProfiles,
         list.map((p) => (p.id === id ? trashed : p)),
       );
       return trashed;
@@ -541,9 +535,8 @@ export const v1 = new Hono<V1Env>()
       if (!list || !current) return null;
       const { deletedAt: _deletedAt, ...active } = current;
       if (current.deletedAt)
-        setJson(
+        saveBaseProfileList(
           userId,
-          KEYS.baseProfiles,
           list.map((p) => (p.id === id ? active : p)),
         );
       return active;

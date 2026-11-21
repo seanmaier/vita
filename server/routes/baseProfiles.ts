@@ -11,7 +11,7 @@ import { LANGUAGES } from '#shared/utils/language.ts';
 import { transaction } from '../db.ts';
 import { jsonValue } from '../http.ts';
 import { requireUser, type SessionEnv } from '../session.ts';
-import { getJson, KEYS, setJson } from '../store.ts';
+import { baseProfileList as stored, saveBaseProfileList } from '../data/baseProfiles.ts';
 
 const baseProfileSchema: z.ZodType<BaseProfile> = z.object({
   id: z.string().min(1),
@@ -24,16 +24,11 @@ const baseProfileSchema: z.ZodType<BaseProfile> = z.object({
 
 const parseProfile = (value: unknown) => baseProfileSchema.safeParse(value);
 
-/** The stored list, or null if the app never stored one (it then seeds the language defaults). */
-function stored(userId: number): BaseProfile[] | null {
-  return getJson<BaseProfile[]>(userId, KEYS.baseProfiles);
-}
-
 /** Changes the list in one transaction; `change` returns the new list, or null if `id` is unknown. */
 function update(userId: number, change: (list: BaseProfile[]) => BaseProfile[] | null): BaseProfile[] | null {
   return transaction(() => {
     const next = change(stored(userId) ?? []);
-    if (next) setJson(userId, KEYS.baseProfiles, next);
+    if (next) saveBaseProfileList(userId, next);
     return next;
   });
 }
@@ -53,7 +48,7 @@ export const baseProfileRoutes = new Hono<SessionEnv>()
     const list = transaction(() => {
       const current = stored(userId);
       if (current) return current;
-      setJson(userId, KEYS.baseProfiles, profiles.data);
+      saveBaseProfileList(userId, profiles.data);
       return profiles.data;
     });
     return c.json(list);

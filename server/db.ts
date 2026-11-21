@@ -113,7 +113,7 @@ export function migrate(): void {
     // regular user; admins are made only with the CLI (server/cli.ts admin).
     db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))");
   }
-  // Works on the kv rows of a database from before tables (see moveKvToTables in server/userData.ts).
+  // Works on the kv rows of a database from before tables (see server/data/migrate.ts).
   if (hasKvTable() && !db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()) migrateStatusHistories();
 }
 

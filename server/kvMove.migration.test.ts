@@ -1,5 +1,5 @@
 // Points DB_PATH elsewhere than the setup file (server/test/env.ts) did and
-// imports server/db.ts and server/userData.ts only then: it needs a database
+// imports server/db.ts and server/data/ only then: it needs a database
 // in the old format, with all data in kv rows, before they open it.
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -56,13 +56,25 @@ test('every kv row moves into the tables and reads back the same, then the kv ta
 
   process.env.DB_PATH = dbPath;
   const { db } = await import('./db.ts');
-  const { allValues, getValue, moveKvToTables, setValue } = await import('./userData.ts');
+  const { moveKvToTables } = await import('./data/migrate.ts');
+  const { legacyView, unreadableKey } = await import('./data/legacyKeys.ts');
+  const { baseProfileList } = await import('./data/baseProfiles.ts');
+  const { applicationList } = await import('./data/applications.ts');
+  const { knowledgeDoc, setSetting, setting } = await import('./data/documents.ts');
+  const { recordedSteps } = await import('./data/statusTransitions.ts');
 
-  expect(allValues(1)).toEqual(user1);
-  expect(allValues(2)).toEqual(user2);
-  expect(getValue(2, 'base-profiles')).toBeNull();
-  expect(getValue(3, 'status-legacy')).toBe('interview');
-  expect(JSON.parse(getValue(3, 'status-history-legacy')!)).toEqual([
+  // Everything a backup file merges into reads back as it was stored.
+  const { 'knowledge-priorities': doc, 'tour-seen': tourSeen, 'some-future-key': future, ...user1Data } = user1;
+  expect(legacyView(1)).toEqual(user1Data);
+  expect(knowledgeDoc(1, 'priorities')).toBe(doc);
+  expect(setting(1, 'tour-seen')).toBe(tourSeen);
+  expect(setting(1, 'some-future-key')).toBe(future);
+  // A list with a duplicate id: each id once, the original kept aside.
+  expect(applicationList(2)).toEqual([{ id: 'a' }]);
+  expect(setting(2, unreadableKey('local-apps'))).toBe(user2['local-apps']);
+  expect(baseProfileList(2)).toBeNull();
+  expect(legacyView(3)['status-legacy']).toBe('interview');
+  expect(recordedSteps(3, 'legacy')).toEqual([
     { to: 'drafting', date: null, recordedAt: null },
     { to: 'sent', date: null, recordedAt: null },
     { to: 'interview', date: null, recordedAt: null },
@@ -76,15 +88,15 @@ test('every kv row moves into the tables and reads back the same, then the kv ta
   expect(db.prepare("SELECT 1 FROM meta WHERE key = 'kv_moved_at'").get()).toBeTruthy();
 
   // Once only: later changes in the tables survive another start.
-  setValue(1, 'tour-seen', '2');
+  setSetting(1, 'tour-seen', '2');
   moveKvToTables();
-  expect(getValue(1, 'tour-seen')).toBe('2');
+  expect(setting(1, 'tour-seen')).toBe('2');
 
   // A database the previous release already moved (its kv rows kept for a
   // rollback) only loses the table; the stale rows don't overwrite anything.
   db.exec('CREATE TABLE kv (user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL)');
   db.prepare("INSERT INTO kv (user_id, key, value) VALUES (1, 'tour-seen', 'stale')").run();
   moveKvToTables();
-  expect(getValue(1, 'tour-seen')).toBe('2');
+  expect(setting(1, 'tour-seen')).toBe('2');
   expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'kv'").get()).toBeUndefined();
 });

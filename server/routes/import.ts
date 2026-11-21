@@ -6,7 +6,7 @@ import { transaction } from '../db.ts';
 import { BROWSER_AUTHOR, recordChanges, snapshot } from '../history.ts';
 import { jsonValue } from '../http.ts';
 import { requireUser, type SessionEnv } from '../session.ts';
-import { allValues, setValue } from '../store.ts';
+import { legacyView, writeLegacyValue } from '../data/legacyKeys.ts';
 
 // Mounted at /api, so requireUser goes on the route: a wildcard middleware
 // here would also catch /api/login and /api/v1.
@@ -19,10 +19,10 @@ export const importRoutes = new Hono<SessionEnv>()
     if (!parsed.ok) return c.json({ error: parsed.error }, 400);
     const userId = c.get('user').id;
     const outcome = transaction(() => {
-      const result = mergeBackup(allValues(userId), parsed.backup);
+      const result = mergeBackup(legacyView(userId), parsed.backup);
       if (!result.ok) return result;
       const before = snapshot(userId, result.added);
-      for (const [key, value] of Object.entries(result.set)) setValue(userId, key, value);
+      for (const [key, value] of Object.entries(result.set)) writeLegacyValue(userId, key, value);
       recordChanges(userId, before, BROWSER_AUTHOR, () => 'Imported from a backup');
       return result;
     });

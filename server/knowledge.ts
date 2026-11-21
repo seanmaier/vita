@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { validator } from 'hono/validator';
 import type { User } from './auth.ts';
 import { invalid, jsonBody } from './http.ts';
-import { getValue, KEYS, setValue } from './store.ts';
+import { knowledgeDoc as storedDoc, setKnowledgeDoc } from './data/documents.ts';
 
 export const KNOWLEDGE_DOCS = ['about-me', 'priorities'] as const;
 export type KnowledgeDoc = (typeof KNOWLEDGE_DOCS)[number];
@@ -23,7 +23,7 @@ const knowledgeDoc = validator('param', (params, c) => {
 export const knowledge = new Hono<{ Variables: { user: User } }>()
   .get('/:doc', knowledgeDoc, (c) => {
     const { doc } = c.req.valid('param');
-    const content = getValue(c.get('user').id, KEYS.knowledge(doc));
+    const content = storedDoc(c.get('user').id, doc);
     return content === null ? c.json({ error: 'Not saved yet.' }, 404) : c.json({ doc, content });
   })
   .put('/:doc', knowledgeDoc, jsonBody(['content']), async (c) => {
@@ -33,6 +33,6 @@ export const knowledge = new Hono<{ Variables: { user: User } }>()
     if (content.length > MAX_KNOWLEDGE_LENGTH) {
       return invalid(c, [`"content" must be at most ${MAX_KNOWLEDGE_LENGTH} characters.`]);
     }
-    setValue(c.get('user').id, KEYS.knowledge(doc), content);
+    setKnowledgeDoc(c.get('user').id, doc, content);
     return c.json({ doc, content });
   });

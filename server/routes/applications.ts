@@ -15,9 +15,15 @@ import { BROWSER_AUTHOR, deleteVersions, recordChanges, snapshot } from '../hist
 import { jsonValue } from '../http.ts';
 import { requireUser, type SessionEnv } from '../session.ts';
 import { historyFor } from '../statusHistory.ts';
-import { getJson, idsWithStoredKey, KEYS, removeValue, setJson } from '../store.ts';
-
-type StoredConfig = Omit<ApplicationConfig, 'status'>;
+import {
+  applicationIdsWithData,
+  applicationList as list,
+  removeApplicationData,
+  saveApplicationList,
+  savedEdits,
+  setSavedEdits,
+  type StoredConfig,
+} from '../data/applications.ts';
 
 export interface StoredApplication {
   id: string;
@@ -38,27 +44,16 @@ const savedEditsSchema = z.object({
   message: z.string().max(500).optional(),
 });
 
-function list(userId: number): ApplicationConfig[] {
-  return getJson<ApplicationConfig[]>(userId, KEYS.localApps) ?? [];
-}
-
 /** All of the user's applications: list entries first, in order, then any others with saved edits or a status. */
 export function storedApplications(userId: number): StoredApplication[] {
   const entries = list(userId);
-  const ids = [
-    ...new Set([
-      ...entries.map((a) => a.id),
-      ...idsWithStoredKey(userId, KEYS.appConfig('')),
-      ...idsWithStoredKey(userId, KEYS.statusHistory('')),
-      ...idsWithStoredKey(userId, KEYS.status('')),
-    ]),
-  ];
+  const ids = [...new Set([...entries.map((a) => a.id), ...applicationIdsWithData(userId)])];
   return ids.map((id) => {
     const config = entries.find((a) => a.id === id) ?? null;
     return {
       id,
       config,
-      savedEdits: getJson<StoredConfig>(userId, KEYS.appConfig(id)),
+      savedEdits: savedEdits(userId, id),
       statusHistory: historyFor(userId, id, config ?? undefined),
     };
   });
@@ -83,9 +78,8 @@ function write(c: Context<SessionEnv>, id: string, run: (userId: number) => bool
 function changeEntry(userId: number, id: string, change: (a: ApplicationConfig) => ApplicationConfig): boolean {
   const entries = list(userId);
   if (!entries.some((a) => a.id === id)) return false;
-  setJson(
+  saveApplicationList(
     userId,
-    KEYS.localApps,
     entries.map((a) => (a.id === id ? change(a) : a)),
   );
   return true;
@@ -105,7 +99,7 @@ export const applicationRoutes = new Hono<SessionEnv>()
       const next = entries.some((a) => a.id === id)
         ? entries.map((a) => (a.id === id ? config.data : a))
         : [...entries, config.data];
-      setJson(userId, KEYS.localApps, next);
+      saveApplicationList(userId, next);
       return true;
     });
   })
@@ -119,7 +113,7 @@ export const applicationRoutes = new Hono<SessionEnv>()
       c,
       id,
       (userId) => {
-        setJson(userId, KEYS.appConfig(id), body.data.config);
+        setSavedEdits(userId, id, body.data.config);
         return true;
       },
       body.data.message,
@@ -129,7 +123,7 @@ export const applicationRoutes = new Hono<SessionEnv>()
   .delete('/:id/saved-edits', (c) => {
     const id = c.req.param('id');
     return write(c, id, (userId) => {
-      removeValue(userId, KEYS.appConfig(id));
+      setSavedEdits(userId, id, null);
       return true;
     });
   })
@@ -155,12 +149,11 @@ export const applicationRoutes = new Hono<SessionEnv>()
     const found = transaction(() => {
       const entries = list(userId);
       if (!entries.some((a) => a.id === id)) return false;
-      setJson(
+      saveApplicationList(
         userId,
-        KEYS.localApps,
         entries.filter((a) => a.id !== id),
       );
-      for (const key of [KEYS.appConfig(id), KEYS.status(id), KEYS.statusHistory(id)]) removeValue(userId, key);
+      removeApplicationData(userId, id);
       deleteVersions(userId, id);
       return true;
     });
